@@ -68,15 +68,20 @@ El análisis completo, con la evidencia numérica de cada uno, está en
 index.html               aplicación (una sola página)
 assets/js/stats.js       distribución F (beta incompleta)
 assets/js/anova.js       motor de cálculo — puro, sin DOM, reutilizable
-assets/js/charts.js      las siete gráficas (Chart.js)
+assets/js/charts.js      las ocho gráficas (Chart.js)
 assets/js/app.js         interfaz y flujo
 tests/                   suite de regresión + reimplementación del VBA original
 datasets/                casos de validación con resultados publicados
-docs/                    auditoría del motor de Excel
+docs/                    auditoría del motor de Excel y estándar de diseño
 ```
 
 `assets/js/anova.js` no depende del DOM ni de ninguna librería: se puede
 importar desde Node o desde otra herramienta tal cual.
+
+El diseño de la interfaz —layout, gráficas, redacción de mensajes, tooltips,
+validación, reporte impreso— está fijado en
+**[`docs/estandar-de-diseno.md`](docs/estandar-de-diseno.md)**. Cada método que
+se agregue debe cumplirlo, o cambiarlo primero.
 
 ## Publicar en GitHub Pages
 

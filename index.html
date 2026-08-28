@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por el metodo ANOVA cruzado. Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260829i">
+<link rel="stylesheet" href="assets/css/style.css?v=20260829j">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -118,31 +118,31 @@
       </div>
 
       <div class="grid cols-4">
-        <label class="field"><span>LSL <span class="opt">(opcional)</span></span>
+        <label class="field" title="Limite inferior de especificacion. Con LSL y USL se calcula el % Tolerance (P/T)."><span>LSL <span class="opt">(opcional)</span></span>
           <input type="text" id="lsl" inputmode="decimal" placeholder="limite inferior"></label>
-        <label class="field"><span>USL <span class="opt">(opcional)</span></span>
+        <label class="field" title="Limite superior de especificacion. Con LSL y USL se calcula el % Tolerance (P/T)."><span>USL <span class="opt">(opcional)</span></span>
           <input type="text" id="usl" inputmode="decimal" placeholder="limite superior"></label>
-        <label class="field"><span>Tolerancia directa <span class="opt">(opcional)</span></span>
+        <label class="field" title="Ancho de la tolerancia ya calculado. Si lo capturas, gana sobre USL - LSL: util cuando tu especificacion no es simplemente la resta de los dos limites."><span>Tolerancia directa <span class="opt">(opcional)</span></span>
           <input type="text" id="tolerance" inputmode="decimal" placeholder="gana sobre USL - LSL"></label>
-        <label class="field"><span>Sigma historica <span class="opt">(opcional)</span></span>
+        <label class="field" title="Desviacion estandar historica del proceso. Agrega la columna % Proceso, que compara el sistema de medicion contra la variacion real del proceso y no contra las piezas de este estudio."><span>Sigma historica <span class="opt">(opcional)</span></span>
           <input type="text" id="historicalSigma" inputmode="decimal" placeholder="para % Proceso"></label>
       </div>
 
       <div class="grid cols-4" style="margin-top:12px">
-        <label class="field"><span>Media historica <span class="opt">(opcional)</span></span>
+        <label class="field" title="Centro del proceso. Solo se usa con especificacion unilateral: si no la das, se toma la media de este estudio, que depende de las piezas que elegiste."><span>Media historica <span class="opt">(opcional)</span></span>
           <input type="text" id="processMean" inputmode="decimal" placeholder="solo si la spec es unilateral"></label>
-        <label class="field"><span>Multiplicador</span>
+        <label class="field" title="Cuantas sigmas se consideran la variacion del estudio. La 4a edicion del manual AIAG usa 6; la 3a usaba 5.15. Cambia el % Study Variation y el % Tolerance, no los componentes de varianza."><span>Multiplicador</span>
           <select id="svMultiplier">
             <option value="6" selected>6 sigma (AIAG 4a ed.)</option>
             <option value="5.15">5.15 sigma (AIAG 3a ed.)</option>
           </select></label>
-        <label class="field"><span>Interaccion</span>
+        <label class="field" title="Que hacer con el termino operador x pieza. Automatico corre la prueba F y lo agrupa con la repetibilidad si su p es mayor que alfa, como Minitab; tambien puedes forzar incluirlo o agruparlo siempre."><span>Interaccion</span>
           <select id="interactionMode">
             <option value="auto" selected>Automatico (prueba F)</option>
             <option value="include">Siempre incluir</option>
             <option value="exclude">Siempre agrupar</option>
           </select></label>
-        <label class="field"><span>Alfa</span>
+        <label class="field" title="Nivel de significancia de la prueba F de la interaccion: por arriba de este valor la interaccion se agrupa con la repetibilidad. AIAG usa 0.25; Minitab trae 0.05 de fabrica."><span>Alfa</span>
           <select id="alpha">
             <option value="0.25" selected>0.25 (AIAG)</option>
             <option value="0.05">0.05 (default de Minitab)</option>
@@ -151,7 +151,7 @@
       </div>
 
       <div class="grid cols-4" style="margin-top:12px">
-        <label class="field"><span>Denominador de F</span>
+        <label class="field" title="Contra que cuadrado medio se prueban operador y pieza: el de la interaccion (lo que hace Minitab) o el de la repetibilidad (el ejemplo del manual AIAG, p.127). Solo cambia las F y sus p, no los componentes de varianza."><span>Denominador de F</span>
           <select id="fDenominator">
             <option value="interaction" selected>CM interaccion (Minitab)</option>
             <option value="repeatability">CM repetibilidad (ejemplo AIAG p.127)</option>
@@ -294,10 +294,10 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260829i"></script>
-<script src="assets/js/stats.js?v=20260829i"></script>
-<script src="assets/js/anova.js?v=20260829i"></script>
-<script src="assets/js/charts.js?v=20260829i"></script>
-<script src="assets/js/app.js?v=20260829i"></script>
+<script src="assets/vendor/chart.umd.js?v=20260829j"></script>
+<script src="assets/js/stats.js?v=20260829j"></script>
+<script src="assets/js/anova.js?v=20260829j"></script>
+<script src="assets/js/charts.js?v=20260829j"></script>
+<script src="assets/js/app.js?v=20260829j"></script>
 </body>
 </html>

@@ -57,5 +57,42 @@
     return betai(d2 / 2, d1 / 2, d2 / (d2 + d1 * f));
   }
 
-  global.MSAStats = { fSurvival: fSurvival, logGamma: logGamma, betai: betai };
+  /* --------------------------------------------------------------------- *
+   * Cuartiles y resumen de caja (para el diagrama de caja por operador)
+   * --------------------------------------------------------------------- */
+
+  /** Cuantil por interpolacion lineal sobre la posicion (n+1)p, la convencion
+      que usa Minitab para sus cuartiles y sus diagramas de caja. */
+  function quantile(sorted, p) {
+    var n = sorted.length;
+    if (!n) return NaN;
+    if (n === 1) return sorted[0];
+    var pos = p * (n + 1);
+    if (pos <= 1) return sorted[0];
+    if (pos >= n) return sorted[n - 1];
+    var lo = Math.floor(pos), frac = pos - lo;
+    return sorted[lo - 1] + frac * (sorted[lo] - sorted[lo - 1]);
+  }
+
+  /** Resumen de caja al estilo Minitab: caja Q1-Q3, mediana, media, bigotes
+      hasta el dato mas lejano dentro de 1.5 RIC y los demas como atipicos. */
+  function boxStats(values) {
+    var v = values.filter(function (x) { return isFinite(x); }).slice().sort(function (a, b) { return a - b; });
+    if (!v.length) return null;
+    var q1 = quantile(v, 0.25), med = quantile(v, 0.5), q3 = quantile(v, 0.75);
+    var iqr = q3 - q1, loFence = q1 - 1.5 * iqr, hiFence = q3 + 1.5 * iqr;
+    var inliers = v.filter(function (x) { return x >= loFence && x <= hiFence; });
+    var sum = 0;
+    v.forEach(function (x) { sum += x; });
+    return {
+      n: v.length, min: v[0], max: v[v.length - 1],
+      q1: q1, median: med, q3: q3, iqr: iqr, mean: sum / v.length,
+      whiskerLow: inliers.length ? inliers[0] : v[0],
+      whiskerHigh: inliers.length ? inliers[inliers.length - 1] : v[v.length - 1],
+      outliers: v.filter(function (x) { return x < loFence || x > hiFence; })
+    };
+  }
+
+  global.MSAStats = { fSurvival: fSurvival, logGamma: logGamma, betai: betai,
+                      quantile: quantile, boxStats: boxStats };
 })(typeof window !== 'undefined' ? window : globalThis);

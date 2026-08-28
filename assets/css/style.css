@@ -189,7 +189,10 @@ header.toolbar {
    "1 Configuracion", el "2 Captura" y el "3 Resultados en vivo" se vean del
    mismo tamano. */
 .config-summary {
-  display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px;
+  /* center, no baseline: con baseline la insignia del paso quedaba 1.5 px mas
+     abajo que el centro del titulo, mientras que el encabezado de Resultados
+     (.results-head) si la centra. Ahora los tres pasos se ven igual. */
+  display: flex; align-items: center; gap: 10px; margin: 0 0 4px;
   font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; color: var(--ink);
   cursor: pointer; list-style: none;
 }

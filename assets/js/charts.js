@@ -85,6 +85,119 @@
 
   function pct(v) { return (100 * v).toFixed(1) + ' %'; }
 
+  /* Colores exactos del libro de Excel para el semaforo AIAG. */
+  var SEMAFORO = { ok: '#00B050', warn: '#FFC000', bad: '#FF0000', resto: '#D9D9D9' };
+  function colorAIAG(v) {
+    if (v <= 0.10) return SEMAFORO.ok;
+    if (v <= 0.30) return SEMAFORO.warn;
+    return SEMAFORO.bad;
+  }
+
+  /* ---------------------------------------------------------------------- *
+   * Evaluacion de la variacion del estudio (barras apiladas horizontales).
+   * Replica GraficarBarraStudyVariationConTolerance del VBA:
+   *  - barra de color segun el criterio AIAG sobre pista gris hasta 100 %
+   *  - el valor se RECORTA a 100 % para dibujar, pero la etiqueta muestra
+   *    el valor real (asi un 205 % de tolerancia sigue siendo legible)
+   *  - etiqueta en caja blanca con borde negro, pegada al inicio de la
+   *    barra si el valor es <= 50 %, y al final si es mayor
+   * ---------------------------------------------------------------------- */
+  function renderEvaluation(result) {
+    var el = document.getElementById('chartEvaluation');
+    if (!el) return;
+
+    var sv = result.metrics.pctStudyVar / 100;
+    var tol = result.metrics.pctTolerance === null ? null : result.metrics.pctTolerance / 100;
+
+    // Orden visual de arriba hacia abajo: Tolerance primero, luego Study Variation.
+    var rows = [];
+    if (tol !== null) rows.push({ label: 'Total Gage – Tolerance', value: tol });
+    rows.push({ label: 'Total Gage – Study Variation', value: sv });
+
+    var real = rows.map(function (r) { return r.value; });
+    var clamped = real.map(function (v) { return Math.min(v, 1); });
+
+    var labelPlugin = {
+      id: 'msaBarLabels',
+      afterDatasetsDraw: function (chart) {
+        var ctx = chart.ctx, meta = chart.getDatasetMeta(0);
+        ctx.save();
+        ctx.font = 'bold 11px ' + getComputedStyle(document.body).fontFamily;
+        ctx.textBaseline = 'middle';
+        ctx.textAlign = 'center';
+        meta.data.forEach(function (bar, i) {
+          var text = (100 * real[i]).toFixed(2) + ' %';
+          var w = ctx.measureText(text).width + 12, h = 19;
+          var x = real[i] <= 0.5 ? bar.base + 3 : bar.x - w - 3;
+          // Nunca dejar la caja fuera del area de dibujo.
+          x = Math.max(chart.chartArea.left + 1, Math.min(x, chart.chartArea.right - w - 1));
+          var y = bar.y;
+          ctx.fillStyle = '#ffffff';
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1;
+          ctx.fillRect(x, y - h / 2, w, h);
+          ctx.strokeRect(x, y - h / 2, w, h);
+          ctx.fillStyle = '#000000';
+          ctx.fillText(text, x + w / 2, y + 0.5);
+        });
+        ctx.restore();
+      }
+    };
+
+    if (registry.chartEvaluation) registry.chartEvaluation.destroy();
+    registry.chartEvaluation = new Chart(el.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels: rows.map(function (r) { return r.label; }),
+        datasets: [
+          {
+            label: 'Valor',
+            data: clamped,
+            backgroundColor: real.map(colorAIAG),
+            borderColor: '#000000',
+            borderWidth: 1
+          },
+          {
+            label: 'Resto',
+            data: clamped.map(function (v) { return 1 - v; }),
+            backgroundColor: SEMAFORO.resto,
+            borderColor: '#bfbfbf',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            filter: function (c) { return c.datasetIndex === 0; },
+            callbacks: {
+              label: function (c) { return (100 * real[c.dataIndex]).toFixed(2) + ' %'; }
+            }
+          }
+        },
+        scales: {
+          x: {
+            stacked: true, min: 0, max: 1,
+            grid: { display: false },
+            ticks: { stepSize: 0.1, callback: function (v) { return Math.round(100 * v) + ' %'; },
+                     font: { size: 10 }, color: TICK }
+          },
+          y: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { font: { size: 11 }, color: TICK }
+          }
+        }
+      },
+      plugins: [labelPlugin]
+    });
+  }
+
   /* ---------------------------------------------------------------------- *
    * render(result) - dibuja las 6 graficas a partir del objeto de compute()
    * ---------------------------------------------------------------------- */
@@ -92,6 +205,9 @@
     var ch = result.charts;
     var comps = {};
     result.components.forEach(function (c) { comps[c.key] = c; });
+
+    /* 0. Evaluacion del estudio (semaforo AIAG) */
+    renderEvaluation(result);
 
     /* 1. Componentes de variacion (barras agrupadas) */
     var order = ['grr', 'rep', 'repro', 'part'];

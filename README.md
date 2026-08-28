@@ -1,8 +1,9 @@
 # MSA Toolkit
 
 Herramientas de análisis de sistemas de medición (MSA) que corren enteramente en
-el navegador. Sin backend, sin instalación, sin licencias. Pensado para
-reemplazar el libro de Excel con macros que se usaba para los estudios Gage R&R.
+el navegador. Sin backend, sin instalación y sin licencia de software que pagar.
+Pensado para reemplazar el libro de Excel con macros que se usaba para los
+estudios Gage R&R.
 
 **Método disponible hoy:** Gage R&R por **ANOVA cruzado** (crossed, dos factores
 con efectos aleatorios). Es el mismo método del libro original, con el motor de
@@ -107,4 +108,9 @@ propias pruebas de regresión y datasets de validación:
 
 ## Licencia
 
-MIT — ver [LICENSE](LICENSE).
+**Código visible, no código abierto.** Copyright (c) 2026 dflores296, todos los
+derechos reservados. El repositorio es público para poder consultarlo y para
+alojar el sitio en GitHub Pages, pero **no** se concede licencia de uso, copia,
+modificación ni redistribución. Ver [LICENSE](LICENSE).
+
+Chart.js (`assets/vendor/`) mantiene su licencia MIT propia.

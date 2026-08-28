@@ -6,9 +6,20 @@
   'use strict';
 
   var PALETTE = ['#0b5cad', '#b3261e', '#1c7a4a', '#9a6206', '#6b3fa0', '#0f7c8a', '#a34a7f'];
-  var GRID = '#e6e9ed';
-  var TICK = '#5a6673';
   var registry = {};
+
+  /* Lee los tokens de color del tema activo (claro/oscuro), para que las
+     graficas de Chart.js (que no entienden variables CSS) sigan legibles
+     al cambiar de tema. */
+  function themeVar(name, fallback) {
+    var v = getComputedStyle(document.documentElement).getPropertyValue(name);
+    v = v && v.trim();
+    return v || fallback;
+  }
+  function GRID() { return themeVar('--chart-grid', '#e6e9ed'); }
+  function TICK() { return themeVar('--chart-tick', '#5a6673'); }
+  function TRACK() { return themeVar('--chart-track', '#d9d9d9'); }
+  function TRACK_BORDER() { return themeVar('--chart-track-border', '#bfbfbf'); }
 
   function destroyAll() {
     Object.keys(registry).forEach(function (k) {
@@ -27,13 +38,13 @@
           position: 'bottom',
           // usePointStyle:false para que las lineas de limite se dibujen en la
           // leyenda con su patron de guiones y no como puntos.
-          labels: { boxWidth: 22, boxHeight: 2, font: { size: 11 }, padding: 10, usePointStyle: false }
+          labels: { boxWidth: 22, boxHeight: 2, font: { size: 11 }, padding: 10, usePointStyle: false, color: TICK() }
         },
         tooltip: { titleFont: { size: 11 }, bodyFont: { size: 11 } }
       },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: TICK, maxRotation: 60, minRotation: 0 } },
-        y: { grid: { color: GRID }, ticks: { font: { size: 10 }, color: TICK } }
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, color: TICK(), maxRotation: 60, minRotation: 0 } },
+        y: { grid: { color: GRID() }, ticks: { font: { size: 10 }, color: TICK() } }
       }
     };
     return merge(o, extra || {});
@@ -166,8 +177,8 @@
           {
             label: 'Resto',
             data: clamped.map(function (v) { return 1 - v; }),
-            backgroundColor: SEMAFORO.resto,
-            borderColor: '#bfbfbf',
+            backgroundColor: TRACK(),
+            borderColor: TRACK_BORDER(),
             borderWidth: 1
           }
         ]
@@ -191,12 +202,12 @@
             stacked: true, min: 0, max: 1,
             grid: { display: false },
             ticks: { stepSize: 0.1, callback: function (v) { return Math.round(100 * v) + ' %'; },
-                     font: { size: 10 }, color: TICK }
+                     font: { size: 10 }, color: TICK() }
           },
           y: {
             stacked: true,
             grid: { display: false },
-            ticks: { font: { size: 11 }, color: TICK }
+            ticks: { font: { size: 11 }, color: TICK() }
           }
         }
       },
@@ -305,7 +316,7 @@
         scales: {
           x: { type: 'linear', min: -0.5, max: opLabels.length - 0.5,
                ticks: { stepSize: 1, callback: function (v) { return opLabels[v] || ''; },
-                        font: { size: 10 }, color: TICK } },
+                        font: { size: 10 }, color: TICK() } },
           y: { ticks: { callback: tickFormatter(scatter.map(function (p) { return p.y; })) } }
         }
       })

@@ -511,12 +511,20 @@ footer.site a { color: var(--ink-soft); }
   .verdict .t { font-size: 8pt; }
   .eval-card { break-inside: avoid; }
 
-  /* Graficas: dos por fila, sin cortarse a la mitad. */
+  /* Graficas: dos por fila, sin cortarse a la mitad.
+     El lienzo se dibuja en pantalla y en papel es un mapa de bits ya hecho, con
+     su alto en pixeles fijado por Chart.js. Si aqui se le impone otro alto al
+     contenedor, la imagen se sale de su caja y los rotulos del eje y la leyenda
+     terminan encima del pie de la grafica. Por eso el contenedor crece con la
+     imagen (height:auto) y el lienzo se escala manteniendo su proporcion. */
   .charts { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .chart-box { break-inside: avoid; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
-  .chart-box .holder { height: 165px; }
+  .chart-box .holder { position: static; height: auto; }
+  .chart-box .holder canvas {
+    display: block; width: 100% !important; height: auto !important;
+  }
   .chart-box h3 { font-size: 10pt; }
-  .chart-box p.cap { font-size: 8pt; }
+  .chart-box p.cap { font-size: 8pt; margin-top: 6px; }
 
   table { font-size: 9pt; }
   /* En pantalla el encabezado de tabla es sticky para que sobreviva al scroll;

@@ -508,5 +508,10 @@
     };
   }
 
-  global.MSAAnova = { compute: compute, validate: validate, CONTROL_CONSTANTS: CTRL };
+  /* assess y resolveTolerance se exportan porque el motor anidado
+     (anova-nested.js) los usa tal cual: el criterio AIAG y la manera de
+     resolver la tolerancia no dependen del diseno del estudio, y duplicarlos
+     seria arriesgar que un metodo clasifique distinto que el otro. */
+  global.MSAAnova = { compute: compute, validate: validate, CONTROL_CONSTANTS: CTRL,
+                      assess: assess, resolveTolerance: resolveTolerance };
 })(typeof window !== 'undefined' ? window : globalThis);

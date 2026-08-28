@@ -1,8 +1,9 @@
 # Estandar de diseno de MSA Toolkit
 
-Fotografia del diseno tal como quedo al terminar el metodo **Gage R&R (ANOVA
-cruzado)**. Sirve como contrato para los metodos que siguen: cada metodo nuevo
-se ve, se lee y se comporta como este, o cambia este documento primero.
+Fotografia del diseno tal como quedo al terminar los metodos **Gage R&R (ANOVA
+cruzado)** y **Gage R&R (ANOVA anidado)**. Sirve como contrato para los metodos
+que siguen: cada metodo nuevo se ve, se lee y se comporta como estos, o cambia
+este documento primero.
 
 Regla general: **un metodo nuevo no inventa lenguaje visual**. Si necesita algo
 que aqui no existe, se agrega aqui y se aplica a todos.
@@ -56,6 +57,43 @@ tambien que el producto tiene mas de un metodo.
   (MSA, cartas de control, capacidad), el paso siguiente es un desplegable
   agrupado anclado en la barra, no un cajon lateral.
 
+### Un metodo no se lleva su propia pantalla
+
+Cruzado y anidado comparten el HTML entero: los mismos pasos, las mismas
+tarjetas, las mismas pestanas. **Lo que cambia se marca en el HTML**, con
+`data-methods="cruzado"` (o la lista de metodos donde el elemento aplica), y
+`applyMethod` lo muestra u oculta. Sin atributo, el elemento vale para todos.
+
+- Un campo que no aplica **se oculta, no se deshabilita**: un `<select>` gris
+  que nunca se puede usar es ruido que el lector tiene que descartar cada vez.
+  En el anidado se van Alfa, Interaccion y Denominador de F, porque sin
+  interaccion estimable no hay nada que probar, agrupar ni elegir.
+- Lo mismo con las graficas: **el motor no publica la serie** que su diseno no
+  puede calcular, y el dibujante omite la grafica si el dato no viene. La
+  condicion se escribe `if (ch.interaction)`, no `if (metodo === 'anidado')`:
+  quien decide es el modelo, no la pantalla.
+- Al cambiar de metodo hay que **destruir las graficas anteriores**. Una que el
+  metodo nuevo no dibuja se quedaria en pantalla con los datos del anterior.
+- `[hidden] { display: none !important; }` va en la hoja, una sola vez. La
+  regla del navegador es `[hidden]{display:none}` a secas, y cualquier regla de
+  componente de esta hoja (`label.field` es flex, `.grid` es grid) le gana por
+  especificidad: sin la regla global, ocultar un campo no hace nada.
+
+### Cambiar de metodo no pierde la captura
+
+La rejilla de captura es la misma (operadores x piezas x replicas), asi que las
+mediciones se conservan **por su lugar en la rejilla**, no por el nombre de la
+pieza. Lo que cambia es el significado y los nombres, y eso se dice en un aviso
+de la tarjeta: que se conservo, cuanto, y que supone ahora el metodo nuevo.
+
+> Nunca se pierden datos en silencio, y nunca se cambia el significado de un
+> dato sin decirlo.
+
+Cuando el metodo destino no admite los nombres de pieza que traia el anterior
+-el anidado no acepta que dos operadores compartan pieza- se renumeran y el
+aviso lo dice, en vez de mostrar un error de nombre repetido que el usuario no
+provoco.
+
 ### Espaciado
 
 | Elemento | Valor |
@@ -83,6 +121,12 @@ se enteran.
 
 - `auto-fill`, no `auto-fit`: una fila con un solo campo debe ocupar **una**
   columna, no todo el ancho.
+- **Una lista larga de campos iguales tambien es una rejilla.** Los nombres de
+  pieza del anidado son operadores x piezas: con el estudio que sugiere AIAG son
+  treinta. En una columna serian treinta filas seguidas, asi que el bloque toma
+  el ancho de la tarjeta y los campos se acomodan en las columnas que quepan.
+  Si van agrupados, el encabezado del grupo ocupa la fila entera
+  (`grid-column: 1 / -1`).
 - `.grid { align-items: end }` y `label.field` como columna flex: los campos
   quedan alineados aunque un rotulo ocupe dos lineas.
 - Ningun rotulo, marcador de posicion o texto de `<select>` puede quedar
@@ -157,6 +201,13 @@ Nada de paquetes extra: lo que falte se resuelve con un plugin propio
 Toda grafica responde al cursor. Si el dato mostrado no es el crudo (una caja,
 una barra flotante), el tooltip da el resumen legible — los cinco numeros de la
 caja, no el par `[q1, q3]` — y la dimension que el eje ya no repite.
+
+### Graficas que un metodo no tiene
+
+No se dibuja un lienzo vacio ni una grafica con una nota de "no aplica": la
+grafica **no aparece**. El hueco lo cierra la rejilla sola. Lo que si tiene que
+aparecer es la razon, una vez y donde se explica el metodo (Notas de
+interpretacion), no repetida en cada tarjeta.
 
 ### Pie de grafica
 
@@ -253,6 +304,16 @@ Reglas que no se negocian:
   traslacion, escalado, orden de las filas).
 - Ningun cambio de presentacion toca los numeros. Si una prueba verifica una
   frase literal de un mensaje, se ajusta la prueba, no el mensaje.
+- **Compartir pantalla obliga a comprobarlo.** Como los metodos comparten el
+  HTML, tocar la pantalla toca a todos, y la suite de motor no lo ve: el
+  calculo puede seguir dando los mismos numeros mientras la pantalla los
+  muestra mal, se come una grafica o rompe el reporte. Antes de dar por bueno
+  un cambio de presentacion se corre `tests/regresion-visual.js` para cada
+  metodo, contra la revision anterior. Compara lo que la pagina publica -y lo
+  que **se ve**, no lo que hay en el DOM: los bloques de los otros metodos
+  estan ahi, ocultos-, incluido el reporte impreso pixel a pixel. Necesita
+  Playwright, que no es dependencia del proyecto: es herramienta de escritorio,
+  no requisito para usar la aplicacion.
 - Las URLs de `assets/` llevan `?v=` y se sube en cada cambio publicado.
 
 ---
@@ -260,6 +321,10 @@ Reglas que no se negocian:
 ## 10. Lista de verificacion para un metodo nuevo
 
 - [ ] Entra en el banco de dos columnas, con sus pasos numerados y tarjetas plegables.
+- [ ] Comparte el HTML de los demas metodos; lo propio va con `data-methods`.
+- [ ] Lo que no aplica se oculta, no se deshabilita, y las graficas que no
+      corresponden no se dibujan porque el motor no publica su serie.
+- [ ] Cambiar de metodo conserva la captura por posicion y lo avisa.
 - [ ] Sus rejillas usan `auto-fill` con minimo en px.
 - [ ] Sus tarjetas de resumen se alinean con `subgrid`.
 - [ ] Sus colores de nivel salen de `--sem-*` y no cambian con el tema.

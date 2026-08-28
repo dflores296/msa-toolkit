@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Pruebas de validacion</title>
-<link rel="stylesheet" href="../assets/css/style.css?v=20260828a">
+<link rel="stylesheet" href="../assets/css/style.css?v=20260830a">
 </head>
 <body>
 <header class="site">
   <div class="wrap">
     <h1>Pruebas de validacion</h1>
-    <p>Suite de regresion del motor ANOVA. Corre en tu navegador al abrir esta pagina.</p>
+    <p>Suites de regresion de los motores ANOVA cruzado y anidado. Corren en tu navegador al abrir esta pagina.</p>
     <nav><a href="../">Volver a la aplicacion</a><a href="../docs/auditoria-motor-excel.md">Auditoria del motor</a></nav>
   </div>
 </header>
@@ -25,6 +25,15 @@
       para ese dataset: sumas de cuadrados, cuadrados medios, prueba F de la interaccion,
       componentes de varianza, %Contribucion, %Study Variation y NDC.
     </p>
+    <p class="hint" style="margin-left:0">
+      El motor <strong>anidado</strong> se valida con las mismas mediciones, renumerando las piezas de
+      1 a 30 para que ninguna la midan dos operadores. Los valores esperados no son nuevos: salen de
+      una identidad exacta del ANOVA balanceado &mdash; al anidar,
+      <code>SC_Pieza(Operador) = SC_Pieza + SC_Interaccion</code> del modelo cruzado, y
+      <code>SC_Operador</code> y <code>SC_Repetibilidad</code> no cambian &mdash; asi que quedan anclados
+      en los mismos numeros publicados. Se suma un caso construido a mano, con los tres cuadrados medios
+      verificables con lapiz. Detalle en <code>tests/tests-nested.js</code>.
+    </p>
     <div id="summary" class="summary-line">Ejecutando...</div>
     <div id="rows"></div>
   </section>
@@ -37,13 +46,16 @@
   </section>
 </div>
 
-<script src="../assets/js/stats.js?v=20260828a"></script>
-<script src="../assets/js/anova.js?v=20260828a"></script>
-<script src="tests.js?v=20260828a"></script>
-<script src="legacy-vba.js?v=20260828a"></script>
+<script src="../assets/js/stats.js?v=20260830a"></script>
+<script src="../assets/js/anova.js?v=20260830a"></script>
+<script src="../assets/js/anova-nested.js?v=20260830a"></script>
+<script src="harness.js?v=20260830a"></script>
+<script src="tests.js?v=20260830a"></script>
+<script src="tests-nested.js?v=20260830a"></script>
+<script src="legacy-vba.js?v=20260830a"></script>
 <script>
 (function () {
-  var res = MSATests.results;
+  var res = MSATestKit.report().results;
   var s = document.getElementById('summary');
   s.textContent = MSATests.passed + ' / ' + MSATests.total + ' pruebas pasaron';
   s.style.color = MSATests.failed ? 'var(--bad)' : 'var(--ok)';

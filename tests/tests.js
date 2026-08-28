@@ -225,11 +225,11 @@
     assert(res.toleranceInfo.centerFromStudy === false, 'no deberia venir del estudio');
   });
 
-  test('unilateral: avisa que la convencion no es unica y de donde salio el centro', function () {
+  test('unilateral: avisa del criterio usado y de donde salio el centro', function () {
     var res = MSAAnova.compute(aiagRows(), { usl: 5, alpha: 0.25 });
     var w = res.warnings.join(' | ');
     assert(w.indexOf('unilateral') >= 0, 'falta el aviso de unilateral');
-    assert(w.indexOf('media global del estudio') >= 0, 'falta el aviso del centro');
+    assert(w.indexOf('media del estudio') >= 0, 'falta el aviso del centro');
   });
 
   test('unilateral imposible (limite del lado equivocado) se ignora', function () {

@@ -350,6 +350,8 @@ input.invalid { border-color: var(--bad); background: var(--bad-soft); }
   display: grid; grid-row: span 3; grid-template-rows: subgrid; align-content: start;
   border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface);
 }
+/* Las tarjetas y los campos con explicacion avisan que hay algo que leer. */
+.verdict[title], label.field[title] > span { cursor: help; }
 .verdict .k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); align-self: start; }
 .verdict .v { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; margin: 0; color: var(--ink); align-self: start; }
 .verdict .t {

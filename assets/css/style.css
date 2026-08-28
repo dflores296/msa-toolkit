@@ -138,6 +138,23 @@ header.toolbar {
   box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
 }
 
+/* Selector de metodo: comparte la caja del interruptor de tema para no inventar
+   un control nuevo. Los metodos que todavia no existen se ven, deshabilitados:
+   asi se sabe que vienen sin prometer que ya estan. */
+.method-switch {
+  display: flex; padding: 2px; border-radius: 7px;
+  background: var(--toggle-track-bg); border: 1px solid var(--toggle-track-border);
+}
+.method-switch .method-opt {
+  border: none; padding: 4px 10px; border-radius: 5px; background: transparent;
+  color: var(--toggle-inactive-ink); font-size: 11.5px; font-weight: 500; cursor: pointer;
+}
+.method-switch .method-opt.active {
+  background: var(--toggle-active-bg); color: var(--toggle-active-ink); font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+.method-switch .method-opt[disabled] { opacity: .5; cursor: not-allowed; }
+
 .toolbar-nav { padding: 6px 24px 10px; font-size: 12.5px; border-top: 1px dashed var(--border); }
 .toolbar-nav a { color: var(--ink-soft); text-decoration: none; margin-right: 16px; }
 .toolbar-nav a:hover { color: var(--accent-ink); text-decoration: underline; }

@@ -32,6 +32,55 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Metodo del estudio
+   * Hoy solo existe el Gage R&R cruzado; el anidado (destructivas) y el de
+   * atributos ya aparecen en la barra, deshabilitados, para que se vea que
+   * vienen. Cada metodo lleva su propia direccion (#cruzado), asi el enlace
+   * abre el metodo correcto y recargar no lo pierde.
+   * ------------------------------------------------------------------ */
+  var METHODS = [
+    { id: 'cruzado', badge: 'Gage R&R \u00b7 ANOVA cruzado', available: true,
+      help: 'Gage R&R por ANOVA cruzado: cada operador mide las mismas piezas varias veces.' },
+    { id: 'anidado', badge: 'Gage R&R \u00b7 anidado', available: false,
+      help: 'En camino. Gage R&R anidado, para pruebas destructivas: cada operador mide piezas ' +
+            'distintas de un lote homogeneo.' },
+    { id: 'atributos', badge: 'Attribute Agreement', available: false,
+      help: 'En camino. Acuerdo entre evaluadores para datos de pasa / no pasa (Kappa, Kendall).' }
+  ];
+
+  function methodById(id) {
+    for (var i = 0; i < METHODS.length; i++) if (METHODS[i].id === id) return METHODS[i];
+    return METHODS[0];
+  }
+
+  function applyMethod(id) {
+    var m = methodById(id);
+    if (!m.available) m = METHODS[0];
+    document.documentElement.setAttribute('data-method', m.id);
+    $('methodBadge').textContent = m.badge;
+    [].slice.call(document.querySelectorAll('.method-opt')).forEach(function (btn) {
+      var mm = methodById(btn.dataset.method);
+      btn.classList.toggle('active', btn.dataset.method === m.id);
+      btn.setAttribute('aria-pressed', btn.dataset.method === m.id ? 'true' : 'false');
+      btn.title = mm.help;
+    });
+    if (location.hash !== '#' + m.id) {
+      try { history.replaceState(null, '', '#' + m.id); } catch (e) { location.hash = m.id; }
+    }
+    return m.id;
+  }
+
+  function initMethods() {
+    applyMethod((location.hash || '').replace('#', '') || 'cruzado');
+    [].slice.call(document.querySelectorAll('.method-opt')).forEach(function (btn) {
+      btn.addEventListener('click', function () { applyMethod(btn.dataset.method); });
+    });
+    window.addEventListener('hashchange', function () {
+      applyMethod((location.hash || '').replace('#', ''));
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
    * Pestañas del panel de resultados (Componentes / ANOVA / Graficas / Notas)
    * ------------------------------------------------------------------ */
   function initTabs() {
@@ -817,7 +866,8 @@
     ];
     $('printHeader').innerHTML =
       '<h1 class="rep-title">' + esc(name) + '</h1>' +
-      '<p class="rep-sub">Estudio Gage R&amp;R por el metodo ANOVA cruzado &middot; MSA Toolkit</p>' +
+      '<p class="rep-sub">' + esc(methodById(document.documentElement.getAttribute('data-method')).badge) +
+        ' &middot; MSA Toolkit</p>' +
       '<div class="rep-meta">' + meta.map(function (m) {
         return '<div><span>' + esc(m[0]) + '</span><strong>' + esc(m[1]) + '</strong></div>';
       }).join('') + '</div>';
@@ -861,6 +911,7 @@
    * ------------------------------------------------------------------ */
   document.addEventListener('DOMContentLoaded', function () {
     initTheme();
+    initMethods();
     initTabs();
     renderNameInputs();
     renderStudyName();

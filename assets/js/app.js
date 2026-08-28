@@ -9,6 +9,29 @@
   var state = { operators: [], parts: [], replicates: 2, result: null };
 
   /* ------------------------------------------------------------------ *
+   * Tema claro / oscuro - manual, se recuerda en localStorage.
+   * ------------------------------------------------------------------ */
+  function currentTheme() {
+    return document.documentElement.getAttribute('data-theme') || 'light';
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('msa-theme', theme); } catch (e) {}
+    [].slice.call(document.querySelectorAll('.theme-opt')).forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.themeChoice === theme);
+    });
+    if (state.result) MSACharts.render(state.result);
+  }
+
+  function initTheme() {
+    applyTheme(currentTheme());
+    [].slice.call(document.querySelectorAll('.theme-opt')).forEach(function (btn) {
+      btn.addEventListener('click', function () { applyTheme(btn.dataset.themeChoice); });
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
    * Paso 1 - configuracion
    * ------------------------------------------------------------------ */
   function defaultNames(prefix, n, existing) {
@@ -214,7 +237,6 @@
       $('resultBody').hidden = true;
       MSACharts.destroyAll();
       state.result = null;
-      $('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
     var opts = {
@@ -245,7 +267,6 @@
     renderVerdict(result);
     renderTables(result);
     MSACharts.render(result);
-    $('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function renderVerdict(r) {
@@ -586,6 +607,7 @@
    * Arranque
    * ------------------------------------------------------------------ */
   document.addEventListener('DOMContentLoaded', function () {
+    initTheme();
     renderNameInputs();
     ['numOperators', 'numParts'].forEach(function (id) {
       $(id).addEventListener('change', renderNameInputs);

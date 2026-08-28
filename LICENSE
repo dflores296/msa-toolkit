@@ -1,21 +1,45 @@
-MIT License
+Copyright (c) 2026 dflores296. Todos los derechos reservados.
+All rights reserved.
 
-Copyright (c) 2026 dflores296
+Este repositorio es de CÓDIGO VISIBLE (source-available), NO de código abierto.
+Se publica únicamente para poder consultarlo y para alojar el sitio en GitHub
+Pages.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+LO QUE SÍ SE PERMITE
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+  - Consultar y leer el código dentro de GitHub.
+  - Usar la aplicación publicada en GitHub Pages tal como se ofrece.
+  - Las bifurcaciones (forks) dentro de GitHub, en la medida en que lo permiten
+    los Términos de Servicio de GitHub.
+
+
+LO QUE NO SE PERMITE
+
+No se concede ninguna licencia, expresa ni implícita, para usar, copiar,
+modificar, fusionar, publicar, distribuir, sublicenciar, vender ni crear obras
+derivadas de este software o de partes sustanciales del mismo, ni para
+incorporarlo a un producto o servicio propio, sin autorización previa y por
+escrito del titular de los derechos.
+
+Para solicitar una licencia de uso, escribe al titular del repositorio.
+
+
+SIN GARANTÍA
+
+EL SOFTWARE SE PROPORCIONA "TAL CUAL", SIN GARANTÍA DE NINGÚN TIPO, EXPRESA O
+IMPLÍCITA, INCLUIDAS ENTRE OTRAS LAS GARANTÍAS DE COMERCIABILIDAD, IDONEIDAD
+PARA UN PROPÓSITO PARTICULAR Y NO INFRACCIÓN. EN NINGÚN CASO EL AUTOR O EL
+TITULAR DE LOS DERECHOS SERÁ RESPONSABLE DE NINGUNA RECLAMACIÓN, DAÑO U OTRA
+RESPONSABILIDAD DERIVADA DEL SOFTWARE O DE SU USO.
+
+Los resultados de esta herramienta no sustituyen el juicio de un profesional de
+calidad ni constituyen una certificación. Verifica los valores contra tu norma
+de referencia antes de usarlos en una auditoría.
+
+
+COMPONENTES DE TERCEROS
+
+Chart.js (assets/vendor/chart.umd.js) se distribuye bajo licencia MIT y conserva
+su propio aviso de copyright en assets/vendor/chart.js-LICENSE.md. Esa licencia
+aplica a ese archivo, no al resto de este repositorio.

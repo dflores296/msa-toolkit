@@ -449,13 +449,91 @@ footer.site a { color: var(--ink-soft); }
   .card { padding: 14px; }
 }
 
+/* --- Reporte impreso -----------------------------------------------------
+   Imprimir la app tal cual daba un PDF inservible: salia solo la pestana
+   abierta (o sea, cero graficas), la tabla de captura con sus 90 recuadros
+   vacios, y la barra de herramientas. Lo que se imprime ahora es un reporte:
+   portada con el nombre del estudio y los veredictos, tablas, las ocho
+   graficas y, al final, el anexo con las mediciones como texto.
+   #printHeader y #printAnnex se llenan al imprimir (buildPrintReport en
+   app.js); aqui solo se decide que se ve y como se pagina. */
+.print-only { display: none; }
+
 @media print {
-  body { background: #fff; }
-  header.toolbar nav, .toolbar-nav, .actions, button, .theme-toggle { display: none !important; }
+  @page { size: letter; margin: 14mm 12mm; }
+  html, body { background: #fff; }
+  /* Los colores de las etiquetas y de las barras son parte de la informacion
+     (semaforo AIAG): sin esto el navegador los imprime en blanco. */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  .print-only { display: block; }
+
+  /* Fuera todo lo que solo sirve en pantalla. */
+  header.toolbar, .toolbar-nav, footer.site, .actions, button, .theme-toggle,
+  .col-capture, .results-head, .tabs-bar, .chart-subcap { display: none !important; }
+
   .workbench { display: block; max-width: none; }
-  .col-capture { border-right: none; }
   .col-results { position: static; }
-  .results-panel { max-height: none; overflow: visible; background: #fff; }
-  .card { border: none; padding: 0; margin-bottom: 20px; break-inside: avoid; }
-  .chart-box { break-inside: avoid; }
+  .results-panel { max-height: none; overflow: visible; background: #fff; padding: 0; gap: 14px; }
+  #resultBody { gap: 14px; }
+
+  /* Sin pestanas, los cuatro paneles se imprimen uno tras otro, cada uno con
+     su titulo (data-print-title). */
+  .tab-panel[hidden] { display: block !important; }
+  .tab-panel { break-before: page; }
+  .tab-panel[data-panel="componentes"] { break-before: auto; }
+  .tab-panel::before {
+    content: attr(data-print-title);
+    display: block; font-size: 13pt; font-weight: 600; margin: 0 0 10px;
+    padding-bottom: 4px; border-bottom: 1px solid #999;
+  }
+
+  .card { border: none; padding: 0; margin-bottom: 14px; break-inside: avoid; }
+  .tabs-card { padding: 0; }
+
+  /* Encabezado del reporte */
+  #printHeader { margin-bottom: 14px; }
+  #printHeader .rep-title { font-size: 17pt; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  #printHeader .rep-sub { font-size: 10.5pt; color: #444; margin: 2px 0 10px; }
+  #printHeader .rep-meta {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 14px;
+    font-size: 9pt; border-top: 1px solid #999; border-bottom: 1px solid #999; padding: 8px 0;
+  }
+  #printHeader .rep-meta div span { color: #555; display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .04em; }
+  #printHeader .rep-meta div strong { font-weight: 600; }
+
+  /* Veredictos y evaluacion: en papel el subgrid de pantalla no aporta y
+     rompe el corte de pagina, asi que van como fila simple de cinco. */
+  .verdicts { grid-template-columns: repeat(5, 1fr); gap: 6px; break-inside: avoid; }
+  .verdict { display: block; border: 1px solid #bbb; border-radius: 6px; padding: 6px 8px; }
+  .verdict .v { font-size: 14pt; margin: 2px 0 4px; }
+  .verdict .k { font-size: 7.5pt; }
+  .verdict .t { font-size: 8pt; }
+  .eval-card { break-inside: avoid; }
+
+  /* Graficas: dos por fila, sin cortarse a la mitad. */
+  .charts { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .chart-box { break-inside: avoid; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+  .chart-box .holder { height: 165px; }
+  .chart-box h3 { font-size: 10pt; }
+  .chart-box p.cap { font-size: 8pt; }
+
+  table { font-size: 9pt; }
+  /* En pantalla el encabezado de tabla es sticky para que sobreviva al scroll;
+     en papel eso lo mandaba al pie del bloque. */
+  thead th { position: static; }
+  .table-scroll { overflow: visible; }
+
+  /* Anexo de datos */
+  #printAnnex { break-before: page; }
+  #printAnnex h2 {
+    font-size: 13pt; font-weight: 600; margin: 0 0 10px;
+    padding-bottom: 4px; border-bottom: 1px solid #999;
+  }
+  #printAnnex table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  #printAnnex th, #printAnnex td { border: 1px solid #ccc; padding: 3px 6px; text-align: right; }
+  #printAnnex th.txt, #printAnnex td.txt { text-align: left; }
+  #printAnnex thead { display: table-header-group; }
+  #printAnnex tr { break-inside: avoid; }
+  #printAnnex .annex-note { font-size: 8.5pt; color: #555; margin-top: 8px; }
 }

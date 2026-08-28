@@ -8,8 +8,13 @@ volver a levantar el contexto desde cero.
 ## Estado al cerrar esta etapa
 
 **Gage R&R (ANOVA cruzado): terminado.** Motor, interfaz, ocho graficas, reporte
-impreso, importacion y exportacion, validacion de entradas y tooltips. 49
-pruebas verdes (`node tests/run-node.js`).
+impreso, importacion y exportacion, validacion de entradas y tooltips.
+
+**Gage R&R (ANOVA anidado): terminado.** Motor propio, interfaz compartida con
+el cruzado, cinco graficas, reporte impreso, importacion con deteccion del
+diseno y cambio de metodo sin perder la captura.
+
+80 pruebas verdes (`node tests/run-node.js`), entre las dos suites.
 
 Piezas que ya existen y que los metodos nuevos **reutilizan tal cual**:
 
@@ -19,14 +24,16 @@ Piezas que ya existen y que los metodos nuevos **reutilizan tal cual**:
 | Motor ANOVA cruzado | `assets/js/anova.js` | El armado de la tabla ANOVA y la clasificacion AIAG (`assess`) |
 | Graficas y sus tres plugins | `assets/js/charts.js` | `thresholdLines`, `boxWhiskers`, `operatorBands`, cartas de control, caja, rangos |
 | Interfaz, captura, reporte impreso | `assets/js/app.js` | Flujo completo: pasos, validacion, tablas, impresion, CSV |
+| Motor ANOVA anidado | `assets/js/anova-nested.js` | El patron de motor por metodo, y como reutiliza lo del cruzado |
+| Arnes de pruebas | `tests/harness.js` | `test`, `near`, `assert`, `report`; una suite nueva solo lo importa |
 | Estandar de diseno | `docs/estandar-de-diseno.md` | **Obligatorio** para todo lo que sigue |
 
-Los tres metodos que se usan en planta son **cruzado** (hecho), **anidado** y
-**atributos**. Ese es el orden de trabajo.
+Los tres metodos que se usan en planta son **cruzado** (hecho), **anidado**
+(hecho) y **atributos**. Ese es el orden de trabajo: sigue **atributos**.
 
 ---
 
-## 1. Gage R&R anidado (pruebas destructivas)
+## 1. Gage R&R anidado (pruebas destructivas) — HECHO
 
 **Por que.** El cruzado exige que cada operador mida *la misma pieza* varias
 veces. Si la pieza se destruye al medirla, eso es imposible. En el anidado cada
@@ -58,25 +65,60 @@ Var_GRR = Var_Repetibilidad + Var_Reproducibilidad
 
 Truncar a cero los negativos y avisar, igual que hoy.
 
-### Trabajo
+### Como quedo
 
-- `assets/js/anova-nested.js` (o una bandera de modelo en `anova.js` — decidir al
-  empezar; separar el archivo mantiene limpio el motor cruzado, que ya esta
-  validado y no conviene tocar).
-- Captura: la tabla cambia. Cada operador tiene **sus** piezas; el nombre de la
-  pieza no se repite entre operadores. La validacion de nombres repetidos de hoy
-  hay que revisarla para este caso.
-- Graficas: se van la de interaccion y las cartas por pieza compartida. La carta
-  R y la X-barra siguen, con sus bloques por operador. La de caja por operador
-  sigue igual.
-- Validacion: la homogeneidad del lote es un supuesto que el estudio **no puede
-  comprobar**. Ponerlo como aviso fijo, no como resultado.
-- Dataset de validacion: buscar uno publicado con resultados (AIAG MSA 4a ed.
-  trae ejemplo de destructivas) y dejarlo en `datasets/`.
+- **Motor aparte**, `assets/js/anova-nested.js`, no una bandera en `anova.js`:
+  el motor cruzado ya estaba validado y no convenia tocarlo. De el se reutilizan
+  tal cual `assess` y `resolveTolerance` (ahora exportados) y las constantes de
+  carta: no dependen del diseno, y duplicarlos arriesgaba que un metodo
+  clasificara distinto que el otro.
+- **Captura**: cada operador trae sus piezas, agrupadas bajo su nombre. Ningun
+  nombre de pieza puede repetirse, ni siquiera entre operadores, y el mensaje lo
+  dice con esas palabras. Una pieza compartida no es un descuido de nombres: es
+  un estudio cruzado capturado en el metodo equivocado, asi que el error manda
+  al otro metodo.
+- **Graficas**: cinco. Se fueron la de interaccion, el promedio por pieza y los
+  rangos por pieza. La regla que quedo es mejor que "segun el metodo": el motor
+  no publica la serie que su diseno no puede calcular, y el dibujante omite la
+  grafica si el dato no viene.
+- **Avisos fijos**: la homogeneidad del lote y la ausencia de interaccion salen
+  siempre, como supuesto y como limitacion, nunca como resultado.
+- **Cambiar de metodo conserva la captura**, por posicion en la rejilla, y lo
+  avisa. Importar detecta el diseno del archivo y cambia de metodo solo.
+
+### Deuda: el dataset publicado
+
+Queda **pendiente** un dataset destructivo publicado con resultados. Los
+candidatos son `CeramicComponent.MTW` de Minitab (3 operadores, resultados
+publicados: GRR 5.62 % de contribucion, 23.71 % de study variation,
+p(Operador) = 0.773) y el ejemplo de destructivas del manual AIAG MSA 4a ed.
+Ninguno de los dos se pudo bajar: los sitios que los publican estan bloqueados
+por la politica de salida de la sesion en que se hizo este trabajo.
+
+Mientras tanto el motor **no** se valida contra numeros inventados. Se apoya en
+una identidad exacta del ANOVA balanceado: si se anidan las piezas dentro del
+operador,
+
+```
+SC_Operador(anidado)      = SC_Operador(cruzado)
+SC_Pieza(Operador)        = SC_Pieza + SC_Interaccion
+SC_Repetibilidad(anidado) = SC_Repetibilidad(cruzado)
+gl_Pieza(Operador) = o(n-1) = gl_Pieza + gl_Interaccion
+```
+
+(el termino cruzado se anula porque, para una pieza fija, los residuos de
+interaccion suman cero sobre los operadores). Asi que las mismas mediciones del
+apendice AIAG, con las piezas renumeradas 1 a 30, quedan ancladas en los numeros
+publicados por Minitab. Se suma un caso construido a mano con los tres cuadrados
+medios exactos. Ver `tests/tests-nested.js` y `datasets/aiag-msa4-anidado.json`.
+
+**Cuando se consiga el dataset publicado**: agregarlo a `datasets/`, escribir su
+prueba de regresion contra los valores publicados y quitar esta seccion. La
+identidad se queda: es una buena prueba por si sola.
 
 ---
 
-## 2. Attribute Agreement (atributos)
+## 2. Attribute Agreement (atributos) — SIGUE ESTE
 
 **Por que.** Pasa / no pasa, calibres, inspeccion visual. No hay varianza que
 descomponer: se mide **acuerdo**, no dispersion.
@@ -131,16 +173,18 @@ Estan en el README y siguen vigentes:
    La lista de verificacion del final de ese documento es el criterio de cierre.
 3. **Reporte impreso**: el metodo aparece en el orden establecido, con su anexo
    de datos.
-4. **Navegacion**: el esqueleto ya existe. El selector de la barra
-   (`.method-switch`, `METHODS` en `app.js`) tiene las tres entradas; anidado y
-   atributos estan deshabilitadas. Para activar una: poner `available: true` en
-   su entrada de `METHODS`, quitar el atributo `disabled` de su boton y colgar
-   de `applyMethod` lo que cambie en pantalla (captura, graficas y tablas del
-   metodo). Falta decidir **que pasa con los datos capturados al cambiar de
-   metodo**: la propuesta es conservarlos cuando el diseno es compatible
-   (cruzado y anidado comparten operadores, piezas y replicas) y avisar antes de
-   descartar cuando no lo es (atributos captura categorias, no numeros). Nunca
-   perderlos en silencio.
+4. **Navegacion**: el mecanismo ya funciona con dos metodos. Para activar uno:
+   poner `available: true` en su entrada de `METHODS` (`app.js`), con su
+   `engine`, sus rotulos y su ayuda; quitar el `disabled` de su boton; y marcar
+   con `data-methods` lo que sea propio suyo en el HTML. Nada mas: la pantalla
+   se comparte.
+
+   **Que pasa con los datos al cambiar de metodo.** Ya esta decidido y hecho
+   entre cruzado y anidado: se conservan **por posicion en la rejilla**, se
+   renombran las piezas si el metodo destino no admite los nombres anteriores, y
+   se avisa que se conservo y que supone ahora el metodo nuevo. Con **atributos**
+   no aplica: la celda deja de ser un numero y pasa a ser una categoria, asi que
+   ahi toca preguntar antes de descartar. Nunca perderlos en silencio.
 
 ## Deudas conocidas del metodo cruzado
 

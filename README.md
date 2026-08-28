@@ -16,7 +16,7 @@ cálculo corregido y validado.
 2. **Captura** — se genera la tabla; escribes las mediciones o pegas un bloque
    copiado de Excel directamente en la primera celda.
 3. **Resultados** — tabla ANOVA, componentes de varianza, evaluación del sistema
-   de medición y las seis gráficas. LSL/USL son opcionales.
+   de medición y las siete gráficas. Los límites de especificación son opcionales.
 
 Los datos se pueden exportar e importar como CSV o JSON, y la vista de
 resultados está preparada para imprimir a PDF.
@@ -35,7 +35,7 @@ distribuye como `gageaiag.mtw`:
 | % Study Variation Gage R&R | 27.86 % | 27.86 % |
 | NDC | 4 | 4 |
 
-37 pruebas de regresión. Para correrlas:
+44 pruebas de regresión. Para correrlas:
 
 ```bash
 node tests/run-node.js      # en terminal
@@ -68,7 +68,7 @@ El análisis completo, con la evidencia numérica de cada uno, está en
 index.html               aplicación (una sola página)
 assets/js/stats.js       distribución F (beta incompleta)
 assets/js/anova.js       motor de cálculo — puro, sin DOM, reutilizable
-assets/js/charts.js      las seis gráficas (Chart.js)
+assets/js/charts.js      las siete gráficas (Chart.js)
 assets/js/app.js         interfaz y flujo
 tests/                   suite de regresión + reimplementación del VBA original
 datasets/                casos de validación con resultados publicados
@@ -89,6 +89,20 @@ El sitio es 100 % estático, sin paso de compilación:
 
 El archivo `.nojekyll` desactiva el procesamiento con Jekyll: el sitio se sirve
 tal cual, sin sorpresas con rutas ni carpetas.
+
+### Al cambiar CSS o JavaScript, sube la version
+
+Los enlaces a los assets llevan un sufijo `?v=AAAAMMDDx`:
+
+```html
+<link rel="stylesheet" href="assets/css/style.css?v=20260828a">
+```
+
+GitHub Pages sirve el CSS y el JS con caché, así que sin ese sufijo un
+navegador que ya visitó el sitio sigue usando los archivos viejos aunque el
+despliegue haya sido correcto: la página se ve igual y parece que no se
+publicó nada. Cambia el valor en `index.html` y en `tests/index.html` (mismo
+valor en los dos) cada vez que toques un archivo de `assets/` o de `tests/`.
 
 También funciona sin servidor: basta abrir `index.html` con doble clic, porque
 Chart.js va servido desde el propio repositorio y no hay dependencias externas.

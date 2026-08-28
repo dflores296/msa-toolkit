@@ -79,6 +79,14 @@
 }
 
 * { box-sizing: border-box; }
+
+/* Un elemento con [hidden] tiene que desaparecer, sea cual sea su display.
+   La regla del navegador es solo [hidden]{display:none}, y cualquier regla de
+   componente de esta hoja (label.field es flex, .grid es grid) le gana: ocultar
+   los campos que no aplican a un metodo no hacia nada. Las reglas mas
+   especificas de mas abajo -- entre ellas la de impresion, que vuelve a mostrar
+   los paneles ocultos -- siguen ganando por especificidad. */
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; color-scheme: light; }
 html[data-theme="dark"] { color-scheme: dark; }
 body {
@@ -295,6 +303,27 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 /* --- Nombres editables: lista vertical, operadores y piezas en columnas lado a lado --- */
 .namelist { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 .namelist input { width: 100%; font-size: 13px; padding: 5px 8px; }
+
+/* Anidado: las piezas se listan bajo el operador que las midio. Sin este
+   encabezado, treinta nombres corridos no dicen de quien es cada uno. */
+.namelist-group {
+  font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase;
+  color: var(--ink-faint); margin-top: 6px; padding-bottom: 3px;
+  border-bottom: 1px solid var(--border);
+}
+.namelist-group:first-child { margin-top: 0; }
+
+/* Anidado: las piezas son operadores x piezas, treinta campos con el estudio
+   que sugiere AIAG. En la media columna de la rejilla de dos serian treinta
+   filas seguidas, asi que el bloque toma el ancho completo de la tarjeta y los
+   campos se acomodan en las columnas que quepan. auto-fill con minimo en px,
+   como manda el estandar: la fila de un solo campo ocupa una columna. */
+html[data-method="anidado"] .namelist-cols { grid-template-columns: minmax(0, 1fr); }
+html[data-method="anidado"] #partNames,
+html[data-method="anidado"] #operatorNames {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 12px;
+}
+html[data-method="anidado"] #partNames .namelist-group { grid-column: 1 / -1; }
 
 /* --- Tablas --- */
 .table-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }

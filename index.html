@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
-<meta name="description" content="Estudio Gage R&amp;R por el metodo ANOVA cruzado. Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260829m">
+<meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
+<link rel="stylesheet" href="assets/css/style.css?v=20260830a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -29,7 +29,7 @@
          aparte: con tres entradas conviene verlas todas, no esconderlas. -->
     <div class="method-switch" id="methodSwitch" role="group" aria-label="Metodo del estudio">
       <button type="button" class="method-opt" data-method="cruzado">Cruzado</button>
-      <button type="button" class="method-opt" data-method="anidado" disabled>Anidado</button>
+      <button type="button" class="method-opt" data-method="anidado">Anidado</button>
       <button type="button" class="method-opt" data-method="atributos" disabled>Atributos</button>
     </div>
     <div class="badge" id="methodBadge">Gage R&amp;R &middot; ANOVA cruzado</div>
@@ -65,7 +65,21 @@
     <!-- ============================ PASO 1 ============================ -->
     <details class="card" id="config" open>
       <summary class="config-summary"><span class="step">1</span> Configuracion del estudio</summary>
-      <p class="hint">Define el tamano del estudio y los nombres. AIAG sugiere 10 piezas, 3 operadores y 3 replicas.</p>
+      <p class="hint" data-methods="cruzado">Define el tamano del estudio y los nombres. Cada operador mide
+        las mismas piezas. AIAG sugiere 10 piezas, 3 operadores y 3 replicas.</p>
+      <p class="hint" data-methods="anidado">Define el tamano del estudio y los nombres. Cada operador mide
+        <strong>sus propias</strong> piezas, tomadas del mismo lote. AIAG sugiere 10 piezas por operador,
+        3 operadores y 3 replicas.</p>
+
+      <div class="msg info" data-methods="anidado" style="margin-bottom:14px">
+        <strong>El diseno anidado no separa la interaccion operador x pieza.</strong>
+        Ninguna pieza la miden dos operadores, asi que no hay con que estimarla: la reproducibilidad que
+        vas a leer es el efecto de operador y nada mas. Es una limitacion del diseno, no del calculo.<br><br>
+        Todo el metodo se apoya en que las piezas de los tres operadores salen de un lote homogeneo, y el
+        estudio <em>no puede comprobarlo</em>: si el lote de un operador viene distinto, esa diferencia se
+        contabiliza como reproducibilidad y el instrumento carga con la culpa. Reparte las piezas al azar
+        sobre un mismo lote y en el mismo orden de produccion.
+      </div>
 
       <div id="configMsg"></div>
 
@@ -77,7 +91,7 @@
       <div class="config-row">
         <label class="field compact"><span>Operadores</span>
           <input type="number" id="numOperators" min="2" max="20" step="1" value="3"></label>
-        <label class="field compact"><span>Piezas</span>
+        <label class="field compact" id="numPartsField"><span id="numPartsLabel">Piezas</span>
           <input type="number" id="numParts" min="2" max="50" step="1" value="10"></label>
         <label class="field compact"><span>Replicas</span>
           <input type="number" id="numReplicates" min="2" max="25" step="1" value="3"></label>
@@ -92,7 +106,7 @@
           <div class="namelist" id="operatorNames"></div>
         </div>
         <div class="namelist-block">
-          <label class="field"><span>Nombres de las piezas</span></label>
+          <label class="field"><span id="partNamesLabel">Nombres de las piezas</span></label>
           <div class="namelist" id="partNames"></div>
         </div>
       </div>
@@ -145,13 +159,13 @@
             <option value="6" selected>6 sigma (AIAG 4a ed.)</option>
             <option value="5.15">5.15 sigma (AIAG 3a ed.)</option>
           </select></label>
-        <label class="field" title="Que hacer con el termino operador x pieza. Automatico corre la prueba F y lo agrupa con la repetibilidad si su p es mayor que alfa, como Minitab; tambien puedes forzar incluirlo o agruparlo siempre."><span>Interaccion</span>
+        <label class="field" data-methods="cruzado" title="Que hacer con el termino operador x pieza. Automatico corre la prueba F y lo agrupa con la repetibilidad si su p es mayor que alfa, como Minitab; tambien puedes forzar incluirlo o agruparlo siempre."><span>Interaccion</span>
           <select id="interactionMode">
             <option value="auto" selected>Automatico (prueba F)</option>
             <option value="include">Siempre incluir</option>
             <option value="exclude">Siempre agrupar</option>
           </select></label>
-        <label class="field" title="Nivel de significancia de la prueba F de la interaccion: por arriba de este valor la interaccion se agrupa con la repetibilidad. AIAG usa 0.25; Minitab trae 0.05 de fabrica."><span>Alfa</span>
+        <label class="field" data-methods="cruzado" title="Nivel de significancia de la prueba F de la interaccion: por arriba de este valor la interaccion se agrupa con la repetibilidad. AIAG usa 0.25; Minitab trae 0.05 de fabrica."><span>Alfa</span>
           <select id="alpha">
             <option value="0.25" selected>0.25 (AIAG)</option>
             <option value="0.05">0.05 (default de Minitab)</option>
@@ -159,7 +173,7 @@
           </select></label>
       </div>
 
-      <div class="grid cols-4" style="margin-top:12px">
+      <div class="grid cols-4" style="margin-top:12px" data-methods="cruzado">
         <label class="field" title="Contra que cuadrado medio se prueban operador y pieza: el de la interaccion (lo que hace Minitab) o el de la repetibilidad (el ejemplo del manual AIAG, p.127). Solo cambia las F y sus p, no los componentes de varianza."><span>Denominador de F</span>
           <select id="fDenominator">
             <option value="interaction" selected>CM interaccion (Minitab)</option>
@@ -214,7 +228,7 @@
           <div class="tab-panel" data-panel="anova" data-print-title="Analisis de varianza" role="tabpanel" hidden>
             <div class="table-scroll"><table id="anovaTable"></table></div>
             <p class="note" id="modelNote"></p>
-            <p class="note" style="margin-top:16px">ANOVA completo (siempre con interaccion, para auditar el calculo):</p>
+            <p class="note" id="anovaFullNote" style="margin-top:16px"></p>
             <div class="table-scroll" style="margin-top:8px"><table id="anovaFullTable"></table></div>
             <p class="note" id="decompNote"></p>
           </div>
@@ -236,13 +250,13 @@
               <div class="card chart-box"><h3>Rangos por operador</h3>
                 <div class="holder"><canvas id="chartRangesByOperator"></canvas></div>
                 <p class="cap">Rangos altos senalan al operador que repite con menos consistencia.</p></div>
-              <div class="card chart-box"><h3>Rangos por pieza</h3>
+              <div class="card chart-box" data-methods="cruzado"><h3>Rangos por pieza</h3>
                 <div class="holder"><canvas id="chartRangesByPart"></canvas></div>
                 <p class="cap">Rangos altos senalan a la pieza mas dificil de medir.</p></div>
-              <div class="card chart-box"><h3>Promedio de medicion por pieza</h3>
+              <div class="card chart-box" data-methods="cruzado"><h3>Promedio de medicion por pieza</h3>
                 <div class="holder"><canvas id="chartPartMeans"></canvas></div>
                 <p class="cap">Un perfil plano significa que las piezas no cubren la variacion del proceso.</p></div>
-              <div class="card chart-box"><h3>Interaccion operador x pieza</h3>
+              <div class="card chart-box" data-methods="cruzado"><h3>Interaccion operador x pieza</h3>
                 <div class="holder"><canvas id="chartInteraction"></canvas></div>
                 <p class="cap">Lineas cruzadas o no paralelas sugieren interaccion real.</p></div>
             </div>
@@ -250,6 +264,30 @@
 
           <div class="tab-panel" data-panel="notas" data-print-title="Notas de interpretacion" role="tabpanel" hidden>
             <div id="resultNotes"></div>
+            <p style="font-size:13.5px;margin-top:16px" data-methods="anidado">
+              <strong>Que cambia en el anidado.</strong> Las piezas estan anidadas dentro del operador:
+              cada operador midio las suyas, porque medirlas las destruye. De ahi salen tres cosas que no
+              aplican al cruzado:<br><br>
+              &bull; <strong>No hay interaccion operador x pieza.</strong> Ninguna pieza la miden dos
+              operadores, asi que el termino no es estimable. La reproducibilidad que se reporta es el
+              efecto de operador. No es que el calculo la haya descartado por una prueba F: no existe el
+              dato con que estimarla.<br><br>
+              &bull; <strong>La homogeneidad del lote es un supuesto, no un resultado.</strong> El estudio
+              compara el promedio de las piezas de un operador contra el de otro. Si esos grupos de piezas
+              vienen de lotes distintos, la diferencia real entre lotes entra completa en la
+              reproducibilidad. El estudio no puede distinguir un operador inconsistente de un lote
+              disparejo.<br><br>
+              &bull; <strong>Los denominadores de F los fija el modelo.</strong> El operador se prueba
+              contra el cuadrado medio de Pieza(Operador), que es el estrato que lo contiene; la pieza
+              dentro de operador se prueba contra la repetibilidad. Aqui no hay que elegir denominador ni
+              alfa: sin interaccion no hay nada que probar ni que agrupar.<br><br>
+              &bull; <strong>La carta X-barra se lee distinto.</strong> Cada punto es una pieza distinta,
+              no la misma pieza vista por tres operadores. Los puntos fuera de limites siguen siendo la
+              senal buena (el gage distingue las piezas), pero comparar bloques entre operadores mezcla
+              dos cosas: el operador y su lote de piezas.<br><br>
+              Todo lo demas &mdash; %Study Variation, %Contribucion, %Tolerance, NDC e ICC &mdash; se
+              calcula y se juzga igual que en el cruzado, con los mismos criterios AIAG.
+            </p>
             <p style="font-size:13.5px;margin-top:16px">
               <strong>% Study Variation</strong> (base desviacion estandar, criterio AIAG): menos de 10 % aceptable,
               10 a 30 % marginal, mas de 30 % inaceptable. No suma 100 %.<br><br>
@@ -306,10 +344,11 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260829m"></script>
-<script src="assets/js/stats.js?v=20260829m"></script>
-<script src="assets/js/anova.js?v=20260829m"></script>
-<script src="assets/js/charts.js?v=20260829m"></script>
-<script src="assets/js/app.js?v=20260829m"></script>
+<script src="assets/vendor/chart.umd.js?v=20260830a"></script>
+<script src="assets/js/stats.js?v=20260830a"></script>
+<script src="assets/js/anova.js?v=20260830a"></script>
+<script src="assets/js/anova-nested.js?v=20260830a"></script>
+<script src="assets/js/charts.js?v=20260830a"></script>
+<script src="assets/js/app.js?v=20260830a"></script>
 </body>
 </html>

@@ -18,6 +18,58 @@
   }
   function GRID() { return themeVar('--chart-grid', '#e6e9ed'); }
   function TICK() { return themeVar('--chart-tick', '#5a6673'); }
+  /* Colores del semaforo AIAG: los mismos tokens que usan las barras HTML de
+     "Evaluacion de la variacion", fijos entre tema claro y oscuro porque el
+     color codifica el nivel de alerta, no la estetica del tema. */
+  function SEM_OK() { return themeVar('--sem-ok', '#2e9e63'); }
+  function SEM_WARN() { return themeVar('--sem-warn', '#e0a63a'); }
+
+  /* Plugin: lineas de umbral horizontales al estilo Minitab. Cruzan TODA el
+     area de trazado (no solo de la primera a la ultima categoria, como haria
+     un dataset de tipo linea) y llevan su rotulo fuera del grafico, a la
+     derecha. Se dibujan ANTES de las barras para que la barra sobresalga por
+     encima donde se traslapan; el rotulo se dibuja despues, ya fuera del area,
+     asi que nunca queda tapado. No son series: no aparecen en la leyenda. */
+  var thresholdLines = {
+    id: 'thresholdLines',
+    beforeDatasetsDraw: function (chart, args, opts) {
+      var lines = (opts && opts.lines) || [];
+      var area = chart.chartArea, y = chart.scales.y;
+      if (!lines.length || !area || !y) return;
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.lineWidth = 1.4;
+      lines.forEach(function (ln) {
+        var py = y.getPixelForValue(ln.value);
+        if (py < area.top || py > area.bottom) return;
+        ctx.strokeStyle = ln.color;
+        ctx.beginPath();
+        ctx.moveTo(area.left, py);
+        ctx.lineTo(area.right, py);
+        ctx.stroke();
+      });
+      ctx.restore();
+    },
+    afterDatasetsDraw: function (chart, args, opts) {
+      var lines = (opts && opts.lines) || [];
+      var area = chart.chartArea, y = chart.scales.y;
+      if (!lines.length || !area || !y) return;
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.font = '10px ' + (themeVar('--sans', '') || 'sans-serif');
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      lines.forEach(function (ln) {
+        var py = y.getPixelForValue(ln.value);
+        if (py < area.top || py > area.bottom) return;
+        ctx.fillStyle = ln.color;
+        ctx.fillText(ln.label, area.right + 5, py);
+      });
+      ctx.restore();
+    }
+  };
+  if (global.Chart) global.Chart.register(thresholdLines);
 
   function destroyAll() {
     Object.keys(registry).forEach(function (k) {
@@ -119,25 +171,30 @@
         backgroundColor: PALETTE[1] }
     ];
     if (result.tolerance) {
+      // Ambar del semaforo, no el cafe de la paleta general: el color de esta
+      // barra es el mismo en tema claro y oscuro.
       ds1.push({ label: '% Tolerance', data: order.map(function (k) { return 100 * comps[k].pctTolerance; }),
-                 backgroundColor: PALETTE[3] });
+                 backgroundColor: SEM_WARN() });
     }
-    // Lineas de referencia del criterio AIAG (10 % y 30 %), como en Minitab.
-    ds1.push(
-      { type: 'line', label: 'Umbral 10 %', data: order.map(function () { return 10; }),
-        borderColor: TICK(), borderWidth: 1.4, borderDash: [6, 4], pointRadius: 0, fill: false },
-      { type: 'line', label: 'Umbral 30 %', data: order.map(function () { return 30; }),
-        borderColor: TICK(), borderWidth: 1.4, borderDash: [6, 4], pointRadius: 0, fill: false }
-    );
     make('chartComponents', {
       type: 'bar',
       data: { labels: labels1, datasets: ds1 },
       options: baseOptions({
+        // Espacio a la derecha para los rotulos "10 %" y "30 %" de los umbrales.
+        layout: { padding: { right: 38 } },
         scales: {
           y: { beginAtZero: true, ticks: { callback: function (v) { return v + ' %'; } } }
         },
-        plugins: { tooltip: { callbacks: { label: function (c) {
-          return c.dataset.label + ': ' + c.parsed.y.toFixed(2) + ' %'; } } } }
+        plugins: {
+          tooltip: { callbacks: { label: function (c) {
+            return c.dataset.label + ': ' + c.parsed.y.toFixed(2) + ' %'; } } },
+          // Criterio AIAG: 10 % (verde) y 30 % (ambar), como rotulos
+          // indicadores; no son series, por eso no van en la leyenda.
+          thresholdLines: { lines: [
+            { value: 10, label: '10 %', color: SEM_OK() },
+            { value: 30, label: '30 %', color: SEM_WARN() }
+          ] }
+        }
       })
     });
 

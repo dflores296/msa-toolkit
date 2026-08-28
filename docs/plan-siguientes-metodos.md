@@ -131,9 +131,16 @@ Estan en el README y siguen vigentes:
    La lista de verificacion del final de ese documento es el criterio de cierre.
 3. **Reporte impreso**: el metodo aparece en el orden establecido, con su anexo
    de datos.
-4. **Navegacion**: decidir como conviven varios metodos en la pagina. Hoy la app
-   es una sola pantalla dedicada al cruzado. Con dos o mas metodos hace falta un
-   selector arriba, y ahi el estandar de diseno tendra que crecer.
+4. **Navegacion**: el esqueleto ya existe. El selector de la barra
+   (`.method-switch`, `METHODS` en `app.js`) tiene las tres entradas; anidado y
+   atributos estan deshabilitadas. Para activar una: poner `available: true` en
+   su entrada de `METHODS`, quitar el atributo `disabled` de su boton y colgar
+   de `applyMethod` lo que cambie en pantalla (captura, graficas y tablas del
+   metodo). Falta decidir **que pasa con los datos capturados al cambiar de
+   metodo**: la propuesta es conservarlos cuando el diseno es compatible
+   (cruzado y anidado comparten operadores, piezas y replicas) y avisar antes de
+   descartar cuando no lo es (atributos captura categorias, no numeros). Nunca
+   perderlos en silencio.
 
 ## Deudas conocidas del metodo cruzado
 

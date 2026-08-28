@@ -38,6 +38,24 @@ Tres encabezados, uno por seccion: **1 Configuracion**, **2 Captura**,
 - Un indicador de estado (`.status-pill`) vive **dentro** del encabezado, para
   que siga visible con la tarjeta plegada.
 
+### Selector de metodo
+
+La barra superior lleva un selector segmentado con los metodos disponibles
+(`.method-switch`), con la misma caja que el interruptor de tema. No es un menu
+que se oculta: con pocas entradas conviene verlas todas, y esconderlas oculta
+tambien que el producto tiene mas de un metodo.
+
+- Los metodos que aun no existen **se muestran deshabilitados**, con un tooltip
+  que dice que vienen y para que sirven. Se ve el plan sin prometer que ya esta.
+- Cada metodo tiene su direccion (`#cruzado`): el enlace abre el metodo correcto
+  y recargar no lo pierde. Una direccion desconocida cae en el metodo por
+  defecto, no en una pantalla vacia.
+- El metodo activo se anuncia en la insignia de la barra y encabeza el reporte
+  impreso.
+- Cuando la lista pase de unas ocho entradas o aparezcan familias distintas
+  (MSA, cartas de control, capacidad), el paso siguiente es un desplegable
+  agrupado anclado en la barra, no un cajon lateral.
+
 ### Espaciado
 
 | Elemento | Valor |

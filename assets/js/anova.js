@@ -114,7 +114,7 @@
       warnings.push('Solo ' + (nPart * nOp * nRep) + ' mediciones: por debajo de 40 el %GRR es ' +
         'muy impreciso. AIAG sugiere 10x3x3 = 90.');
     }
-    if (nPart < 10) warnings.push(nPart + ' piezas: la variacion pieza a pieza queda mal estimada. AIAG sugiere 10.');
+    if (nPart < 10) warnings.push('Con ' + nPart + ' piezas el intervalo de confianza del componente pieza-a-pieza es amplio; AIAG sugiere 10.');
     if (nOp < 3) warnings.push(nOp + ' operadores: la reproducibilidad queda mal estimada. AIAG sugiere 3.');
 
     return {
@@ -341,8 +341,8 @@
     };
 
     if (negatives.length) {
-      result.warnings.push('Varianza negativa truncada a cero en ' + negatives.join(', ') +
-        ': ese efecto no se distingue del ruido.');
+      result.warnings.push('Componente(s) de varianza negativo(s) truncado(s) a cero: ' + negatives.join(', ') +
+        '. Indica que el efecto no se distingue del ruido; considera un estimador REML si se repite.');
     }
     if (decompositionError > 1e-9) {
       result.warnings.push('La descomposicion de sumas de cuadrados no cierra (error relativo ' +

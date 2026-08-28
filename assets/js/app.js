@@ -164,15 +164,62 @@
   /* ------------------------------------------------------------------ *
    * Paso 3 - calculo y resultados
    * ------------------------------------------------------------------ */
+  /* Lee un campo numerico admitiendo coma decimal (5,0) ademas de punto.
+     Devuelve '' si esta vacio, o null si tiene algo que no es un numero. */
+  var SPEC_LABELS = { lsl: 'LSL', usl: 'USL', tolerance: 'Tolerancia',
+                      historicalSigma: 'Sigma historica del proceso' };
+
+  function readSpecs() {
+    var values = {}, errors = [];
+    Object.keys(SPEC_LABELS).forEach(function (id) {
+      var el = $(id), raw = el.value.trim().replace(',', '.');
+      if (raw === '') { values[id] = ''; el.classList.remove('invalid'); return; }
+      if (!isFinite(Number(raw))) {
+        errors.push(SPEC_LABELS[id] + ': "' + el.value.trim() + '" no es un numero valido.');
+        el.classList.add('invalid');
+        values[id] = '';
+        return;
+      }
+      el.classList.remove('invalid');
+      values[id] = raw;
+    });
+
+    // Avisos sobre la tolerancia, para que nunca desaparezca en silencio.
+    var hasTol = values.tolerance !== '';
+    var hasBoth = values.lsl !== '' && values.usl !== '';
+    if (!hasTol && !hasBoth && (values.lsl !== '' || values.usl !== '')) {
+      errors.push('Diste solo uno de los dos limites de especificacion. Para calcular ' +
+        '% Tolerance hacen falta LSL y USL, o bien la tolerancia directa.');
+    }
+    if (hasBoth && !hasTol && Number(values.usl) <= Number(values.lsl)) {
+      errors.push('USL (' + values.usl + ') debe ser mayor que LSL (' + values.lsl + ').');
+    }
+    if (hasTol && Number(values.tolerance) <= 0) {
+      errors.push('La tolerancia debe ser mayor que cero.');
+    }
+    return { values: values, errors: errors };
+  }
+
   function calculate() {
     clearMessages($('resultMsg'));
     var rows = collectRows();
+    var specs = readSpecs();
+    if (specs.errors.length) {
+      $('resultsSection').hidden = false;
+      showMessages($('resultMsg'), specs.errors, []);
+      $('resultBody').hidden = true;
+      MSACharts.destroyAll();
+      state.result = null;
+      $('resultsSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
     var opts = {
       alpha: Number($('alpha').value),
       interaction: $('interactionMode').value,
       studyVarMultiplier: Number($('svMultiplier').value),
-      lsl: $('lsl').value, usl: $('usl').value,
-      historicalSigma: $('historicalSigma').value,
+      lsl: specs.values.lsl, usl: specs.values.usl,
+      tolerance: specs.values.tolerance,
+      historicalSigma: specs.values.historicalSigma,
       fDenominator: $('fDenominator').value
     };
     var result;
@@ -331,7 +378,8 @@
       savedAt: new Date().toISOString(),
       config: {
         operators: state.operators, parts: state.parts, replicates: state.replicates,
-        lsl: $('lsl').value, usl: $('usl').value, historicalSigma: $('historicalSigma').value,
+        lsl: $('lsl').value, usl: $('usl').value, tolerance: $('tolerance').value,
+        historicalSigma: $('historicalSigma').value,
         alpha: Number($('alpha').value), interaction: $('interactionMode').value,
         studyVarMultiplier: Number($('svMultiplier').value), fDenominator: $('fDenominator').value
       },
@@ -435,6 +483,7 @@
     if (p.config) {
       if (p.config.lsl !== undefined) $('lsl').value = p.config.lsl;
       if (p.config.usl !== undefined) $('usl').value = p.config.usl;
+      if (p.config.tolerance !== undefined) $('tolerance').value = p.config.tolerance;
       if (p.config.historicalSigma !== undefined) $('historicalSigma').value = p.config.historicalSigma;
       if (p.config.alpha !== undefined) $('alpha').value = String(p.config.alpha);
       if (p.config.interaction) $('interactionMode').value = p.config.interaction;
@@ -485,7 +534,8 @@
         for (var k = 0; k < 3; k++) rows.push({ operator: op, part: 'Pieza ' + (i + 1), value: vals[oi * 3 + k] });
       });
     });
-    $('lsl').value = '-5'; $('usl').value = '5'; $('historicalSigma').value = '';
+    $('lsl').value = '-5'; $('usl').value = '5';
+    $('tolerance').value = ''; $('historicalSigma').value = '';
     loadPayload({ data: rows });
   }
 
@@ -502,7 +552,8 @@
     if (!confirm('Se reiniciara el estudio completo (configuracion y datos). Continuar?')) return;
     state = { operators: [], parts: [], replicates: 2, result: null };
     $('numOperators').value = 3; $('numParts').value = 10; $('numReplicates').value = 3;
-    $('lsl').value = ''; $('usl').value = ''; $('historicalSigma').value = '';
+    $('lsl').value = ''; $('usl').value = '';
+    $('tolerance').value = ''; $('historicalSigma').value = '';
     $('alpha').value = '0.25'; $('interactionMode').value = 'auto';
     $('svMultiplier').value = '6'; $('fDenominator').value = 'interaction';
     renderNameInputs();
@@ -535,7 +586,7 @@
       if (e.target.files && e.target.files[0]) importFile(e.target.files[0]);
       e.target.value = '';
     });
-    ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator', 'lsl', 'usl', 'historicalSigma']
+    ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator', 'lsl', 'usl', 'tolerance', 'historicalSigma']
       .forEach(function (id) {
         $(id).addEventListener('change', function () { if (state.result) calculate(); });
       });

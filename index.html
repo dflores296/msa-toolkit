@@ -77,15 +77,28 @@
 
     <h3 style="font-size:14px;margin:28px 0 4px">Especificaciones y opciones de calculo</h3>
     <p class="hint" style="margin-left:0">Todo esto es opcional y se puede cambiar despues sin recapturar.
-      Sin LSL/USL simplemente se omite la columna % Tolerance.</p>
+      Se acepta punto o coma decimal.</p>
+
+    <div class="msg info" style="margin-bottom:16px">
+      <strong>El % Tolerance solo aparece si le das una tolerancia.</strong>
+      Llena <em>LSL y USL</em> (los dos), o escribe la <em>tolerancia</em> directa si tu
+      especificacion es unilateral o ya la traes calculada. Si dejas los tres campos vacios,
+      la columna y la barra de % Tolerance simplemente no se muestran: es el mismo
+      comportamiento de Minitab, no es que falten datos.
+    </div>
 
     <div class="grid cols-4">
       <label class="field"><span>LSL <span class="opt">(opcional)</span></span>
         <input type="text" id="lsl" inputmode="decimal" placeholder="limite inferior"></label>
       <label class="field"><span>USL <span class="opt">(opcional)</span></span>
         <input type="text" id="usl" inputmode="decimal" placeholder="limite superior"></label>
+      <label class="field"><span>Tolerancia directa <span class="opt">(opcional)</span></span>
+        <input type="text" id="tolerance" inputmode="decimal" placeholder="gana sobre USL - LSL"></label>
       <label class="field"><span>Sigma historica del proceso <span class="opt">(opcional)</span></span>
         <input type="text" id="historicalSigma" inputmode="decimal" placeholder="para % Proceso"></label>
+    </div>
+
+    <div class="grid cols-4" style="margin-top:16px">
       <label class="field"><span>Multiplicador de variacion</span>
         <select id="svMultiplier">
           <option value="6" selected>6 sigma (AIAG 4a ed.)</option>
@@ -189,7 +202,20 @@
             considera menos de 1 % excelente y mas de 9 % pobre. Es el numero que conviene citar cuando se
             comparan fuentes entre si.<br><br>
             <strong>% Tolerance (P/T)</strong>: que fraccion de la tolerancia se come el sistema de medicion.
-            Independiente de que piezas elegiste, pero depende de la tolerancia.<br><br>
+            Formula: (multiplicador x sigma del Gage R&amp;R) / (USL - LSL). Independiente de que piezas
+            elegiste, pero depende de la tolerancia. Solo se calcula si diste LSL y USL, o la
+            tolerancia directa; si no, la columna no aparece (igual que en Minitab).<br><br>
+            <strong>Cual de los dos manda para decidir.</strong> Depende de para que usas el
+            instrumento, no de cual sale mas bonito:<br>
+            &bull; Para <em>liberar producto</em> contra especificacion (pasa / no pasa) manda el
+            <em>% Tolerance</em>: importa cuanta de tu ventana de especificacion se come el error.<br>
+            &bull; Para <em>controlar o mejorar el proceso</em> (SPC, capacidad) manda el
+            <em>% Study Variation</em>: importa si puedes distinguir unas piezas de otras.<br>
+            &bull; Si lo usas para las dos cosas, tiene que pasar las dos.<br><br>
+            Cada uno tiene su trampa: el % Study Variation depende de <em>que piezas escogiste</em>
+            (si son muy parecidas se infla y el gage se ve peor de lo que es), y el % Tolerance
+            depende de <em>que tan apretada es la tolerancia</em> (una tolerancia holgada hace ver
+            bien a cualquier instrumento).<br><br>
             <strong>NDC</strong>: cuantas categorias distintas puede separar el sistema. AIAG exige 5 o mas.
             Si sale bajo con piezas representativas, el problema es el instrumento; si las piezas eran casi
             identicas, el problema es la muestra.<br><br>

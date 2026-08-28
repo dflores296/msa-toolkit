@@ -118,6 +118,7 @@ p.note { font-style: italic; color: var(--ink-soft); font-size: 12.5px; margin: 
 /* Tabla de captura de datos */
 #dataTable input { padding: 4px 6px; font-size: 13px; text-align: right; font-family: var(--mono); min-width: 88px; }
 #dataTable input.invalid { border-color: var(--bad); background: var(--bad-soft); }
+input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 #dataTable td, #dataTable th { padding: 3px 5px; }
 #dataTable tbody tr:last-child td { border-bottom: none; }
 #dataTable th.op { text-align: left; font-weight: 600; }

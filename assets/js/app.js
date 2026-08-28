@@ -541,75 +541,22 @@
   /* ------------------------------------------------------------------ *
    * Importar / exportar
    * ------------------------------------------------------------------ */
-  function exportJSON() {
-    var payload = {
-      format: 'msa-toolkit/gage-rr-anova', version: 1,
-      savedAt: new Date().toISOString(),
-      config: {
-        studyName: studyName(),
-        operators: state.operators, parts: state.parts, replicates: state.replicates,
-        lsl: $('lsl').value, usl: $('usl').value, tolerance: $('tolerance').value,
-        processMean: $('processMean').value, historicalSigma: $('historicalSigma').value,
-        alpha: Number($('alpha').value), interaction: $('interactionMode').value,
-        studyVarMultiplier: Number($('svMultiplier').value), fDenominator: $('fDenominator').value
-      },
-      data: collectRows()
-    };
-    download(studyFileName('json'), JSON.stringify(payload, null, 2), 'application/json');
-  }
-
-  /* CSV y JSON guardan lo mismo. El CSV lleva los parametros del estudio en
-     lineas de comentario (#clave: valor) arriba de la tabla: asi el archivo que
-     exportas se puede volver a importar tal cual, con todo y especificaciones,
-     y sigue abriendose en Excel como una tabla normal. */
-  var CSV_META = [
-    ['estudio', function () { return studyName(); }, function (v) { $('studyName').value = v; renderStudyName(); }],
-    ['lsl', function () { return $('lsl').value; }, function (v) { $('lsl').value = v; }],
-    ['usl', function () { return $('usl').value; }, function (v) { $('usl').value = v; }],
-    ['tolerancia', function () { return $('tolerance').value; }, function (v) { $('tolerance').value = v; }],
-    ['media_historica', function () { return $('processMean').value; }, function (v) { $('processMean').value = v; }],
-    ['sigma_historica', function () { return $('historicalSigma').value; }, function (v) { $('historicalSigma').value = v; }],
-    ['alfa', function () { return $('alpha').value; }, function (v) { $('alpha').value = v; }],
-    ['multiplicador', function () { return $('svMultiplier').value; }, function (v) { $('svMultiplier').value = v; }],
-    ['interaccion', function () { return $('interactionMode').value; }, function (v) { $('interactionMode').value = v; }],
-    ['denominador_f', function () { return $('fDenominator').value; }, function (v) { $('fDenominator').value = v; }]
-  ];
-
-  function csvHeader() {
-    var out = ['# MSA Toolkit - estudio Gage R&R (ANOVA cruzado)',
-               '# una fila por medicion; columnas: operador, pieza, replica, medicion',
-               '# fecha_exportacion: ' + new Date().toISOString().slice(0, 10)];
-    CSV_META.forEach(function (m) { out.push('# ' + m[0] + ': ' + String(m[1]()).trim()); });
-    out.push('operador,pieza,replica,medicion');
-    return out;
-  }
-
-  function csvRows(getValue) {
-    var lines = [];
+  /* Exportar CSV: la tabla de mediciones del estudio, nada mas. Una fila por
+     medicion, en el mismo orden en que se captura. Sin lineas de comentario ni
+     parametros: el archivo se abre en Excel como una tabla limpia y esta misma
+     pagina lo vuelve a importar. */
+  function exportCSV() {
+    var vals = readValues();
+    var lines = ['operador,pieza,replica,medicion'];
     state.operators.forEach(function (op) {
       state.parts.forEach(function (pt) {
         for (var k = 0; k < state.replicates; k++) {
-          lines.push([csvCell(op), csvCell(pt), k + 1, getValue(op, pt, k)].join(','));
+          lines.push([csvCell(op), csvCell(pt), k + 1,
+                      (vals[op + '\u0000' + pt + '\u0000' + k] || '').trim()].join(','));
         }
       });
     });
-    return lines;
-  }
-
-  function exportCSV() {
-    var vals = readValues();
-    var lines = csvHeader().concat(csvRows(function (op, pt, k) {
-      return (vals[op + '\u0000' + pt + '\u0000' + k] || '').trim();
-    }));
     download(studyFileName('csv'), lines.join('\n'), 'text/csv');
-  }
-
-  /* Plantilla: el mismo archivo que exporta la app, con la columna de medicion
-     vacia. Contesta "en que formato y en que orden capturo" sin tener que
-     explicarlo en un texto. */
-  function exportTemplate() {
-    var lines = csvHeader().concat(csvRows(function () { return ''; }));
-    download('plantilla-gage-rr.csv', lines.join('\n'), 'text/csv');
   }
 
   function csvCell(s) {
@@ -643,15 +590,9 @@
 
   function loadCSV(text) {
     var all = text.replace(/\r\n?/g, '\n').split('\n').filter(function (l) { return l.trim(); });
-    // Las lineas de comentario traen los parametros del estudio que escribio
-    // exportCSV; se aplican antes de cargar los datos.
-    var meta = {}, lines = [];
-    all.forEach(function (l) {
-      if (l.charAt(0) === '#') {
-        var m = l.slice(1).match(/^\s*([^:]+):\s*(.*)$/);
-        if (m) meta[m[1].trim().toLowerCase()] = m[2].trim();
-      } else { lines.push(l); }
-    });
+    // Se ignoran las lineas que empiezan con # : no las escribe esta pagina,
+    // pero varias herramientas las usan como encabezado de comentario.
+    var lines = all.filter(function (l) { return l.charAt(0) !== '#'; });
     if (!lines.length) throw new Error('el archivo no tiene filas de datos');
     var sep = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : ',';
     var head = splitCSV(lines[0], sep).map(function (s) { return s.trim().toLowerCase(); });
@@ -673,9 +614,6 @@
       }
       return row;
     }).filter(function (r) { return r.operator && r.part; });
-    CSV_META.forEach(function (m) {
-      if (meta[m[0]] !== undefined) m[2](meta[m[0]]);
-    });
     loadPayload({ data: rows });
   }
 
@@ -920,9 +858,7 @@
     $('demoBtn').addEventListener('click', loadDemo);
     $('clearDataBtn').addEventListener('click', clearData);
     $('resetBtn').addEventListener('click', resetAll);
-    $('exportJsonBtn').addEventListener('click', exportJSON);
     $('exportCsvBtn').addEventListener('click', exportCSV);
-    $('templateBtn').addEventListener('click', exportTemplate);
     $('printBtn').addEventListener('click', function () { preparePrint(); window.print(); });
     // Ctrl+P tambien debe salir como reporte, no como pantallazo de la app.
     window.addEventListener('beforeprint', preparePrint);

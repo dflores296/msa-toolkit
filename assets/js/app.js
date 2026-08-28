@@ -32,6 +32,27 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Pestañas del panel de resultados (Componentes / ANOVA / Graficas / Notas)
+   * ------------------------------------------------------------------ */
+  function initTabs() {
+    var buttons = [].slice.call(document.querySelectorAll('.tab-btn'));
+    var panels = [].slice.call(document.querySelectorAll('.tab-panel'));
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var name = btn.dataset.tab;
+        buttons.forEach(function (b) {
+          var active = b === btn;
+          b.classList.toggle('active', active);
+          b.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        panels.forEach(function (p) { p.hidden = p.dataset.panel !== name; });
+        // Chart.js dibuja mal si el lienzo estaba oculto (0x0) al crearlo.
+        if (name === 'graficas') MSACharts.resizeAll();
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------------ *
    * Paso 1 - configuracion
    * ------------------------------------------------------------------ */
   function defaultNames(prefix, n, existing) {
@@ -227,6 +248,11 @@
     return { values: values, errors: errors };
   }
 
+  function resetResultViz() {
+    MSACharts.destroyAll();
+    $('evalBars').innerHTML = '';
+  }
+
   function calculate() {
     clearMessages($('resultMsg'));
     var rows = collectRows();
@@ -235,7 +261,7 @@
       $('resultsSection').hidden = false;
       showMessages($('resultMsg'), specs.errors, []);
       $('resultBody').hidden = true;
-      MSACharts.destroyAll();
+      resetResultViz();
       state.result = null;
       return;
     }
@@ -255,7 +281,7 @@
     } catch (e) {
       $('resultsSection').hidden = false;
       showMessages($('resultMsg'), e.details || [e.message], []);
-      MSACharts.destroyAll();
+      resetResultViz();
       $('resultBody').hidden = true;
       state.result = null;
       return;
@@ -265,6 +291,7 @@
     $('resultBody').hidden = false;
     showMessages($('resultMsg'), [], result.warnings);
     renderVerdict(result);
+    renderEvalBars(result);
     renderTables(result);
     MSACharts.render(result);
   }
@@ -286,6 +313,31 @@
   function card(k, v, t) {
     return '<div class="verdict"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' +
       (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') + '</div>';
+  }
+
+  /* Barras de "Evaluacion de la variacion" (%Study Variation por fuente).
+     HTML/CSS, no Chart.js: mismos datos que la Tabla de componentes, solo
+     que en forma de barra con las marcas de 10 % y 30 % del criterio AIAG. */
+  var EVAL_ORDER = ['grr', 'rep', 'repro', 'part'];
+  var EVAL_NAMES = { grr: 'Gage R&R', rep: 'Repetibilidad', repro: 'Reproducibilidad', part: 'Pieza a pieza' };
+
+  function renderEvalBars(r) {
+    var comps = {};
+    r.components.forEach(function (c) { comps[c.key] = c; });
+    var rows = EVAL_ORDER.map(function (key) {
+      var v = 100 * comps[key].pctStudyVar;
+      var level = v <= 10 ? 'ok' : v <= 30 ? 'warn' : 'bad';
+      return '<div class="eval-row">' +
+        '<div class="eval-label">' + esc(EVAL_NAMES[key]) + '</div>' +
+        '<div class="eval-track">' +
+          '<div class="eval-fill ' + level + '" style="width:' + Math.min(100, v).toFixed(2) + '%"></div>' +
+          '<div class="eval-tick" style="left:10%"></div>' +
+          '<div class="eval-tick" style="left:30%"></div>' +
+        '</div>' +
+        '<div class="eval-val">' + v.toFixed(2) + '</div>' +
+      '</div>';
+    });
+    $('evalBars').innerHTML = rows.join('');
   }
 
   function num(v, sig) {
@@ -583,7 +635,7 @@
     inputs().forEach(function (i) { i.value = ''; });
     validateLive();
     $('resultsSection').hidden = true;
-    MSACharts.destroyAll();
+    resetResultViz();
     state.result = null;
   }
 
@@ -598,7 +650,7 @@
     renderNameInputs();
     $('captureSection').hidden = true;
     $('resultsSection').hidden = true;
-    MSACharts.destroyAll();
+    resetResultViz();
     clearMessages($('configMsg'));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -608,6 +660,7 @@
    * ------------------------------------------------------------------ */
   document.addEventListener('DOMContentLoaded', function () {
     initTheme();
+    initTabs();
     renderNameInputs();
     ['numOperators', 'numParts'].forEach(function (id) {
       $(id).addEventListener('change', renderNameInputs);

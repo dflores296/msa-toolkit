@@ -165,6 +165,18 @@ header.toolbar {
   margin: 0 0 4px; font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em;
   display: flex; align-items: baseline; gap: 10px;
 }
+/* La tarjeta de Configuracion es un <details>: se puede plegar para no
+   ocupar tanto espacio vertical cuando hay muchas piezas/operadores. */
+.config-summary {
+  display: flex; align-items: baseline; gap: 10px; margin: 0 0 4px;
+  font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; color: var(--ink);
+  cursor: pointer; list-style: none;
+}
+.config-summary::-webkit-details-marker { display: none; }
+.config-summary::after { content: "\25BE"; font-size: 10px; color: var(--ink-faint); margin-left: auto; }
+#config:not([open]) .config-summary::after { content: "\25B8"; }
+#config:not([open]) .config-summary { margin-bottom: 0; }
+
 .card-head-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
 .card-head-row h2 { margin: 0; flex: none; }
 .card-head-row .spacer { flex: 1 1 auto; }
@@ -252,23 +264,22 @@ p.note { font-style: italic; color: var(--ink-soft); font-size: 12.5px; margin: 
 
 input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 
-/* Tabla de captura de datos.
-   La tabla no se estira: las columnas miden lo que necesitan, para que los
-   campos no queden desproporcionados en pantallas anchas. */
-#dataTable { width: auto; }
+/* Tabla de captura de datos: ocupa todo el ancho de su tarjeta. Operador y
+   Pieza miden lo que necesitan; las columnas de replica se reparten el resto. */
+#dataTable { width: 100%; }
 #dataTable td, #dataTable th { padding: 3px 8px; }
 #dataTable tbody tr:last-child td { border-bottom: none; }
 
 #dataTable .col-op {
-  text-align: left; font-weight: 600; vertical-align: middle;
-  padding-right: 18px; color: var(--ink);
+  width: 1%; text-align: left; font-weight: 600; vertical-align: middle;
+  padding-right: 18px; color: var(--ink); white-space: nowrap;
 }
-#dataTable .col-part { text-align: left; color: var(--ink-soft); padding-right: 14px; }
+#dataTable .col-part { width: 1%; text-align: left; color: var(--ink-soft); padding-right: 14px; white-space: nowrap; }
 #dataTable thead .col-part { color: inherit; }
 #dataTable .col-meas { text-align: center; }
 
 #dataTable td.col-meas input {
-  width: 92px; padding: 4px 7px; font-size: 12.5px;
+  width: 100%; min-width: 76px; max-width: 160px; padding: 4px 7px; font-size: 12.5px;
   text-align: right; font-family: var(--mono);
 }
 #dataTable input.invalid { border-color: var(--bad); background: var(--bad-soft); }
@@ -301,10 +312,32 @@ input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 /* --- Gráficas --- */
 .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 8px; }
 .chart-box h3 { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; text-align: center; }
-.chart-box.wide { grid-column: 1 / -1; }
 .chart-box .holder { position: relative; height: 220px; }
 .chart-box p.cap { margin: 8px 0 0; font-size: 11px; color: var(--ink-faint); text-align: center; }
-.chart-subcap { font-weight: 400; font-size: 11.5px; color: var(--ink-faint); }
+.chart-subcap { font-weight: 400; font-size: 11.5px; color: var(--ink-faint); margin: 2px 0 12px; }
+
+/* --- Evaluacion de la variacion: barras HTML/CSS, sin depender de Chart.js --- */
+.eval-title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.eval-bars { display: flex; flex-direction: column; gap: 9px; }
+.eval-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 56px; align-items: center; gap: 10px; }
+.eval-label { font-size: 12px; color: var(--ink-soft); }
+.eval-track { position: relative; height: 14px; border-radius: 3px; background: var(--toggle-track-bg); overflow: hidden; }
+.eval-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px 0 0 3px; }
+.eval-fill.ok { background: var(--ok); }
+.eval-fill.warn { background: var(--warn); }
+.eval-fill.bad { background: var(--bad); }
+.eval-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border-strong); }
+.eval-val { font: 12px var(--mono); text-align: right; color: var(--ink); }
+
+/* --- Pestañas del panel de resultados --- */
+.tabs-bar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin: -14px -16px 14px; padding: 0 10px; }
+.tab-btn {
+  background: none; border: none; padding: 10px 12px; font: inherit; font-size: 12.5px; font-weight: 500;
+  color: var(--ink-soft); cursor: pointer; box-shadow: inset 0 -2px 0 transparent;
+}
+.tab-btn:hover { color: var(--ink); }
+.tab-btn.active { color: var(--accent-ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+.tab-panel[hidden] { display: none; }
 
 /* --- Detalles / acordeón --- */
 details.card { padding: 12px 16px; }

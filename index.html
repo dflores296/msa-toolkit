@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por el metodo ANOVA cruzado. Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260828c">
+<link rel="stylesheet" href="assets/css/style.css?v=20260828d">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -52,8 +52,8 @@
   <div class="col-capture">
 
     <!-- ============================ PASO 1 ============================ -->
-    <section class="card" id="config">
-      <h2><span class="step">1</span> Configuracion del estudio</h2>
+    <details class="card" id="config" open>
+      <summary class="config-summary"><span class="step">1</span> Configuracion del estudio</summary>
       <p class="hint">Define el tamano del estudio y los nombres. AIAG sugiere 10 piezas, 3 operadores y 3 replicas.</p>
 
       <div id="configMsg"></div>
@@ -80,7 +80,7 @@
           <div class="namelist" id="partNames"></div>
         </div>
       </div>
-    </section>
+    </details>
 
     <!-- ============================ PASO 2 ============================ -->
     <section class="card" id="captureSection" hidden>
@@ -178,58 +178,59 @@
       <div id="resultBody" hidden>
         <div class="verdicts" id="verdicts"></div>
 
-        <div class="card chart-box wide">
-          <h3>Evaluacion de la variacion del estudio de medicion<br>
-            <span class="chart-subcap">menos de 10 % = bueno &nbsp;|&nbsp; 10 a 30 % = marginal &nbsp;|&nbsp; mas de 30 % = malo</span></h3>
-          <div class="holder" style="height:150px"><canvas id="chartEvaluation"></canvas></div>
-          <p class="cap">La barra se recorta al 100 %, pero la etiqueta muestra el valor real.</p>
+        <div class="card eval-card">
+          <h3 class="eval-title">Evaluacion de la variacion</h3>
+          <p class="chart-subcap">&lt;10 % bueno &middot; 10&ndash;30 % marginal &middot; &gt;30 % malo</p>
+          <div class="eval-bars" id="evalBars"></div>
         </div>
 
-        <div class="card results-tables">
-          <div class="table-scroll"><table id="anovaTable"></table></div>
-          <p class="note" id="modelNote"></p>
+        <div class="card tabs-card">
+          <div class="tabs-bar" role="tablist">
+            <button type="button" class="tab-btn active" data-tab="componentes" role="tab" aria-selected="true">Componentes</button>
+            <button type="button" class="tab-btn" data-tab="anova" role="tab" aria-selected="false">ANOVA</button>
+            <button type="button" class="tab-btn" data-tab="graficas" role="tab" aria-selected="false">Graficas</button>
+            <button type="button" class="tab-btn" data-tab="notas" role="tab" aria-selected="false">Notas</button>
+          </div>
 
-          <div class="table-scroll" style="margin-top:20px"><table id="varianceTable"></table></div>
-          <div class="table-scroll" style="margin-top:20px"><table id="assessTable"></table></div>
-          <div id="resultNotes"></div>
-        </div>
+          <div class="tab-panel" data-panel="componentes" role="tabpanel">
+            <div class="table-scroll"><table id="varianceTable"></table></div>
+            <div class="table-scroll" style="margin-top:20px"><table id="assessTable"></table></div>
+          </div>
 
-        <h3 class="subhead">Graficas</h3>
-        <div class="charts">
-          <div class="card chart-box"><h3>Componentes de variacion</h3>
-            <div class="holder"><canvas id="chartComponents"></canvas></div>
-            <p class="cap">Comparacion de las tres bases porcentuales por fuente.</p></div>
-          <div class="card chart-box"><h3>Carta R por operador</h3>
-            <div class="holder"><canvas id="chartR"></canvas></div>
-            <p class="cap">Puntos fuera de limites indican inconsistencia al repetir la medicion.</p></div>
-          <div class="card chart-box"><h3>Carta X-barra por operador</h3>
-            <div class="holder"><canvas id="chartXbar"></canvas></div>
-            <p class="cap">Aqui SI se buscan puntos fuera de limites: significa que el gage distingue las piezas.</p></div>
-          <div class="card chart-box"><h3>Mediciones por operador</h3>
-            <div class="holder"><canvas id="chartByOperator"></canvas></div>
-            <p class="cap">Diferencias entre las medias de operador indican reproducibilidad pobre.</p></div>
-          <div class="card chart-box"><h3>Promedio de medicion por pieza</h3>
-            <div class="holder"><canvas id="chartPartMeans"></canvas></div>
-            <p class="cap">Un perfil plano significa que las piezas no cubren la variacion del proceso.</p></div>
-          <div class="card chart-box"><h3>Interaccion operador x pieza</h3>
-            <div class="holder"><canvas id="chartInteraction"></canvas></div>
-            <p class="cap">Lineas cruzadas o no paralelas sugieren interaccion real.</p></div>
-        </div>
-
-        <details class="card">
-          <summary>ANOVA completo con interaccion y comprobacion de la descomposicion</summary>
-          <div>
-            <p class="note" style="margin-bottom:12px">Esta tabla siempre conserva el termino de interaccion,
-              independientemente del modelo elegido arriba. Sirve para auditar el calculo.</p>
-            <div class="table-scroll"><table id="anovaFullTable"></table></div>
+          <div class="tab-panel" data-panel="anova" role="tabpanel" hidden>
+            <div class="table-scroll"><table id="anovaTable"></table></div>
+            <p class="note" id="modelNote"></p>
+            <p class="note" style="margin-top:16px">ANOVA completo (siempre con interaccion, para auditar el calculo):</p>
+            <div class="table-scroll" style="margin-top:8px"><table id="anovaFullTable"></table></div>
             <p class="note" id="decompNote"></p>
           </div>
-        </details>
 
-        <details class="card">
-          <summary>Como leer los criterios de aceptacion</summary>
-          <div>
-            <p style="font-size:13.5px">
+          <div class="tab-panel" data-panel="graficas" role="tabpanel" hidden>
+            <div class="charts">
+              <div class="card chart-box"><h3>Componentes de variacion</h3>
+                <div class="holder"><canvas id="chartComponents"></canvas></div>
+                <p class="cap">Comparacion de las tres bases porcentuales por fuente.</p></div>
+              <div class="card chart-box"><h3>Carta R por operador</h3>
+                <div class="holder"><canvas id="chartR"></canvas></div>
+                <p class="cap">Puntos fuera de limites indican inconsistencia al repetir la medicion.</p></div>
+              <div class="card chart-box"><h3>Carta X-barra por operador</h3>
+                <div class="holder"><canvas id="chartXbar"></canvas></div>
+                <p class="cap">Aqui SI se buscan puntos fuera de limites: significa que el gage distingue las piezas.</p></div>
+              <div class="card chart-box"><h3>Mediciones por operador</h3>
+                <div class="holder"><canvas id="chartByOperator"></canvas></div>
+                <p class="cap">Diferencias entre las medias de operador indican reproducibilidad pobre.</p></div>
+              <div class="card chart-box"><h3>Promedio de medicion por pieza</h3>
+                <div class="holder"><canvas id="chartPartMeans"></canvas></div>
+                <p class="cap">Un perfil plano significa que las piezas no cubren la variacion del proceso.</p></div>
+              <div class="card chart-box"><h3>Interaccion operador x pieza</h3>
+                <div class="holder"><canvas id="chartInteraction"></canvas></div>
+                <p class="cap">Lineas cruzadas o no paralelas sugieren interaccion real.</p></div>
+            </div>
+          </div>
+
+          <div class="tab-panel" data-panel="notas" role="tabpanel" hidden>
+            <div id="resultNotes"></div>
+            <p style="font-size:13.5px;margin-top:16px">
               <strong>% Study Variation</strong> (base desviacion estandar, criterio AIAG): menos de 10 % aceptable,
               10 a 30 % marginal, mas de 30 % inaceptable. No suma 100 %.<br><br>
               <strong>% Contribucion</strong> (base varianza): aditivo, suma 100 %. Como referencia, Minitab
@@ -259,7 +260,7 @@
               complementaria, no como sustituto del criterio AIAG.
             </p>
           </div>
-        </details>
+        </div>
       </div>
       </div>
 
@@ -282,7 +283,7 @@
 <script src="assets/vendor/chart.umd.js?v=20260828a"></script>
 <script src="assets/js/stats.js?v=20260828a"></script>
 <script src="assets/js/anova.js?v=20260828a"></script>
-<script src="assets/js/charts.js?v=20260828b"></script>
-<script src="assets/js/app.js?v=20260828b"></script>
+<script src="assets/js/charts.js?v=20260828d"></script>
+<script src="assets/js/app.js?v=20260828d"></script>
 </body>
 </html>

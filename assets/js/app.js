@@ -59,23 +59,30 @@
     clearMessages($('configMsg'));
     state.operators = ops; state.parts = parts;
 
-    var thead = '<thead><tr><th>Operador</th><th>Pieza</th>';
-    for (var k = 1; k <= state.replicates; k++) thead += '<th class="num">Replica ' + k + '</th>';
+    // Clases explicitas por columna. No dependemos de :first-child, que alineaba
+    // distinto la primera fila de cada operador: ahi la celda de pieza es el
+    // segundo hijo, porque el th del operador ocupa el primero.
+    var thead = '<thead><tr><th class="col-op">Operador</th><th class="col-part">Pieza</th>';
+    for (var k = 1; k <= state.replicates; k++) {
+      thead += '<th class="col-meas">Replica ' + k + '</th>';
+    }
     thead += '</tr></thead>';
 
     var body = '<tbody>';
-    ops.forEach(function (op) {
+    ops.forEach(function (op, oi) {
       parts.forEach(function (pt, pi) {
-        body += '<tr>';
-        body += pi === 0
-          ? '<th class="op" rowspan="' + parts.length + '" scope="rowgroup">' + esc(op) + '</th>'
-          : '';
-        body += '<td>' + esc(pt) + '</td>';
+        body += '<tr' + (pi === 0 && oi > 0 ? ' class="group-start"' : '') + '>';
+        if (pi === 0) {
+          body += '<th class="col-op" rowspan="' + parts.length + '" scope="rowgroup">' +
+                  esc(op) + '</th>';
+        }
+        body += '<td class="col-part">' + esc(pt) + '</td>';
         for (var k = 0; k < state.replicates; k++) {
           var key = op + '\u0000' + pt + '\u0000' + k;
           var v = previous[key] === undefined ? '' : previous[key];
-          body += '<td><input type="text" inputmode="decimal" data-op="' + esc(op) +
-                  '" data-part="' + esc(pt) + '" data-rep="' + k + '" value="' + esc(v) + '"></td>';
+          body += '<td class="col-meas"><input type="text" inputmode="decimal" data-op="' + esc(op) +
+                  '" data-part="' + esc(pt) + '" data-rep="' + k + '" value="' + esc(v) +
+                  '" aria-label="' + esc(op + ', ' + pt + ', replica ' + (k + 1)) + '"></td>';
         }
         body += '</tr>';
       });

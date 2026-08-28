@@ -65,6 +65,9 @@ section.card[hidden] { display: none; }
 .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
+/* Los contadores del estudio son de 1-2 digitos: no deben ocupar toda la columna. */
+#numOperators, #numParts, #numReplicates { max-width: 150px; }
+
 label.field { display: block; font-size: 13px; }
 label.field > span { display: block; margin-bottom: 5px; color: var(--ink-soft); font-weight: 500; }
 label.field > span .opt { color: var(--ink-faint); font-weight: 400; }
@@ -92,8 +95,11 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .actions .spacer { flex: 1 1 auto; }
 
 /* --- Nombres editables --- */
-.namelist { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
-.namelist input { width: 128px; font-size: 13px; padding: 5px 8px; }
+.namelist {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
+  gap: 8px; margin-top: 8px;
+}
+.namelist input { width: 100%; font-size: 13px; padding: 5px 8px; }
 
 /* --- Tablas --- */
 .table-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
@@ -115,13 +121,32 @@ td.num, th.num { font-variant-numeric: tabular-nums; font-family: var(--mono); f
 .indent-2 { padding-left: 44px !important; }
 p.note { font-style: italic; color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 0; }
 
-/* Tabla de captura de datos */
-#dataTable input { padding: 4px 6px; font-size: 13px; text-align: right; font-family: var(--mono); min-width: 88px; }
-#dataTable input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 input.invalid { border-color: var(--bad); background: var(--bad-soft); }
-#dataTable td, #dataTable th { padding: 3px 5px; }
+
+/* Tabla de captura de datos.
+   La tabla no se estira: las columnas miden lo que necesitan, para que los
+   campos no queden desproporcionados en pantallas anchas. */
+#dataTable { width: auto; }
+#dataTable td, #dataTable th { padding: 3px 8px; }
 #dataTable tbody tr:last-child td { border-bottom: none; }
-#dataTable th.op { text-align: left; font-weight: 600; }
+
+#dataTable .col-op {
+  text-align: left; font-weight: 600; vertical-align: middle;
+  padding-right: 18px; color: var(--ink);
+}
+#dataTable .col-part { text-align: left; color: var(--ink-soft); padding-right: 14px; }
+#dataTable thead .col-part { color: inherit; }
+#dataTable .col-meas { text-align: center; }
+
+#dataTable td.col-meas input {
+  width: 104px; padding: 4px 7px; font-size: 13px;
+  text-align: right; font-family: var(--mono);
+}
+#dataTable input.invalid { border-color: var(--bad); background: var(--bad-soft); }
+
+/* Separacion visual entre bloques de operador */
+#dataTable tbody tr.group-start > * { border-top: 1px solid var(--border); }
+#dataTable tbody tr.group-start th.col-op { border-top-color: var(--border-strong); }
 
 /* --- Mensajes --- */
 .msg { border-radius: 8px; padding: 11px 14px; font-size: 13.5px; margin-bottom: 14px; }
@@ -167,12 +192,15 @@ details > div { margin-top: 14px; }
 footer.site { color: var(--ink-faint); font-size: 12.5px; text-align: center; padding: 10px 0 0; }
 footer.site a { color: var(--ink-soft); }
 
+/* Siempre minmax(0, 1fr): con "1fr" a secas el minimo de la pista es el
+   min-content del elemento, y el canvas de Chart.js lleva un ancho inline
+   grande, asi que la rejilla se negaba a encoger al reducir la ventana. */
 @media (max-width: 860px) {
-  .grid.cols-4, .grid.cols-3, .grid.cols-2 { grid-template-columns: 1fr 1fr; }
-  .charts { grid-template-columns: 1fr; }
+  .grid.cols-4, .grid.cols-3, .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .charts { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 560px) {
-  .grid.cols-4, .grid.cols-3, .grid.cols-2 { grid-template-columns: 1fr; }
+  .grid.cols-4, .grid.cols-3, .grid.cols-2 { grid-template-columns: minmax(0, 1fr); }
   .wrap { padding: 0 14px 60px; }
   section.card { padding: 18px 16px; }
 }

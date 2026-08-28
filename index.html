@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por el metodo ANOVA cruzado. Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260828i">
+<link rel="stylesheet" href="assets/css/style.css?v=20260828j">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -83,11 +83,9 @@
     </details>
 
     <!-- ============================ PASO 2 ============================ -->
-    <section class="card" id="captureSection" hidden>
-      <div class="card-head-row">
-        <h2><span class="step">2</span> Captura</h2>
-        <strong id="captureStatus" class="status-pill"></strong>
-      </div>
+    <details class="card" id="captureSection" open hidden>
+      <summary class="config-summary"><span class="step">2</span> Captura
+        <strong id="captureStatus" class="status-pill"></strong></summary>
       <p class="hint">Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: se reparte solo.</p>
 
       <div class="table-scroll capture-scroll"><table id="dataTable"></table></div>
@@ -158,7 +156,7 @@
       <div class="actions">
         <button class="primary" id="calcBtn" disabled>Calcular</button>
       </div>
-    </section>
+    </details>
 
   </div>
 
@@ -280,10 +278,10 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260828i"></script>
-<script src="assets/js/stats.js?v=20260828i"></script>
-<script src="assets/js/anova.js?v=20260828i"></script>
-<script src="assets/js/charts.js?v=20260828i"></script>
-<script src="assets/js/app.js?v=20260828i"></script>
+<script src="assets/vendor/chart.umd.js?v=20260828j"></script>
+<script src="assets/js/stats.js?v=20260828j"></script>
+<script src="assets/js/anova.js?v=20260828j"></script>
+<script src="assets/js/charts.js?v=20260828j"></script>
+<script src="assets/js/app.js?v=20260828j"></script>
 </body>
 </html>

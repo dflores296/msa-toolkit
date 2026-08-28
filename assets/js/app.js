@@ -326,24 +326,42 @@
       rows.push({
         label: 'Total Gage – Tolerance' +
           (r.toleranceInfo && r.toleranceInfo.oneSided ? ' (unilateral)' : ''),
-        value: r.metrics.pctTolerance
+        value: r.metrics.pctTolerance,
+        help: 'Variacion total del sistema de medicion (6 sigma GRR) como porcentaje de la tolerancia LSL–USL.'
       });
     }
-    rows.push({ label: 'Total Gage – Study Variation', value: r.metrics.pctStudyVar });
+    rows.push({
+      label: 'Total Gage – Study Variation',
+      value: r.metrics.pctStudyVar,
+      help: 'Variacion total del sistema de medicion como porcentaje de la variacion total del estudio.'
+    });
+
+    var LEVELS = {
+      ok: 'bueno (< 10 %)', warn: 'marginal (10–30 %)', bad: 'malo (> 30 %)'
+    };
 
     $('evalBars').innerHTML = rows.map(function (row) {
       var v = row.value;
       var level = v <= 10 ? 'ok' : v <= 30 ? 'warn' : 'bad';
-      return '<div class="eval-row">' +
+      // Mismo rol que el tooltip de Chart.js en las otras graficas: al pasar
+      // el cursor se lee el valor exacto, el criterio y que significa la barra.
+      var tip = row.label + ': ' + v.toFixed(2) + ' % — ' + LEVELS[level] + '. ' + row.help;
+      return '<div class="eval-row" title="' + esc(tip) + '">' +
         '<div class="eval-label">' + esc(row.label) + '</div>' +
         '<div class="eval-track">' +
           '<div class="eval-fill ' + level + '" style="width:' + Math.min(100, v).toFixed(2) + '%"></div>' +
-          '<div class="eval-tick" style="left:10%"></div>' +
-          '<div class="eval-tick" style="left:30%"></div>' +
+          evalTick(10, 'ok') + evalTick(30, 'warn') +
         '</div>' +
-        '<div class="eval-val">' + v.toFixed(2) + '</div>' +
+        '<div class="eval-val">' + v.toFixed(2) + ' %</div>' +
       '</div>';
     }).join('');
+  }
+
+  /* Marca de umbral del criterio AIAG: linea punteada con el color de su
+     nivel (verde el 10 %, ambar el 30 %) y su rotulo arriba, como en Minitab. */
+  function evalTick(pctAt, level) {
+    return '<div class="eval-tick ' + level + '" style="left:' + pctAt + '%">' +
+      '<span class="eval-tick-label ' + level + '">' + pctAt + ' %</span></div>';
   }
 
   function num(v, sig) {

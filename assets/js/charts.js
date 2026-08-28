@@ -239,6 +239,11 @@
     return seq.map(function (p) { return p.slice(prefix.length).trim(); });
   }
 
+  /** Titulo del eje x, con el mismo estilo en todas las graficas. */
+  function axisTitle(text) {
+    return { display: true, text: text, font: { size: 10 }, color: TICK() };
+  }
+
   /** Linea horizontal constante (limite de control). */
   function limitSeries(label, value, n, color, dashed) {
     return {
@@ -321,7 +326,7 @@
       layout: { padding: { top: 14 } },
       plugins: { operatorBands: { groups: ch.operatorGroups } },
       scales: { x: {
-        title: { display: true, text: 'Pieza', font: { size: 10 }, color: TICK() },
+        title: axisTitle('Pieza'),
         // Sin autoSkip: con el numero de pieza a secas caben las 10 de cada
         // bloque, y saltarse la mitad haria dudar de que punto es cual.
         ticks: { maxRotation: 0, autoSkip: false }
@@ -406,7 +411,9 @@
         },
         // La barra solo abarca Q1-Q3, asi que el eje debe estirarse a mano hasta
         // los bigotes y los atipicos; si no, se salen del area de trazado.
-        scales: { y: {
+        scales: {
+          x: { title: axisTitle('Operador') },
+          y: {
           suggestedMin: Math.min.apply(null, allByOp),
           suggestedMax: Math.max.apply(null, allByOp),
           ticks: { callback: tickFormatter(allByOp) }
@@ -417,19 +424,24 @@
     /* 4b. Rangos por operador y por pieza (Test-Retest Ranges de Minitab):
           los mismos rangos de la carta R, agrupados para ver quien repite peor
           y que pieza cuesta mas medir. */
-    rangeChart('chartRangesByOperator', ch.rangesByOperator);
-    rangeChart('chartRangesByPart', ch.rangesByPart);
+    rangeChart('chartRangesByOperator', ch.rangesByOperator, 'Operador', false);
+    rangeChart('chartRangesByPart', ch.rangesByPart, 'Pieza', true);
 
     /* 5. Promedio de medicion por pieza */
     make('chartPartMeans', {
       type: 'line',
       data: {
-        labels: ch.partMeans.labels,
+        labels: shortPartLabels(ch.partMeans.labels, ch.partMeans.labels),
         datasets: [pointSeries('Promedio por pieza', ch.partMeans.values, PALETTE[0])]
       },
       options: baseOptions({
-        plugins: { legend: { display: false } },
-        scales: { y: { ticks: { callback: tickFormatter(ch.partMeans.values) } } }
+        plugins: { legend: { display: false },
+                   tooltip: { callbacks: { title: function (items) {
+                     return ch.partMeans.labels[items[0].dataIndex]; } } } },
+        scales: {
+          x: { title: axisTitle('Pieza'), ticks: { maxRotation: 0, autoSkip: false } },
+          y: { ticks: { callback: tickFormatter(ch.partMeans.values) } }
+        }
       })
     });
 
@@ -439,22 +451,28 @@
     make('chartInteraction', {
       type: 'line',
       data: {
-        labels: ch.interaction.parts,
+        labels: shortPartLabels(ch.interaction.parts, ch.interaction.parts),
         datasets: ch.interaction.series.map(function (s, i) {
           return pointSeries(s.operator, s.values, PALETTE[i % PALETTE.length]);
         })
       },
       options: baseOptions({
-        scales: { y: { ticks: { callback: tickFormatter(allInter) } } }
+        plugins: { tooltip: { callbacks: { title: function (items) {
+          return ch.interaction.parts[items[0].dataIndex]; } } } },
+        scales: {
+          x: { title: axisTitle('Pieza'), ticks: { maxRotation: 0, autoSkip: false } },
+          y: { ticks: { callback: tickFormatter(allInter) } }
+        }
       })
     });
   }
 
   /* Un grupo por categoria: un punto por cada rango y una linea con el rango
      promedio del grupo. */
-  function rangeChart(id, groups) {
+  function rangeChart(id, groups, title, shorten) {
     if (!groups || !groups.length) return;
     var labels = groups.map(function (g) { return g.label; });
+    if (shorten) labels = shortPartLabels(labels, labels);
     var points = [], all = [];
     groups.forEach(function (g, i) {
       g.values.forEach(function (v) { points.push({ x: i, y: v }); all.push(v); });
@@ -477,11 +495,12 @@
           // que empieza en -0.5, Chart.js las pone en -0.5, 0.5, 1.5... y ningun
           // rotulo caia sobre su grupo.
           x: { type: 'linear', min: -0.5, max: labels.length - 0.5,
+               title: axisTitle(title),
                afterBuildTicks: function (axis) {
                  axis.ticks = labels.map(function (_, i) { return { value: i }; });
                },
                ticks: { callback: function (v) { return labels[v] || ''; },
-                        autoSkip: false, font: { size: 10 }, color: TICK() } },
+                        autoSkip: false, maxRotation: 0, font: { size: 10 }, color: TICK() } },
           y: { beginAtZero: true, ticks: { callback: tickFormatter(all) } }
         }
       })

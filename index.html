@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por el metodo ANOVA cruzado. Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260829b">
+<link rel="stylesheet" href="assets/css/style.css?v=20260829d">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -36,6 +36,7 @@
     <button id="importBtn">Importar</button>
     <input type="file" id="importFile" accept=".csv,.json,.txt" hidden>
     <button id="exportCsvBtn">Exportar CSV</button>
+    <button id="templateBtn">Plantilla CSV</button>
     <button id="exportJsonBtn">Exportar JSON</button>
     <button id="recalcBtn" class="ghost">Recalcular</button>
     <button id="printBtn" class="primary">Imprimir / PDF</button>
@@ -63,6 +64,9 @@
 
       <label class="field study-name"><span>Nombre del estudio <span class="opt">(opcional)</span></span>
         <input type="text" id="studyName" maxlength="120" placeholder="Ej. Planicidad bimetal 48200-215-5x"></label>
+      <p class="hint" style="margin-left:0">Importar acepta el CSV o el JSON que exporta esta misma pagina, con todo y
+        especificaciones. Si vas a capturar en Excel, baja la <strong>Plantilla CSV</strong>: trae el formato y el orden
+        que espera la importacion.</p>
 
       <div class="config-row">
         <label class="field compact"><span>Operadores</span>
@@ -293,10 +297,10 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260829b"></script>
-<script src="assets/js/stats.js?v=20260829b"></script>
-<script src="assets/js/anova.js?v=20260829b"></script>
-<script src="assets/js/charts.js?v=20260829b"></script>
-<script src="assets/js/app.js?v=20260829b"></script>
+<script src="assets/vendor/chart.umd.js?v=20260829d"></script>
+<script src="assets/js/stats.js?v=20260829d"></script>
+<script src="assets/js/anova.js?v=20260829d"></script>
+<script src="assets/js/charts.js?v=20260829d"></script>
+<script src="assets/js/app.js?v=20260829d"></script>
 </body>
 </html>

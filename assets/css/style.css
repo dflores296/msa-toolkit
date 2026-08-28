@@ -189,8 +189,14 @@ section.card[hidden] { display: none; }
 .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-/* Los contadores del estudio son de 1-2 digitos: no deben ocupar toda la columna. */
-#numOperators, #numParts, #numReplicates { max-width: 150px; }
+/* Fila compacta: cantidades del estudio + botones, todo en una sola linea. */
+.config-row { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; }
+.config-row .spacer { flex: 1 1 auto; }
+.field.compact { flex: none; }
+.field.compact input { width: 84px; }
+
+.namelist-block { margin-top: 14px; }
+.namelist-block + .namelist-block { margin-top: 10px; }
 
 label.field { display: block; font-size: 12.5px; }
 label.field > span { display: block; margin-bottom: 5px; color: var(--ink-soft); font-weight: 500; }
@@ -219,12 +225,9 @@ button:disabled { opacity: .5; cursor: not-allowed; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
 .actions .spacer { flex: 1 1 auto; }
 
-/* --- Nombres editables --- */
-.namelist {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(124px, 1fr));
-  gap: 8px; margin-top: 8px;
-}
-.namelist input { width: 100%; font-size: 13px; padding: 5px 8px; }
+/* --- Nombres editables: en fila horizontal, aprovechando todo el ancho --- */
+.namelist { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.namelist input { width: 108px; flex: none; font-size: 13px; padding: 5px 8px; }
 
 /* --- Tablas --- */
 .table-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }

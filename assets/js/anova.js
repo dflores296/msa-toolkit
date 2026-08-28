@@ -483,7 +483,19 @@
       byOperator: operators.map(function (op) {
         var v = [];
         parts.forEach(function (pt) { v = v.concat(cell[op + '\u0000' + pt]); });
-        return { operator: op, values: v, mean: mean(v) };
+        return { operator: op, values: v, mean: mean(v), box: global.MSAStats.boxStats(v) };
+      }),
+      /* Rangos de cada celda operador-pieza, agrupados de las dos maneras que
+         interesan: por operador dice quien repite peor, por pieza dice cual
+         cuesta mas medir. Son los mismos rangos de la carta R, sin la
+         secuencia. */
+      rangesByOperator: operators.map(function (op) {
+        var v = parts.map(function (pt) { return cellRange[op + '\u0000' + pt]; });
+        return { label: op, values: v, mean: mean(v) };
+      }),
+      rangesByPart: parts.map(function (pt) {
+        var v = operators.map(function (op) { return cellRange[op + '\u0000' + pt]; });
+        return { label: pt, values: v, mean: mean(v) };
       }),
       constants: c
     };

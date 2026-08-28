@@ -1,22 +1,15 @@
 /* ============================================================================
- * tests.js - Suite de regresion del motor ANOVA.
- * Corre igual en el navegador (tests/index.html) y en Node (npm test / node).
+ * tests.js - Suite de regresion del motor ANOVA cruzado.
+ * Corre igual en el navegador (tests/index.html) y en Node (node tests/run-node.js).
+ * El arnes (test / near / assert / report) vive en harness.js, compartido con
+ * la suite del motor anidado.
  * ==========================================================================*/
 (function (global) {
   'use strict';
 
-  var results = [];
-  function test(name, fn) {
-    try { fn(); results.push({ name: name, ok: true }); }
-    catch (e) { results.push({ name: name, ok: false, message: e.message }); }
-  }
-  function near(actual, expected, tol, what) {
-    if (!isFinite(actual)) throw new Error((what || '') + ': valor no finito (' + actual + ')');
-    if (Math.abs(actual - expected) > tol) {
-      throw new Error((what || 'valor') + ': se esperaba ' + expected + ' +/- ' + tol + ', se obtuvo ' + actual);
-    }
-  }
-  function assert(cond, msg) { if (!cond) throw new Error(msg || 'assert fallo'); }
+  var test = global.MSATestKit.test, near = global.MSATestKit.near,
+      assert = global.MSATestKit.assert;
+
   function rowOf(res, source) {
     var f = res.anova.filter(function (r) { return r.source === source; });
     if (!f.length) throw new Error('No existe la fila "' + source + '" en la tabla ANOVA');
@@ -521,24 +514,6 @@
     });
   });
 
-  /* ---------------------------------------------------------------------- *
-   * Los tests ya corrieron al cargar el archivo. Exponemos los resultados.
-   * ---------------------------------------------------------------------- */
-  var passed = results.filter(function (r) { return r.ok; }).length;
-  global.MSATests = {
-    results: results,
-    passed: passed,
-    failed: results.length - passed,
-    total: results.length,
-    aiagRows: aiagRows
-  };
-
-  // En Node: imprime y fija el codigo de salida.
-  if (typeof window === 'undefined' && typeof process !== 'undefined') {
-    results.forEach(function (r) {
-      console.log((r.ok ? '  ok   ' : '  FALLO') + '  ' + r.name + (r.ok ? '' : '\n         ' + r.message));
-    });
-    console.log('\n' + passed + '/' + results.length + ' pruebas pasaron.');
-    process.exitCode = passed === results.length ? 0 : 1;
-  }
+  /* Los tests ya corrieron al cargar el archivo. El resumen lo publica
+     MSATestKit.report(), que dispara quien carga todas las suites. */
 })(typeof window !== 'undefined' ? window : globalThis);

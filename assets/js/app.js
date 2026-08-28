@@ -167,7 +167,8 @@
   /* Lee un campo numerico admitiendo coma decimal (5,0) ademas de punto.
      Devuelve '' si esta vacio, o null si tiene algo que no es un numero. */
   var SPEC_LABELS = { lsl: 'LSL', usl: 'USL', tolerance: 'Tolerancia',
-                      historicalSigma: 'Sigma historica del proceso' };
+                      historicalSigma: 'Sigma historica del proceso',
+                      processMean: 'Media historica del proceso' };
 
   function readSpecs() {
     var values = {}, errors = [];
@@ -187,10 +188,6 @@
     // Avisos sobre la tolerancia, para que nunca desaparezca en silencio.
     var hasTol = values.tolerance !== '';
     var hasBoth = values.lsl !== '' && values.usl !== '';
-    if (!hasTol && !hasBoth && (values.lsl !== '' || values.usl !== '')) {
-      errors.push('Diste solo uno de los dos limites de especificacion. Para calcular ' +
-        '% Tolerance hacen falta LSL y USL, o bien la tolerancia directa.');
-    }
     if (hasBoth && !hasTol && Number(values.usl) <= Number(values.lsl)) {
       errors.push('USL (' + values.usl + ') debe ser mayor que LSL (' + values.lsl + ').');
     }
@@ -219,6 +216,7 @@
       studyVarMultiplier: Number($('svMultiplier').value),
       lsl: specs.values.lsl, usl: specs.values.usl,
       tolerance: specs.values.tolerance,
+      processMean: specs.values.processMean,
       historicalSigma: specs.values.historicalSigma,
       fDenominator: $('fDenominator').value
     };
@@ -311,7 +309,9 @@
     var t2 = '<caption>Tabla 3. Evaluacion del sistema de medicion</caption><thead><tr><th>Fuente</th>' +
       '<th class="num">Desv. estandar</th><th class="num">Variacion del estudio (' + k + ' s)</th>' +
       '<th class="num">% Study Variation</th>' +
-      (showTol ? '<th class="num">% Tolerance</th>' : '') +
+      (showTol ? '<th class="num">% Tolerance' +
+         (r.toleranceInfo.oneSided ? '<br><span style="font-weight:400;font-size:11px">(unilateral)</span>' : '') +
+         '</th>' : '') +
       (showProc ? '<th class="num">% Proceso</th>' : '') +
       '</tr></thead><tbody>';
     r.components.forEach(function (c) {
@@ -335,7 +335,17 @@
         (isFinite(r.ndcRaw) ? r.ndcRaw.toFixed(3) : 'infinito') +
         ' -> ' + (r.ndc === null ? 'infinito' : r.ndc) + '.'
     ];
-    if (showTol) notes.push('Tolerancia usada: ' + num(r.tolerance, 6) + '.');
+    if (showTol) {
+      var ti = r.toleranceInfo;
+      if (ti.oneSided) {
+        notes.push('Especificacion UNILATERAL (' + ti.mode.replace('unilateral-', '') + '). ' +
+          'El % Tolerance compara media dispersion (' + (k / 2) + ' sigma) contra el margen ' +
+          ti.label + ' = ' + num(ti.width, 6) + ', con centro del proceso = ' + num(ti.center, 6) +
+          (ti.centerFromStudy ? ' (media global del estudio).' : ' (media historica indicada).'));
+      } else {
+        notes.push('Tolerancia usada: ' + num(r.tolerance, 6) + ' (' + ti.label + ').');
+      }
+    }
     $('resultNotes').innerHTML = notes.map(function (n) { return '<p class="note">Nota. ' + esc(n) + '</p>'; }).join('');
 
     /* ANOVA completo (siempre con interaccion) para auditoria */
@@ -379,7 +389,7 @@
       config: {
         operators: state.operators, parts: state.parts, replicates: state.replicates,
         lsl: $('lsl').value, usl: $('usl').value, tolerance: $('tolerance').value,
-        historicalSigma: $('historicalSigma').value,
+        processMean: $('processMean').value, historicalSigma: $('historicalSigma').value,
         alpha: Number($('alpha').value), interaction: $('interactionMode').value,
         studyVarMultiplier: Number($('svMultiplier').value), fDenominator: $('fDenominator').value
       },
@@ -484,6 +494,7 @@
       if (p.config.lsl !== undefined) $('lsl').value = p.config.lsl;
       if (p.config.usl !== undefined) $('usl').value = p.config.usl;
       if (p.config.tolerance !== undefined) $('tolerance').value = p.config.tolerance;
+      if (p.config.processMean !== undefined) $('processMean').value = p.config.processMean;
       if (p.config.historicalSigma !== undefined) $('historicalSigma').value = p.config.historicalSigma;
       if (p.config.alpha !== undefined) $('alpha').value = String(p.config.alpha);
       if (p.config.interaction) $('interactionMode').value = p.config.interaction;
@@ -535,7 +546,7 @@
       });
     });
     $('lsl').value = '-5'; $('usl').value = '5';
-    $('tolerance').value = ''; $('historicalSigma').value = '';
+    $('tolerance').value = ''; $('processMean').value = ''; $('historicalSigma').value = '';
     loadPayload({ data: rows });
   }
 
@@ -553,7 +564,7 @@
     state = { operators: [], parts: [], replicates: 2, result: null };
     $('numOperators').value = 3; $('numParts').value = 10; $('numReplicates').value = 3;
     $('lsl').value = ''; $('usl').value = '';
-    $('tolerance').value = ''; $('historicalSigma').value = '';
+    $('tolerance').value = ''; $('processMean').value = ''; $('historicalSigma').value = '';
     $('alpha').value = '0.25'; $('interactionMode').value = 'auto';
     $('svMultiplier').value = '6'; $('fDenominator').value = 'interaction';
     renderNameInputs();
@@ -586,7 +597,7 @@
       if (e.target.files && e.target.files[0]) importFile(e.target.files[0]);
       e.target.value = '';
     });
-    ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator', 'lsl', 'usl', 'tolerance', 'historicalSigma']
+    ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator', 'lsl', 'usl', 'tolerance', 'processMean', 'historicalSigma']
       .forEach(function (id) {
         $(id).addEventListener('change', function () { if (state.result) calculate(); });
       });

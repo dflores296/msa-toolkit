@@ -438,6 +438,7 @@ details:not(.card) > div { margin-top: 12px; }
 
 footer.site { color: var(--ink-faint); font-size: 12.5px; text-align: center; padding: 20px 20px; }
 footer.site a { color: var(--ink-soft); }
+footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760px; margin-left: auto; margin-right: auto; }
 
 /* Siempre minmax(0, 1fr): con "1fr" a secas el minimo de la pista es el
    min-content del elemento, y el canvas de Chart.js lleva un ancho inline

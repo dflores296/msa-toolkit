@@ -6,7 +6,11 @@
   'use strict';
 
   var $ = function (id) { return document.getElementById(id); };
-  var state = { operators: [], parts: [], replicates: 2, result: null };
+  /* parts        - metodo cruzado: la lista de piezas que miden todos.
+     partsByOperator - metodo anidado: las piezas propias de cada operador.
+     Los dos viven a la vez para no perder la captura al cambiar de metodo. */
+  var state = { method: 'cruzado', operators: [], parts: [], partsByOperator: [],
+                replicates: 2, result: null };
 
   /* ------------------------------------------------------------------ *
    * Tema claro / oscuro - manual, se recuerda en localStorage.
@@ -33,17 +37,28 @@
 
   /* ------------------------------------------------------------------ *
    * Metodo del estudio
-   * Hoy solo existe el Gage R&R cruzado; el anidado (destructivas) y el de
-   * atributos ya aparecen en la barra, deshabilitados, para que se vea que
-   * vienen. Cada metodo lleva su propia direccion (#cruzado), asi el enlace
-   * abre el metodo correcto y recargar no lo pierde.
+   * Existen el Gage R&R cruzado y el anidado (pruebas destructivas); el de
+   * atributos aparece en la barra deshabilitado, para que se vea que viene.
+   * Cada metodo lleva su propia direccion (#cruzado), asi el enlace abre el
+   * metodo correcto y recargar no lo pierde.
+   *
+   * Los dos metodos comparten la pantalla entera: mismos pasos, mismas
+   * tarjetas, mismas pestanas. Lo que cambia se marca en el HTML con
+   * data-methods="..." y se muestra u oculta aqui. Un metodo nuevo no inventa
+   * lenguaje visual (docs/estandar-de-diseno.md).
    * ------------------------------------------------------------------ */
   var METHODS = [
     { id: 'cruzado', badge: 'Gage R&R \u00b7 ANOVA cruzado', available: true,
+      engine: function () { return MSAAnova; },
+      partsLabel: 'Piezas', partNamesLabel: 'Nombres de las piezas',
+      countLabel: 'piezas',
       help: 'Gage R&R por ANOVA cruzado: cada operador mide las mismas piezas varias veces.' },
-    { id: 'anidado', badge: 'Gage R&R \u00b7 anidado', available: false,
-      help: 'En camino. Gage R&R anidado, para pruebas destructivas: cada operador mide piezas ' +
-            'distintas de un lote homogeneo.' },
+    { id: 'anidado', badge: 'Gage R&R \u00b7 ANOVA anidado', available: true,
+      engine: function () { return MSANested; },
+      partsLabel: 'Piezas por operador', partNamesLabel: 'Nombres de las piezas, por operador',
+      countLabel: 'piezas por operador',
+      help: 'Gage R&R anidado, para pruebas destructivas: cada operador mide sus propias piezas, ' +
+            'tomadas de un lote homogeneo. El diseno no separa la interaccion operador x pieza.' },
     { id: 'atributos', badge: 'Attribute Agreement', available: false,
       help: 'En camino. Acuerdo entre evaluadores para datos de pasa / no pasa (Kappa, Kendall).' }
   ];
@@ -52,12 +67,34 @@
     for (var i = 0; i < METHODS.length; i++) if (METHODS[i].id === id) return METHODS[i];
     return METHODS[0];
   }
+  function activeMethod() { return methodById(state.method); }
+  function isNested() { return state.method === 'anidado'; }
 
-  function applyMethod(id) {
+  /* Muestra u oculta lo que es propio de un metodo. El atributo lleva la lista
+     de metodos donde el elemento aplica; sin atributo, aplica a todos. */
+  function applyMethodVisibility(id) {
+    [].slice.call(document.querySelectorAll('[data-methods]')).forEach(function (el) {
+      var list = el.getAttribute('data-methods').split(/[\s,]+/);
+      el.hidden = list.indexOf(id) < 0;
+    });
+  }
+
+  /* Cambiar de metodo conserva las mediciones: la rejilla es la misma
+     (operadores x piezas x replicas) y cada valor se queda en su lugar. Lo que
+     cambia es el significado y los nombres de las piezas -- en el anidado no
+     pueden repetirse entre operadores -- y eso se dice, no se hace callado. */
+  function applyMethod(id, isUserAction) {
     var m = methodById(id);
     if (!m.available) m = METHODS[0];
+    var changed = state.method !== m.id;
+    var captured = changed && isUserAction ? readValuesByPosition() : null;
+
+    state.method = m.id;
     document.documentElement.setAttribute('data-method', m.id);
     $('methodBadge').textContent = m.badge;
+    applyMethodVisibility(m.id);
+    $('numPartsLabel').textContent = m.partsLabel;
+    $('partNamesLabel').textContent = m.partNamesLabel;
     [].slice.call(document.querySelectorAll('.method-opt')).forEach(function (btn) {
       var mm = methodById(btn.dataset.method);
       btn.classList.toggle('active', btn.dataset.method === m.id);
@@ -67,16 +104,44 @@
     if (location.hash !== '#' + m.id) {
       try { history.replaceState(null, '', '#' + m.id); } catch (e) { location.hash = m.id; }
     }
+    renderStudyName();
+
+    if (changed && isUserAction) {
+      // Al pasar al anidado, unos nombres de pieza que venian repetidos entre
+      // operadores (lo normal en el cruzado) no sirven: se renumeran de cero.
+      if (m.id === 'anidado' && firstDuplicate(allPartNames())) state.partsByOperator = [];
+      renderNameInputs();
+      if (!$('captureSection').hidden) {
+        buildDataTable(false);
+        var kept = writeValuesByPosition(captured);
+        validateLive();
+        if (kept) {
+          showMessages($('configMsg'), [], [methodSwitchNote(m, kept)]);
+        }
+        if (state.result) calculate(); else resetResultViz();
+      }
+    }
     return m.id;
   }
 
+  function methodSwitchNote(m, kept) {
+    if (m.id === 'anidado') {
+      return 'Metodo cambiado a anidado: se conservaron las ' + kept + ' medicion(es) en su lugar de la ' +
+        'rejilla y las piezas se renombraron para que ninguna se repita entre operadores, como exige el ' +
+        'diseno. Revisa que los nombres correspondan a las piezas que midio cada quien.';
+    }
+    return 'Metodo cambiado a cruzado: se conservaron las ' + kept + ' medicion(es) en su lugar de la ' +
+      'rejilla y las piezas volvieron a la lista compartida. El cruzado supone que los operadores ' +
+      'midieron LA MISMA pieza; si eran piezas distintas, el estudio es anidado.';
+  }
+
   function initMethods() {
-    applyMethod((location.hash || '').replace('#', '') || 'cruzado');
+    applyMethod((location.hash || '').replace('#', '') || 'cruzado', false);
     [].slice.call(document.querySelectorAll('.method-opt')).forEach(function (btn) {
-      btn.addEventListener('click', function () { applyMethod(btn.dataset.method); });
+      btn.addEventListener('click', function () { applyMethod(btn.dataset.method, true); });
     });
     window.addEventListener('hashchange', function () {
-      applyMethod((location.hash || '').replace('#', ''));
+      applyMethod((location.hash || '').replace('#', ''), true);
     });
   }
 
@@ -118,7 +183,8 @@
   function renderStudyName() {
     var name = studyName();
     $('studyLabel').textContent = name;
-    document.title = (name ? name + ' - ' : '') + 'MSA Toolkit - Gage R&R (ANOVA)';
+    document.title = (name ? name + ' - ' : '') + 'MSA Toolkit - Gage R&R (ANOVA ' +
+      (isNested() ? 'anidado' : 'cruzado') + ')';
   }
 
   /* Nombre de archivo a partir del nombre del estudio: sin acentos ni signos,
@@ -129,23 +195,76 @@
     return (slug || 'estudio-gage-rr') + '.' + ext;
   }
 
+  /* Piezas del operador oi. Es el unico punto donde los dos metodos difieren
+     en la estructura de la captura: en el cruzado todos comparten la lista, en
+     el anidado cada uno trae la suya. */
+  function partsOfOperator(oi) {
+    return isNested() ? (state.partsByOperator[oi] || []) : state.parts;
+  }
+  function partsPerOperator() {
+    return isNested() ? (state.partsByOperator[0] || []).length : state.parts.length;
+  }
+  /** Todos los nombres de pieza, en el orden de la tabla de captura. */
+  function allPartNames() {
+    if (!isNested()) return state.parts.slice();
+    var out = [];
+    state.partsByOperator.forEach(function (g) { out = out.concat(g); });
+    return out;
+  }
+
   function renderNameInputs() {
     var nOp = clamp(parseInt($('numOperators').value, 10), 2, 20, 3);
     var nPart = clamp(parseInt($('numParts').value, 10), 2, 50, 10);
     state.operators = defaultNames('Operador', nOp, state.operators);
     state.parts = defaultNames('Pieza', nPart, state.parts);
+    /* En el anidado el nombre de la pieza no se puede repetir entre operadores:
+       la numeracion corre de largo (1..30), que es como se etiqueta un lote del
+       que se van sacando piezas. */
+    state.partsByOperator = [];
+    for (var o = 0; o < nOp; o++) {
+      var prev = (state.partsByOperator[o] || []);
+      var group = [];
+      for (var p = 0; p < nPart; p++) group.push(prev[p] || ('Pieza ' + (o * nPart + p + 1)));
+      state.partsByOperator.push(group);
+    }
 
     fill($('operatorNames'), state.operators, function (i, v) { state.operators[i] = v; });
-    fill($('partNames'), state.parts, function (i, v) { state.parts[i] = v; });
+    if (isNested()) {
+      fillGrouped($('partNames'), state.partsByOperator, state.operators, function (o, i, v) {
+        state.partsByOperator[o][i] = v;
+      });
+    } else {
+      fill($('partNames'), state.parts, function (i, v) { state.parts[i] = v; });
+    }
+  }
+
+  function nameInput(value, label, onChange) {
+    var inp = document.createElement('input');
+    inp.type = 'text'; inp.value = value; inp.setAttribute('aria-label', label);
+    inp.addEventListener('input', function () { onChange(inp.value); });
+    return inp;
   }
 
   function fill(host, arr, onChange) {
     host.innerHTML = '';
     arr.forEach(function (name, i) {
-      var inp = document.createElement('input');
-      inp.type = 'text'; inp.value = name; inp.setAttribute('aria-label', 'Nombre ' + (i + 1));
-      inp.addEventListener('input', function () { onChange(i, inp.value); });
-      host.appendChild(inp);
+      host.appendChild(nameInput(name, 'Nombre ' + (i + 1), function (v) { onChange(i, v); }));
+    });
+  }
+
+  /* Anidado: las piezas se listan bajo el operador que las midio. Sin el
+     encabezado, una lista de 30 nombres corridos no dice de quien es cada uno. */
+  function fillGrouped(host, groups, opNames, onChange) {
+    host.innerHTML = '';
+    groups.forEach(function (group, o) {
+      var head = document.createElement('div');
+      head.className = 'namelist-group';
+      head.textContent = opNames[o] || ('Operador ' + (o + 1));
+      host.appendChild(head);
+      group.forEach(function (name, i) {
+        host.appendChild(nameInput(name, (opNames[o] || '') + ', pieza ' + (i + 1),
+          function (v) { onChange(o, i, v); }));
+      });
     });
   }
 
@@ -197,14 +316,26 @@
     state.replicates = clamp(parseInt($('numReplicates').value, 10), 2, 25, 2);
 
     var ops = state.operators.map(trimOrDefault('Operador'));
-    var parts = state.parts.map(trimOrDefault('Pieza'));
-    var dup = firstDuplicate(ops) || firstDuplicate(parts);
+    state.operators = ops;
+    if (isNested()) {
+      state.partsByOperator = state.partsByOperator.map(function (g, o) {
+        return g.map(function (v, i) {
+          var t = String(v || '').trim();
+          return t || ('Pieza ' + (o * g.length + i + 1));
+        });
+      });
+    } else {
+      state.parts = state.parts.map(trimOrDefault('Pieza'));
+    }
+    var dup = firstDuplicate(ops) || firstDuplicate(allPartNames());
     if (dup) {
-      showMessages($('configMsg'), ['Hay nombres repetidos ("' + dup + '"). Cada operador y cada pieza debe tener un nombre unico.'], []);
+      showMessages($('configMsg'), [isNested()
+        ? 'Hay nombres repetidos ("' + dup + '"). En un estudio anidado cada operador mide piezas ' +
+          'distintas, asi que ningun nombre de pieza puede repetirse, ni siquiera entre operadores.'
+        : 'Hay nombres repetidos ("' + dup + '"). Cada operador y cada pieza debe tener un nombre unico.'], []);
       return false;
     }
     clearMessages($('configMsg'));
-    state.operators = ops; state.parts = parts;
 
     // Clases explicitas por columna. No dependemos de :first-child, que alineaba
     // distinto la primera fila de cada operador: ahi la celda de pieza es el
@@ -217,6 +348,7 @@
 
     var body = '<tbody>';
     ops.forEach(function (op, oi) {
+      var parts = partsOfOperator(oi);
       parts.forEach(function (pt, pi) {
         body += '<tr' + (pi === 0 && oi > 0 ? ' class="group-start"' : '') + '>';
         if (pi === 0) {
@@ -228,7 +360,8 @@
           var key = op + '\u0000' + pt + '\u0000' + k;
           var v = previous[key] === undefined ? '' : previous[key];
           body += '<td class="col-meas"><input type="text" inputmode="decimal" data-op="' + esc(op) +
-                  '" data-part="' + esc(pt) + '" data-rep="' + k + '" value="' + esc(v) +
+                  '" data-part="' + esc(pt) + '" data-rep="' + k + '" data-oi="' + oi +
+                  '" data-pi="' + pi + '" value="' + esc(v) +
                   '" aria-label="' + esc(op + ', ' + pt + ', replica ' + (k + 1)) + '"></td>';
         }
         body += '</tr>';
@@ -238,8 +371,9 @@
 
     $('dataTable').innerHTML = thead + body;
     $('captureSection').hidden = false;
-    $('captureCount').textContent = ops.length + ' operadores x ' + parts.length + ' piezas x ' +
-      state.replicates + ' replicas = ' + (ops.length * parts.length * state.replicates) + ' mediciones';
+    $('captureCount').textContent = ops.length + ' operadores x ' + partsPerOperator() + ' ' +
+      activeMethod().countLabel + ' x ' + state.replicates + ' replicas = ' +
+      (ops.length * partsPerOperator() * state.replicates) + ' mediciones';
     wirePaste();
     return true;
   }
@@ -269,6 +403,30 @@
       map[i.dataset.op + '\u0000' + i.dataset.part + '\u0000' + i.dataset.rep] = i.value;
     });
     return map;
+  }
+
+  /* Las mismas mediciones, pero indexadas por su LUGAR en la rejilla y no por
+     los nombres. Es lo que permite cambiar de metodo sin perder la captura: en
+     el anidado las piezas se renombran, pero la celda "operador 2, tercera
+     pieza, replica 1" sigue siendo la misma celda. */
+  function readValuesByPosition() {
+    var map = {};
+    inputs().forEach(function (i) {
+      if (i.value.trim() === '') return;
+      map[i.dataset.oi + '|' + i.dataset.pi + '|' + i.dataset.rep] = i.value;
+    });
+    return map;
+  }
+
+  /** Devuelve cuantas mediciones se pudieron reubicar. */
+  function writeValuesByPosition(map) {
+    if (!map) return 0;
+    var n = 0;
+    inputs().forEach(function (i) {
+      var v = map[i.dataset.oi + '|' + i.dataset.pi + '|' + i.dataset.rep];
+      if (v !== undefined) { i.value = v; n++; }
+    });
+    return n;
   }
 
   /** Pegar un bloque desde Excel: rellena hacia abajo y a la derecha. */
@@ -370,18 +528,22 @@
       return;
     }
     var opts = {
-      alpha: Number($('alpha').value),
-      interaction: $('interactionMode').value,
       studyVarMultiplier: Number($('svMultiplier').value),
       lsl: specs.values.lsl, usl: specs.values.usl,
       tolerance: specs.values.tolerance,
       processMean: specs.values.processMean,
-      historicalSigma: specs.values.historicalSigma,
-      fDenominator: $('fDenominator').value
+      historicalSigma: specs.values.historicalSigma
     };
+    // Alfa, interaccion y denominador de F solo existen en el cruzado: sin
+    // interaccion estimable no hay nada que probar, agrupar ni elegir.
+    if (!isNested()) {
+      opts.alpha = Number($('alpha').value);
+      opts.interaction = $('interactionMode').value;
+      opts.fDenominator = $('fDenominator').value;
+    }
     var result;
     try {
-      result = MSAAnova.compute(rows, opts);
+      result = activeMethod().engine().compute(rows, opts);
     } catch (e) {
       $('resultsSection').hidden = false;
       showMessages($('resultMsg'), e.details || [e.message], []);
@@ -504,8 +666,10 @@
 
   function renderTables(r) {
     /* ANOVA */
-    var h = '<caption>Tabla 1. ANOVA de dos factores (' +
-      (r.model === 'with-interaction' ? 'con interaccion' : 'sin interaccion') + ')</caption>' +
+    var h = '<caption>Tabla 1. ' + (r.model === 'nested'
+        ? 'ANOVA anidado (piezas dentro de operador)'
+        : 'ANOVA de dos factores (' +
+          (r.model === 'with-interaction' ? 'con interaccion' : 'sin interaccion') + ')') + '</caption>' +
       '<thead><tr><th>Fuente</th><th class="num">GL</th><th class="num">SC</th>' +
       '<th class="num">CM</th><th class="num">F</th><th class="num">p</th></tr></thead><tbody>';
     r.anova.forEach(function (row) {
@@ -586,8 +750,13 @@
     });
     t3 += '</tbody>';
     $('anovaFullTable').innerHTML = t3;
-    $('decompNote').textContent = 'Comprobacion de la identidad SC_Total = SC_Parte + SC_Operador + ' +
-      'SC_Interaccion + SC_Repetibilidad: error relativo = ' + r.anovaFull.decompositionError.toExponential(2) +
+    $('anovaFullNote').textContent = r.model === 'nested'
+      ? 'La misma tabla sin las F, para auditar el calculo:'
+      : 'ANOVA completo (siempre con interaccion, para auditar el calculo):';
+    var identity = r.anovaFull.identity ||
+      'SC_Total = SC_Parte + SC_Operador + SC_Interaccion + SC_Repetibilidad';
+    $('decompNote').textContent = 'Comprobacion de la identidad ' + identity +
+      ': error relativo = ' + r.anovaFull.decompositionError.toExponential(2) +
       (r.anovaFull.decompositionError < 1e-9 ? ' (correcto).' : ' (REVISAR).');
   }
 
@@ -618,8 +787,8 @@
   function exportCSV() {
     var vals = readValues();
     var lines = ['operador,pieza,replica,medicion'];
-    state.operators.forEach(function (op) {
-      state.parts.forEach(function (pt) {
+    state.operators.forEach(function (op, oi) {
+      partsOfOperator(oi).forEach(function (pt) {
         for (var k = 0; k < state.replicates; k++) {
           lines.push([csvCell(op), csvCell(pt), k + 1,
                       (vals[op + '\u0000' + pt + '\u0000' + k] || '').trim()].join(','));
@@ -647,10 +816,13 @@
     var reader = new FileReader();
     reader.onload = function () {
       var text = String(reader.result);
+      // Se limpia ANTES de cargar: loadPayload deja sus propios avisos (el
+      // diseno que trae el archivo, por ejemplo) y borrarlos despues los
+      // hacia invisibles.
+      clearMessages($('configMsg'));
       try {
         if (/^\s*\{/.test(text)) loadPayload(JSON.parse(text));
         else loadCSV(text);
-        clearMessages($('configMsg'));
       } catch (e) {
         showMessages($('configMsg'), ['No se pudo leer el archivo: ' + e.message], []);
       }
@@ -711,20 +883,63 @@
     return out;
   }
 
+  /* Que diseno trae el archivo, leido de los datos y no del metodo activo:
+     si todos los operadores midieron las mismas piezas es cruzado; si ninguna
+     pieza se repite entre operadores es anidado. Cualquier otra cosa (unas
+     compartidas y otras no) no es ninguno de los dos y se deja como esta para
+     que el motor lo diga con su propio mensaje. */
+  function detectDesign(partsByOp) {
+    if (partsByOp.length < 2) return null;
+    var owner = {}, shared = 0, own = 0;
+    partsByOp.forEach(function (g, oi) {
+      g.forEach(function (pt) {
+        if (owner[pt] === undefined) { owner[pt] = oi; own++; }
+        else if (owner[pt] !== oi) shared++;
+      });
+    });
+    if (shared === 0) return 'anidado';
+    var first = partsByOp[0];
+    var same = partsByOp.every(function (g) {
+      return g.length === first.length && g.every(function (pt) { return first.indexOf(pt) >= 0; });
+    });
+    return same ? 'cruzado' : null;
+  }
+
   function loadPayload(p) {
     var rows = p.data || [];
     if (!rows.length) throw new Error('no hay filas de datos');
-    var ops = [], parts = [], counts = {};
+    var ops = [], parts = [], counts = {}, partsByOp = [], seenPart = [];
     rows.forEach(function (r) {
       var o = String(r.operator).trim(), t = String(r.part).trim();
-      if (ops.indexOf(o) < 0) ops.push(o);
+      var oi = ops.indexOf(o);
+      if (oi < 0) { oi = ops.length; ops.push(o); partsByOp.push([]); seenPart.push({}); }
       if (parts.indexOf(t) < 0) parts.push(t);
+      if (!seenPart[oi][t]) { seenPart[oi][t] = true; partsByOp[oi].push(t); }
       var key = o + '\u0000' + t;
       // Con columna replica el numero de replicas lo fija el mayor indice, no
       // el conteo de filas: asi un archivo con huecos no encoge el estudio.
       counts[key] = Math.max(counts[key] || 0, r.replicate > 0 ? r.replicate : (counts[key] || 0) + 1);
     });
     var maxRep = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
+
+    /* El archivo manda sobre el metodo activo. Importar un estudio anidado
+       estando en cruzado daria un error de piezas incompletas que no dice nada
+       del problema real, asi que se cambia el metodo y se avisa. */
+    var notes = [];
+    var design = detectDesign(partsByOp);
+    if (design && design !== state.method && methodById(design).available) {
+      applyMethod(design, false);
+      notes.push('El archivo trae un diseno ' + design + ' (' + (design === 'anidado'
+        ? 'ninguna pieza la miden dos operadores'
+        : 'todos los operadores midieron las mismas piezas') +
+        '), asi que se cambio a ese metodo.');
+    }
+    var perOp = partsByOp.map(function (g) { return g.length; });
+    if (isNested() && Math.min.apply(null, perOp) !== Math.max.apply(null, perOp)) {
+      notes.push('Los operadores no traen el mismo numero de piezas (entre ' +
+        Math.min.apply(null, perOp) + ' y ' + Math.max.apply(null, perOp) +
+        '): la tabla se arma con ' + perOp[0] + ' y las celdas que sobren quedan vacias.');
+    }
 
     if (p.config) {
       if (p.config.studyName !== undefined) { $('studyName').value = p.config.studyName; renderStudyName(); }
@@ -739,9 +954,14 @@
       if (p.config.fDenominator) $('fDenominator').value = p.config.fDenominator;
     }
 
-    state.operators = ops; state.parts = parts;
+    state.operators = ops;
+    // Cada metodo se queda con la estructura que le toca. La del otro no se
+    // pisa con nombres que ahi serian invalidos (en un archivo cruzado las
+    // piezas se repiten entre operadores, y el anidado no lo admite).
+    if (isNested()) state.partsByOperator = partsByOp.map(function (g) { return g.slice(); });
+    else state.parts = parts;
     $('numOperators').value = ops.length;
-    $('numParts').value = parts.length;
+    $('numParts').value = isNested() ? perOp[0] : parts.length;
     $('numReplicates').value = maxRep;
     renderNameInputs();
     if (!buildDataTable(false)) return;
@@ -757,6 +977,7 @@
       if (inp) inp.value = String(r.value).trim();
     });
     validateLive();
+    if (notes.length) showMessages($('configMsg'), [], notes);
     $('captureSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -775,16 +996,27 @@
     [2.26, 1.99, 2.01, 1.80, 2.12, 2.19, 1.77, 1.45, 1.87],
     [-1.36, -1.25, -1.31, -1.68, -1.62, -1.50, -1.49, -1.77, -2.16]
   ];
+  /* El boton de ejemplo carga el dataset que le toca al metodo activo.
+     En el anidado son las MISMAS mediciones con las piezas renumeradas 1 a 30,
+     para que ninguna la midan dos operadores: es el caso con el que se valida
+     el motor anidado (ver tests/tests-nested.js). No es un estudio destructivo
+     real, y por eso se dice en el aviso. */
   function loadDemo() {
-    var rows = [], ops = ['Operador A', 'Operador B', 'Operador C'];
+    var rows = [], ops = ['Operador A', 'Operador B', 'Operador C'], nested = isNested();
     AIAG.forEach(function (vals, i) {
       ops.forEach(function (op, oi) {
-        for (var k = 0; k < 3; k++) rows.push({ operator: op, part: 'Pieza ' + (i + 1), value: vals[oi * 3 + k] });
+        var part = nested ? ('Pieza ' + (oi * 10 + i + 1)) : ('Pieza ' + (i + 1));
+        for (var k = 0; k < 3; k++) rows.push({ operator: op, part: part, value: vals[oi * 3 + k] });
       });
     });
     $('lsl').value = '-5'; $('usl').value = '5';
     $('tolerance').value = ''; $('processMean').value = ''; $('historicalSigma').value = '';
     loadPayload({ data: rows });
+    if (nested) {
+      showMessages($('configMsg'), [], ['Ejemplo cargado: son las mediciones del apendice del manual ' +
+        'AIAG MSA 4a ed. con las piezas renumeradas 1 a 30, para que ninguna la midan dos operadores. ' +
+        'Sirve para ver el metodo funcionando y para validar el motor; no es un estudio destructivo real.']);
+    }
   }
 
   function clearData() {
@@ -798,7 +1030,8 @@
 
   function resetAll() {
     if (!confirm('Se reiniciara el estudio completo (configuracion y datos). Continuar?')) return;
-    state = { operators: [], parts: [], replicates: 2, result: null };
+    state = { method: state.method, operators: [], parts: [], partsByOperator: [],
+              replicates: 2, result: null };
     $('numOperators').value = 3; $('numParts').value = 10; $('numReplicates').value = 3;
     $('studyName').value = ''; renderStudyName();
     $('lsl').value = ''; $('usl').value = '';
@@ -854,13 +1087,14 @@
     var name = studyName() || 'Estudio Gage R&R';
     var meta = [
       ['Fecha', new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })],
-      ['Estudio', state.operators.length + ' operadores x ' + state.parts.length +
-        ' piezas x ' + state.replicates + ' replicas = ' +
-        (state.operators.length * state.parts.length * state.replicates) + ' mediciones'],
+      ['Estudio', state.operators.length + ' operadores x ' + partsPerOperator() + ' ' +
+        activeMethod().countLabel + ' x ' + state.replicates + ' replicas = ' +
+        (state.operators.length * partsPerOperator() * state.replicates) + ' mediciones'],
       ['Especificacion', specLabel()],
       ['Multiplicador', $('svMultiplier').value + ' sigma'],
-      ['Alfa', $('alpha').value],
-      ['Modelo', r ? (r.model === 'with-interaction' ? 'Con interaccion' : 'Sin interaccion (agrupada)') : '-'],
+      ['Alfa', isNested() ? 'no aplica' : $('alpha').value],
+      ['Modelo', r ? (r.model === 'nested' ? 'Anidado (sin interaccion estimable)'
+                    : r.model === 'with-interaction' ? 'Con interaccion' : 'Sin interaccion (agrupada)') : '-'],
       ['% Study Variation (GRR)', r ? r.metrics.pctStudyVar.toFixed(2) + ' %' : '-'],
       ['Categorias distintas', r ? (r.ndc === null ? 'inf' : String(r.ndc)) : '-']
     ];
@@ -890,8 +1124,8 @@
     for (var i = 1; i <= k; i++) h += '<th>Replica ' + i + '</th>';
     h += '</tr></thead><tbody>';
     var n = 0;
-    state.operators.forEach(function (op) {
-      state.parts.forEach(function (pt) {
+    state.operators.forEach(function (op, oi) {
+      partsOfOperator(oi).forEach(function (pt) {
         h += '<tr><td class="txt">' + esc(op) + '</td><td class="txt">' + esc(pt) + '</td>';
         for (var j = 0; j < k; j++) {
           var v = (vals[op + '\u0000' + pt + '\u0000' + j] || '').trim();

@@ -1,5 +1,6 @@
 /* ============================================================================
- * charts.js - Las ocho graficas del estudio, sobre Chart.js.
+ * charts.js - Las graficas del estudio, sobre Chart.js: ocho en el metodo
+ * cruzado, cinco en el anidado (ver render).
  * Sin redondeo de los datos antes de graficar (el VBA redondeaba a 4 dp).
  * ==========================================================================*/
 (function (global) {
@@ -273,12 +274,22 @@
   }
 
   /* ---------------------------------------------------------------------- *
-   * render(result) - dibuja las 8 graficas a partir del objeto de compute()
-   * La barra "Evaluacion de la variacion" ya no vive aqui: es un widget
-   * HTML/CSS (ver renderEvalBars en app.js), no una grafica de Chart.js.
+   * render(result) - dibuja las graficas a partir del objeto de compute()
+   *
+   * Ocho en el metodo cruzado. En el anidado son cinco: se van la de
+   * interaccion, el promedio por pieza y los rangos por pieza, porque las tres
+   * cruzan operadores sobre una misma pieza y ahi ninguna pieza la miden dos
+   * operadores. El motor anidado simplemente no publica esas series, asi que
+   * la condicion es "si el dato existe", no "si el metodo es tal".
+   *
+   * La barra "Evaluacion de la variacion" no vive aqui: es un widget HTML/CSS
+   * (ver renderEvalBars en app.js), no una grafica de Chart.js.
    * ---------------------------------------------------------------------- */
   function render(result) {
     var ch = result.charts;
+    // Las graficas que este metodo no dibuja no pueden quedarse en pantalla
+    // con los datos del metodo anterior.
+    destroyAll();
     var comps = {};
     result.components.forEach(function (c) { comps[c.key] = c; });
 
@@ -321,7 +332,11 @@
     });
 
     /* 2. Carta R por operador */
-    var partAxis = shortPartLabels(ch.partSequence, result.charts.partMeans.labels);
+    // El eje se recorta contra la lista completa de nombres de pieza: la
+    // comparte el cruzado (10 piezas) y la trae aparte el anidado (una por
+    // celda, sin repetir entre operadores).
+    var allPartNames = ch.partMeans ? ch.partMeans.labels : ch.allParts;
+    var partAxis = shortPartLabels(ch.partSequence, allPartNames);
     var bandOptions = {
       layout: { padding: { top: 14 } },
       plugins: { operatorBands: { groups: ch.operatorGroups } },
@@ -427,8 +442,10 @@
     rangeChart('chartRangesByOperator', ch.rangesByOperator, 'Operador', false);
     rangeChart('chartRangesByPart', ch.rangesByPart, 'Pieza', true);
 
-    /* 5. Promedio de medicion por pieza */
-    make('chartPartMeans', {
+    /* 5. Promedio de medicion por pieza. Solo cruzado: en el anidado cada punto
+          seria una pieza de un solo operador, que es lo que ya muestra la carta
+          X-barra con sus bloques. */
+    if (ch.partMeans) make('chartPartMeans', {
       type: 'line',
       data: {
         labels: shortPartLabels(ch.partMeans.labels, ch.partMeans.labels),
@@ -445,7 +462,9 @@
       })
     });
 
-    /* 6. Interaccion operador x pieza */
+    /* 6. Interaccion operador x pieza. Solo cruzado: el diseno anidado no la
+          puede estimar porque ninguna pieza la miden dos operadores. */
+    if (!ch.interaction) return;
     var allInter = [];
     ch.interaction.series.forEach(function (s) { allInter = allInter.concat(s.values); });
     make('chartInteraction', {
@@ -470,7 +489,7 @@
   /* Un grupo por categoria: un punto por cada rango y una linea con el rango
      promedio del grupo. */
   function rangeChart(id, groups, title, shorten) {
-    if (!groups || !groups.length) return;
+    if (!groups || !groups.length) return;   // el anidado no publica rangesByPart
     var labels = groups.map(function (g) { return g.label; });
     if (shorten) labels = shortPartLabels(labels, labels);
     var points = [], all = [];

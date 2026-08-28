@@ -5,9 +5,19 @@ el navegador. Sin backend, sin instalación y sin licencia de software que pagar
 Pensado para reemplazar el libro de Excel con macros que se usaba para los
 estudios Gage R&R.
 
-**Método disponible hoy:** Gage R&R por **ANOVA cruzado** (crossed, dos factores
-con efectos aleatorios). Es el mismo método del libro original, con el motor de
-cálculo corregido y validado.
+**Métodos disponibles hoy:**
+
+- **Gage R&R por ANOVA cruzado** (*crossed*, dos factores con efectos
+  aleatorios): cada operador mide las mismas piezas. Es el mismo método del
+  libro original, con el motor de cálculo corregido y validado.
+- **Gage R&R por ANOVA anidado** (*nested*), para **pruebas destructivas**:
+  medir la pieza la destruye, así que cada operador mide sus propias piezas de
+  un lote que se supone homogéneo. El diseño no puede separar la interacción
+  operador × pieza —la reproducibilidad sale como efecto de operador— y la
+  aplicación lo dice en pantalla en vez de esconderlo.
+
+Se cambia de método desde el selector de la barra, y cada uno tiene su dirección
+(`#cruzado`, `#anidado`). Cambiar de método conserva las mediciones capturadas.
 
 ## Cómo se usa
 
@@ -16,7 +26,10 @@ cálculo corregido y validado.
 2. **Captura** — se genera la tabla; escribes las mediciones o pegas un bloque
    copiado de Excel directamente en la primera celda.
 3. **Resultados** — tabla ANOVA, componentes de varianza, evaluación del sistema
-   de medición y las siete gráficas. Los límites de especificación son opcionales.
+   de medición y las gráficas (ocho en el cruzado, cinco en el anidado: allí no
+   hay gráfica de interacción ni agrupaciones por pieza compartida, porque
+   ninguna pieza la miden dos operadores). Los límites de especificación son
+   opcionales.
 
 Los datos se pueden exportar e importar como CSV o JSON, y la vista de
 resultados está preparada para imprimir a PDF.
@@ -35,7 +48,29 @@ distribuye como `gageaiag.mtw`:
 | % Study Variation Gage R&R | 27.86 % | 27.86 % |
 | NDC | 4 | 4 |
 
-44 pruebas de regresión. Para correrlas:
+### Motor anidado
+
+El dataset publicado de referencia para destructivas está pendiente, pero el
+motor anidado **no** se valida contra números inventados: se apoya en una
+identidad exacta del ANOVA balanceado. Si se toman las mismas mediciones del
+apéndice AIAG y se renumeran las piezas 1 a 30 —de modo que ninguna la midan dos
+operadores— el layout es un anidado 3 × 10 × 3 y se cumple
+
+```
+SC_Operador(anidado)      = SC_Operador(cruzado)        = 3.1673
+SC_Pieza(Operador)        = SC_Pieza + SC_Interacción   = 88.3619 + 0.3590
+SC_Repetibilidad(anidado) = SC_Repetibilidad(cruzado)   = 2.7589
+gl_Pieza(Operador) = o(n−1) = 27 = 9 + 18
+```
+
+(el término cruzado se anula porque, para una pieza fija, los residuos de
+interacción suman cero sobre los operadores). Las cuatro cantidades de la
+derecha son las publicadas por Minitab, así que el anidado queda anclado en los
+mismos números. Se suma un caso construido a mano con los tres cuadrados medios
+exactos, y pruebas de propiedad. El dataset está en
+`datasets/aiag-msa4-anidado.json`.
+
+80 pruebas de regresión entre los dos motores. Para correrlas:
 
 ```bash
 node tests/run-node.js      # en terminal
@@ -43,6 +78,25 @@ node tests/run-node.js      # en terminal
 
 o abre `tests/index.html` en el navegador, que además muestra lado a lado los
 resultados del motor corregido y los del motor VBA original.
+
+### Que un método no mueva al otro
+
+Los dos métodos comparten la misma pantalla, y eso una suite de motor no lo ve:
+el cálculo puede seguir dando los mismos números mientras la pantalla los
+muestra mal, se come una gráfica o rompe el reporte. Para eso está
+`tests/regresion-visual.js`, que corre el mismo estudio en dos versiones del
+repo y compara todo lo que la página publica —veredictos, tablas, notas, CSV,
+cada gráfica y el reporte impreso, pixel a pixel:
+
+```bash
+node tests/regresion-visual.js HEAD~1            # cruzado contra el commit anterior
+node tests/regresion-visual.js main anidado      # anidado contra main
+```
+
+Necesita Playwright y Chromium, que **no** son dependencias del proyecto: es
+una herramienta de escritorio aparte (`npm i playwright && npx playwright
+install chromium`). La aplicación y `tests/run-node.js` siguen corriendo sin
+instalar nada.
 
 ## Qué se corrigió respecto del Excel
 
@@ -119,12 +173,11 @@ propias pruebas de regresión y datasets de validación. El plan de trabajo —c
 el modelo de cada uno, qué se reutiliza y cómo se agrega— está en
 **[`docs/plan-siguientes-metodos.md`](docs/plan-siguientes-metodos.md)**:
 
+- Attribute Agreement (Kappa de Cohen/Fleiss, Kendall) — el que sigue
 - Promedio y Rango (X̄ & R) con constantes K1/K2/K3
 - Estudio Tipo 1 (Cg / Cgk) sobre patrón
 - Linealidad y sesgo
 - Estabilidad (cartas I-mR del patrón)
-- Gage R&R anidado (pruebas destructivas)
-- Attribute Agreement (Kappa de Cohen/Fleiss, Kendall)
 - Intervalos de confianza para el %GRR (MLS / GPQ)
 
 ## Licencia

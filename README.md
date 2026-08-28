@@ -81,10 +81,16 @@ importar desde Node o desde otra herramienta tal cual.
 
 El sitio es 100 % estático, sin paso de compilación:
 
-1. Fusiona esta rama en `main`.
-2. En GitHub: **Settings → Pages → Source: Deploy from a branch**, rama `main`,
+1. En GitHub: **Settings → Pages → Source: Deploy from a branch**, rama `main`,
    carpeta `/ (root)`.
-3. Queda publicado en `https://dflores296.github.io/msa-toolkit/`.
+2. Queda publicado en `https://dflores296.github.io/msa-toolkit/`, y las pruebas
+   de validación en `https://dflores296.github.io/msa-toolkit/tests/`.
+
+El archivo `.nojekyll` desactiva el procesamiento con Jekyll: el sitio se sirve
+tal cual, sin sorpresas con rutas ni carpetas.
+
+También funciona sin servidor: basta abrir `index.html` con doble clic, porque
+Chart.js va servido desde el propio repositorio y no hay dependencias externas.
 
 ## Hoja de ruta
 

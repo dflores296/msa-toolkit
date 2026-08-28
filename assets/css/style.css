@@ -344,15 +344,14 @@ input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 .eval-fill.ok { background: var(--sem-ok); }
 .eval-fill.warn { background: var(--sem-warn); }
 .eval-fill.bad { background: var(--sem-bad); }
-/* Lineas punteadas de 10 % y 30 % (criterio AIAG) con el color de su nivel,
-   al estilo Minitab. Van por DEBAJO del relleno (z-index 0) para que la barra
-   sobresalga por encima cuando se traslapan, pero sobresalen 5 px arriba y
-   abajo de la pista: esos tramos quedan siempre visibles, aunque la barra
-   cubra el centro. El rotulo va arriba, con el mismo color. */
+/* Lineas punteadas de 10 % y 30 % (criterio AIAG) con el color de su nivel.
+   Van por ENCIMA del relleno (z-index 2) para que la marca del umbral se lea
+   completa aunque la barra la cruce, y sobresalen 5 px arriba y abajo de la
+   pista. El rotulo va arriba, con el mismo color. */
 .eval-tick {
   position: absolute; top: -5px; bottom: -5px; width: 0;
   border-left: 1.5px dashed var(--tick-color, var(--ink-faint));
-  z-index: 0;
+  z-index: 2;
 }
 .eval-tick.ok { --tick-color: var(--sem-ok); }
 .eval-tick.warn { --tick-color: var(--sem-warn); }

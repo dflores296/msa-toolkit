@@ -474,36 +474,30 @@ footer.site a { color: var(--ink-soft); }
 
   .workbench { display: block; max-width: none; }
   .col-results { position: static; }
-  .results-panel { max-height: none; overflow: visible; background: #fff; padding: 0; gap: 10px; }
-  #resultBody { gap: 10px; }
-  .msg { margin-bottom: 0; padding: 6px 10px; font-size: 9pt; }
-  .eval-bars { gap: 16px; padding-top: 12px; }
+  .results-panel { max-height: none; overflow: visible; background: #fff; padding: 0; gap: 14px; }
+  #resultBody { gap: 14px; }
 
   /* Sin pestanas, los cuatro paneles se imprimen uno tras otro, cada uno con
-     su titulo (data-print-title). El contenido FLUYE: forzar un salto de pagina
-     por panel dejaba media hoja en blanco despues de cada bloque corto. Lo
-     unico que no se parte es cada unidad (tarjeta, grafica, tabla, fila). */
+     su titulo (data-print-title). */
   .tab-panel[hidden] { display: block !important; }
-  .tab-panel { break-before: auto; margin-top: 10px; }
+  .tab-panel { break-before: page; }
+  .tab-panel[data-panel="componentes"] { break-before: auto; }
   .tab-panel::before {
     content: attr(data-print-title);
-    display: block; font-size: 11.5pt; font-weight: 600; margin: 0 0 6px;
-    padding-bottom: 3px; border-bottom: 1px solid #999;
-    break-after: avoid;
+    display: block; font-size: 13pt; font-weight: 600; margin: 0 0 10px;
+    padding-bottom: 4px; border-bottom: 1px solid #999;
   }
 
-  .card { border: none; padding: 0; margin-bottom: 8px; break-inside: avoid; }
+  .card { border: none; padding: 0; margin-bottom: 14px; break-inside: avoid; }
   .tabs-card { padding: 0; }
-  table, .table-scroll { break-inside: avoid; }
-  caption { break-after: avoid; }
 
   /* Encabezado del reporte */
-  #printHeader { margin-bottom: 10px; }
-  #printHeader .rep-title { font-size: 15pt; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
-  #printHeader .rep-sub { font-size: 9.5pt; color: #444; margin: 1px 0 7px; }
+  #printHeader { margin-bottom: 14px; }
+  #printHeader .rep-title { font-size: 17pt; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  #printHeader .rep-sub { font-size: 10.5pt; color: #444; margin: 2px 0 10px; }
   #printHeader .rep-meta {
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px 14px;
-    font-size: 8.5pt; border-top: 1px solid #999; border-bottom: 1px solid #999; padding: 6px 0;
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 14px;
+    font-size: 9pt; border-top: 1px solid #999; border-bottom: 1px solid #999; padding: 8px 0;
   }
   #printHeader .rep-meta div span { color: #555; display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .04em; }
   #printHeader .rep-meta div strong { font-weight: 600; }
@@ -517,12 +511,12 @@ footer.site a { color: var(--ink-soft); }
   .verdict .t { font-size: 8pt; }
   .eval-card { break-inside: avoid; }
 
-  /* Graficas: dos por fila y mas bajas, para que entren cuatro por hoja. */
-  .charts { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 0; }
-  .chart-box { break-inside: avoid; border: 1px solid #ddd; padding: 6px; border-radius: 6px; margin-bottom: 0; }
-  .chart-box .holder { height: 148px; }
-  .chart-box h3 { font-size: 9.5pt; margin-bottom: 4px; }
-  .chart-box p.cap { font-size: 7.5pt; margin-top: 4px; }
+  /* Graficas: dos por fila, sin cortarse a la mitad. */
+  .charts { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .chart-box { break-inside: avoid; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+  .chart-box .holder { height: 165px; }
+  .chart-box h3 { font-size: 10pt; }
+  .chart-box p.cap { font-size: 8pt; }
 
   table { font-size: 9pt; }
   /* En pantalla el encabezado de tabla es sticky para que sobreviva al scroll;
@@ -531,14 +525,13 @@ footer.site a { color: var(--ink-soft); }
   .table-scroll { overflow: visible; }
 
   /* Anexo de datos */
-  #printAnnex { margin-top: 10px; }
+  #printAnnex { break-before: page; }
   #printAnnex h2 {
-    font-size: 11.5pt; font-weight: 600; margin: 0 0 6px;
-    padding-bottom: 3px; border-bottom: 1px solid #999;
-    break-after: avoid;
+    font-size: 13pt; font-weight: 600; margin: 0 0 10px;
+    padding-bottom: 4px; border-bottom: 1px solid #999;
   }
-  #printAnnex table { width: 100%; border-collapse: collapse; font-size: 8.5pt; break-inside: auto; }
-  #printAnnex th, #printAnnex td { border: 1px solid #ccc; padding: 2px 6px; text-align: right; }
+  #printAnnex table { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+  #printAnnex th, #printAnnex td { border: 1px solid #ccc; padding: 3px 6px; text-align: right; }
   #printAnnex th.txt, #printAnnex td.txt { text-align: left; }
   #printAnnex thead { display: table-header-group; }
   #printAnnex tr { break-inside: avoid; }

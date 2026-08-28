@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
+<meta name="description" content="Estudio Gage R&amp;R por el metodo ANOVA cruzado. Corre completo en el navegador, sin instalar nada.">
+<link rel="stylesheet" href="assets/css/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
+</head>
+<body>
+
+<header class="site">
+  <div class="wrap">
+    <h1>MSA Toolkit <span class="badge">Gage R&amp;R &middot; ANOVA cruzado</span></h1>
+    <p>Estudio de repetibilidad y reproducibilidad por analisis de varianza. Todo el calculo ocurre en tu navegador: los datos no salen de tu equipo.</p>
+    <nav>
+      <a href="#config">1. Configuracion</a>
+      <a href="#captureSection">2. Captura</a>
+      <a href="#resultsSection">3. Resultados</a>
+      <a href="tests/">Pruebas de validacion</a>
+      <a href="docs/auditoria-motor-excel.md">Auditoria del motor</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============================ PASO 1 ============================ -->
+  <section class="card" id="config">
+    <h2><span class="step">1</span> Configuracion del estudio</h2>
+    <p class="hint">Define el tamano del estudio y los nombres. AIAG sugiere 10 piezas, 3 operadores y 3 replicas.</p>
+
+    <div id="configMsg"></div>
+
+    <div class="grid cols-3">
+      <label class="field"><span>Numero de operadores</span>
+        <input type="number" id="numOperators" min="2" max="20" step="1" value="3"></label>
+      <label class="field"><span>Numero de piezas</span>
+        <input type="number" id="numParts" min="2" max="50" step="1" value="10"></label>
+      <label class="field"><span>Numero de replicas</span>
+        <input type="number" id="numReplicates" min="2" max="25" step="1" value="3"></label>
+    </div>
+
+    <div class="grid cols-2" style="margin-top:18px">
+      <div><label class="field"><span>Nombres de los operadores</span></label>
+        <div class="namelist" id="operatorNames"></div></div>
+      <div><label class="field"><span>Nombres de las piezas</span></label>
+        <div class="namelist" id="partNames"></div></div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="generateBtn">Generar tabla de captura</button>
+      <button id="demoBtn">Cargar ejemplo AIAG</button>
+      <button id="importBtn">Importar CSV / JSON</button>
+      <input type="file" id="importFile" accept=".csv,.json,.txt" hidden>
+      <span class="spacer"></span>
+      <button class="danger" id="resetBtn">Reiniciar estudio</button>
+    </div>
+  </section>
+
+  <!-- ============================ PASO 2 ============================ -->
+  <section class="card" id="captureSection" hidden>
+    <h2><span class="step">2</span> Captura de datos</h2>
+    <p class="hint">Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: se reparte solo.
+      <span id="captureCount" style="display:block;margin-top:4px"></span></p>
+
+    <div class="table-scroll"><table id="dataTable"></table></div>
+
+    <div class="actions">
+      <strong id="captureStatus" style="font-size:13px;font-weight:500"></strong>
+      <span class="spacer"></span>
+      <button id="exportCsvBtn">Exportar CSV</button>
+      <button id="exportJsonBtn">Exportar JSON</button>
+      <button class="danger" id="clearDataBtn">Limpiar mediciones</button>
+    </div>
+
+    <h3 style="font-size:14px;margin:28px 0 4px">Especificaciones y opciones de calculo</h3>
+    <p class="hint" style="margin-left:0">Todo esto es opcional y se puede cambiar despues sin recapturar.
+      Sin LSL/USL simplemente se omite la columna % Tolerance.</p>
+
+    <div class="grid cols-4">
+      <label class="field"><span>LSL <span class="opt">(opcional)</span></span>
+        <input type="text" id="lsl" inputmode="decimal" placeholder="limite inferior"></label>
+      <label class="field"><span>USL <span class="opt">(opcional)</span></span>
+        <input type="text" id="usl" inputmode="decimal" placeholder="limite superior"></label>
+      <label class="field"><span>Sigma historica del proceso <span class="opt">(opcional)</span></span>
+        <input type="text" id="historicalSigma" inputmode="decimal" placeholder="para % Proceso"></label>
+      <label class="field"><span>Multiplicador de variacion</span>
+        <select id="svMultiplier">
+          <option value="6" selected>6 sigma (AIAG 4a ed.)</option>
+          <option value="5.15">5.15 sigma (AIAG 3a ed.)</option>
+        </select></label>
+    </div>
+
+    <div class="grid cols-3" style="margin-top:16px">
+      <label class="field"><span>Termino de interaccion</span>
+        <select id="interactionMode">
+          <option value="auto" selected>Automatico (prueba F)</option>
+          <option value="include">Siempre incluir</option>
+          <option value="exclude">Siempre agrupar</option>
+        </select></label>
+      <label class="field"><span>Alfa para descartar la interaccion</span>
+        <select id="alpha">
+          <option value="0.25" selected>0.25 (AIAG)</option>
+          <option value="0.05">0.05 (default de Minitab)</option>
+          <option value="0.10">0.10</option>
+        </select></label>
+      <label class="field"><span>Denominador de F en efectos principales</span>
+        <select id="fDenominator">
+          <option value="interaction" selected>CM interaccion (Minitab)</option>
+          <option value="repeatability">CM repetibilidad (ejemplo AIAG p.127)</option>
+        </select></label>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="calcBtn" disabled>Calcular</button>
+    </div>
+  </section>
+
+  <!-- ============================ PASO 3 ============================ -->
+  <section class="card" id="resultsSection" hidden>
+    <h2><span class="step">3</span> Resultados</h2>
+
+    <div class="actions" style="margin-top:0">
+      <button class="primary" id="recalcBtn">Recalcular</button>
+      <button id="printBtn">Imprimir / PDF</button>
+      <span class="spacer"></span>
+      <a href="#captureSection" style="font-size:13px;color:var(--accent)">Volver a los datos y opciones</a>
+    </div>
+
+    <div id="resultMsg" style="margin-top:18px"></div>
+
+    <div id="resultBody" hidden>
+      <div class="verdicts" id="verdicts"></div>
+
+      <div class="table-scroll"><table id="anovaTable"></table></div>
+      <p class="note" id="modelNote"></p>
+
+      <div class="table-scroll" style="margin-top:26px"><table id="varianceTable"></table></div>
+      <div class="table-scroll" style="margin-top:26px"><table id="assessTable"></table></div>
+      <div id="resultNotes"></div>
+
+      <h3 style="font-size:14px;margin:32px 0 4px">Graficas</h3>
+      <div class="charts">
+        <div class="chart-box"><h3>Componentes de variacion</h3>
+          <div class="holder"><canvas id="chartComponents"></canvas></div>
+          <p class="cap">Comparacion de las tres bases porcentuales por fuente.</p></div>
+        <div class="chart-box"><h3>Carta R por operador</h3>
+          <div class="holder"><canvas id="chartR"></canvas></div>
+          <p class="cap">Puntos fuera de limites indican inconsistencia al repetir la medicion.</p></div>
+        <div class="chart-box"><h3>Carta X-barra por operador</h3>
+          <div class="holder"><canvas id="chartXbar"></canvas></div>
+          <p class="cap">Aqui SI se buscan puntos fuera de limites: significa que el gage distingue las piezas.</p></div>
+        <div class="chart-box"><h3>Mediciones por operador</h3>
+          <div class="holder"><canvas id="chartByOperator"></canvas></div>
+          <p class="cap">Diferencias entre las medias de operador indican reproducibilidad pobre.</p></div>
+        <div class="chart-box"><h3>Promedio de medicion por pieza</h3>
+          <div class="holder"><canvas id="chartPartMeans"></canvas></div>
+          <p class="cap">Un perfil plano significa que las piezas no cubren la variacion del proceso.</p></div>
+        <div class="chart-box"><h3>Interaccion operador x pieza</h3>
+          <div class="holder"><canvas id="chartInteraction"></canvas></div>
+          <p class="cap">Lineas cruzadas o no paralelas sugieren interaccion real.</p></div>
+      </div>
+
+      <details>
+        <summary>ANOVA completo con interaccion y comprobacion de la descomposicion</summary>
+        <div>
+          <p class="note" style="margin-bottom:12px">Esta tabla siempre conserva el termino de interaccion,
+            independientemente del modelo elegido arriba. Sirve para auditar el calculo.</p>
+          <div class="table-scroll"><table id="anovaFullTable"></table></div>
+          <p class="note" id="decompNote"></p>
+        </div>
+      </details>
+
+      <details>
+        <summary>Como leer los criterios de aceptacion</summary>
+        <div>
+          <p style="font-size:13.5px">
+            <strong>% Study Variation</strong> (base desviacion estandar, criterio AIAG): menos de 10 % aceptable,
+            10 a 30 % marginal, mas de 30 % inaceptable. No suma 100 %.<br><br>
+            <strong>% Contribucion</strong> (base varianza): aditivo, suma 100 %. Como referencia, Minitab
+            considera menos de 1 % excelente y mas de 9 % pobre. Es el numero que conviene citar cuando se
+            comparan fuentes entre si.<br><br>
+            <strong>% Tolerance (P/T)</strong>: que fraccion de la tolerancia se come el sistema de medicion.
+            Independiente de que piezas elegiste, pero depende de la tolerancia.<br><br>
+            <strong>NDC</strong>: cuantas categorias distintas puede separar el sistema. AIAG exige 5 o mas.
+            Si sale bajo con piezas representativas, el problema es el instrumento; si las piezas eran casi
+            identicas, el problema es la muestra.<br><br>
+            <strong>ICC (EMP de Wheeler)</strong>: fraccion de la varianza total que aporta el producto.
+            Wheeler sostiene que un sistema con ICC de 0.80 o mas sigue siendo un monitor util para control
+            de proceso aunque el %GRR sobre desviacion estandar llegue al 45 %. Se muestra como lectura
+            complementaria, no como sustituto del criterio AIAG.
+          </p>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <footer class="site">
+    <p>MSA Toolkit &middot; codigo abierto, sin backend, sin telemetria.
+      Motor validado contra el dataset del apendice del manual AIAG MSA 4a ed.
+      &middot; <a href="tests/">ver pruebas</a></p>
+  </footer>
+</div>
+
+<!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
+     y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
+<script src="assets/vendor/chart.umd.js"></script>
+<script src="assets/js/stats.js"></script>
+<script src="assets/js/anova.js"></script>
+<script src="assets/js/charts.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

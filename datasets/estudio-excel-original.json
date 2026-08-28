@@ -1,0 +1,233 @@
+{
+  "format": "msa-toolkit/gage-rr-anova",
+  "version": 1,
+  "name": "Estudio del libro Gage_RR_Study.xlsm",
+  "description": "2 operadores x 10 piezas x 2 replicas, tal como estaban capturados en la hoja MSA_Datos.",
+  "config": {
+    "operators": [
+      "Monica",
+      "David"
+    ],
+    "parts": [
+      "Parte 1",
+      "Parte 2",
+      "Parte 3",
+      "Parte 4",
+      "Parte 5",
+      "Parte 6",
+      "Parte 7",
+      "Parte 8",
+      "Parte 9",
+      "Parte 10"
+    ],
+    "replicates": 2,
+    "lsl": 0.235,
+    "usl": 0.265,
+    "alpha": 0.25,
+    "interaction": "auto",
+    "studyVarMultiplier": 6,
+    "fDenominator": "interaction"
+  },
+  "data": [
+    {
+      "operator": "Monica",
+      "part": "Parte 1",
+      "value": 0.239
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 2",
+      "value": 0.234
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 3",
+      "value": 0.241
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 4",
+      "value": 0.263
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 5",
+      "value": 0.26
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 6",
+      "value": 0.254
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 7",
+      "value": 0.243
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 8",
+      "value": 0.251
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 9",
+      "value": 0.257
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 10",
+      "value": 0.262
+    },
+    {
+      "operator": "David",
+      "part": "Parte 1",
+      "value": 0.239
+    },
+    {
+      "operator": "David",
+      "part": "Parte 2",
+      "value": 0.235
+    },
+    {
+      "operator": "David",
+      "part": "Parte 3",
+      "value": 0.241
+    },
+    {
+      "operator": "David",
+      "part": "Parte 4",
+      "value": 0.263
+    },
+    {
+      "operator": "David",
+      "part": "Parte 5",
+      "value": 0.26
+    },
+    {
+      "operator": "David",
+      "part": "Parte 6",
+      "value": 0.254
+    },
+    {
+      "operator": "David",
+      "part": "Parte 7",
+      "value": 0.244
+    },
+    {
+      "operator": "David",
+      "part": "Parte 8",
+      "value": 0.251
+    },
+    {
+      "operator": "David",
+      "part": "Parte 9",
+      "value": 0.258
+    },
+    {
+      "operator": "David",
+      "part": "Parte 10",
+      "value": 0.262
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 1",
+      "value": 0.239
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 2",
+      "value": 0.235
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 3",
+      "value": 0.241
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 4",
+      "value": 0.263
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 5",
+      "value": 0.26
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 6",
+      "value": 0.254
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 7",
+      "value": 0.243
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 8",
+      "value": 0.251
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 9",
+      "value": 0.257
+    },
+    {
+      "operator": "Monica",
+      "part": "Parte 10",
+      "value": 0.262
+    },
+    {
+      "operator": "David",
+      "part": "Parte 1",
+      "value": 0.24
+    },
+    {
+      "operator": "David",
+      "part": "Parte 2",
+      "value": 0.236
+    },
+    {
+      "operator": "David",
+      "part": "Parte 3",
+      "value": 0.242
+    },
+    {
+      "operator": "David",
+      "part": "Parte 4",
+      "value": 0.263
+    },
+    {
+      "operator": "David",
+      "part": "Parte 5",
+      "value": 0.261
+    },
+    {
+      "operator": "David",
+      "part": "Parte 6",
+      "value": 0.254
+    },
+    {
+      "operator": "David",
+      "part": "Parte 7",
+      "value": 0.244
+    },
+    {
+      "operator": "David",
+      "part": "Parte 8",
+      "value": 0.251
+    },
+    {
+      "operator": "David",
+      "part": "Parte 9",
+      "value": 0.258
+    },
+    {
+      "operator": "David",
+      "part": "Parte 10",
+      "value": 0.263
+    }
+  ]
+}

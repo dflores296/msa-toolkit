@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MSA Toolkit &middot; Pruebas de validacion</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+<header class="site">
+  <div class="wrap">
+    <h1>Pruebas de validacion</h1>
+    <p>Suite de regresion del motor ANOVA. Corre en tu navegador al abrir esta pagina.</p>
+    <nav><a href="../">Volver a la aplicacion</a><a href="../docs/auditoria-motor-excel.md">Auditoria del motor</a></nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="card">
+    <h2>Referencia de validacion</h2>
+    <p class="hint" style="margin-left:0">
+      El caso de referencia es el dataset del apendice del manual AIAG MSA 4a ed.
+      (10 piezas x 3 operadores x 3 replicas), el mismo que Minitab distribuye como
+      <code>gageaiag.mtw</code>. Los valores esperados son los publicados por Minitab
+      para ese dataset: sumas de cuadrados, cuadrados medios, prueba F de la interaccion,
+      componentes de varianza, %Contribucion, %Study Variation y NDC.
+    </p>
+    <div id="summary" class="summary-line">Ejecutando...</div>
+    <div id="rows"></div>
+  </section>
+
+  <section class="card">
+    <h2>Comparacion con el motor del Excel</h2>
+    <p class="hint" style="margin-left:0">Mismo dataset AIAG, procesado por el motor corregido y por
+      una reimplementacion fiel del VBA original.</p>
+    <div class="table-scroll"><table id="compare"></table></div>
+  </section>
+</div>
+
+<script src="../assets/js/stats.js"></script>
+<script src="../assets/js/anova.js"></script>
+<script src="tests.js"></script>
+<script src="legacy-vba.js"></script>
+<script>
+(function () {
+  var res = MSATests.results;
+  var s = document.getElementById('summary');
+  s.textContent = MSATests.passed + ' / ' + MSATests.total + ' pruebas pasaron';
+  s.style.color = MSATests.failed ? 'var(--bad)' : 'var(--ok)';
+
+  document.getElementById('rows').innerHTML = res.map(function (r) {
+    return '<div class="test-row ' + (r.ok ? 'pass' : 'fail') + '">' +
+      '<span class="st">' + (r.ok ? 'PASA' : 'FALLA') + '</span>' +
+      '<span>' + r.name + (r.ok ? '' : '<span class="m">' + r.message + '</span>') + '</span></div>';
+  }).join('');
+
+  // --- Comparacion motor corregido vs motor VBA ---
+  var rows = MSATests.aiagRows();
+  var fixed = MSAAnova.compute(rows, { alpha: 0.25 });
+  var vba = MSALegacyVBA.compute(rows);
+  function c(r, k) { return r.components.filter(function (x) { return x.key === k; })[0]; }
+
+  var lines = [
+    ['SC Parte', fixed.anovaFull.rows[0].ss, vba.SS.part, 88.3619],
+    ['SC Operador', fixed.anovaFull.rows[1].ss, vba.SS.op, 3.1673],
+    ['SC Interaccion', fixed.anovaFull.rows[2].ss, vba.SS.inter, 0.3590],
+    ['SC Repetibilidad', fixed.anovaFull.rows[3].ss, vba.SS.rep, 2.7589],
+    ['SC Total (identidad)', fixed.anovaFull.rows[4].ss, vba.SS.sumOfParts, 94.6471],
+    ['VarComp Gage R&R', c(fixed, 'grr').variance, vba.varGrr, null],
+    ['% Study Variation GRR', 100 * c(fixed, 'grr').pctStudyVar, vba.pctStudyVar, 27.86],
+    ['% Contribucion GRR', 100 * c(fixed, 'grr').pctContribution, vba.pctContribution, 7.76],
+    ['NDC', fixed.ndc, vba.ndc, 4]
+  ];
+  function f(v) {
+    if (v === null || v === undefined) return '&mdash;';
+    if (typeof v !== 'number') return v;
+    return Math.abs(v) >= 1000 || (Math.abs(v) < 1e-3 && v !== 0) ? v.toExponential(4) : v.toFixed(4);
+  }
+  document.getElementById('compare').innerHTML =
+    '<thead><tr><th>Cantidad</th><th class="num">Motor corregido</th>' +
+    '<th class="num">Motor VBA original</th><th class="num">Minitab publicado</th></tr></thead><tbody>' +
+    lines.map(function (l) {
+      var off = (l[3] !== null && typeof l[1] === 'number') && Math.abs(l[2] - l[3]) > Math.max(1e-3, Math.abs(l[3]) * 1e-3);
+      return '<tr><td>' + l[0] + '</td><td class="num">' + f(l[1]) + '</td>' +
+        '<td class="num"' + (off ? ' style="color:var(--bad);font-weight:600"' : '') + '>' + f(l[2]) + '</td>' +
+        '<td class="num">' + f(l[3]) + '</td></tr>';
+    }).join('') + '</tbody>';
+})();
+</script>
+</body>
+</html>

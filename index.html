@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por el metodo ANOVA cruzado. Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260828n">
+<link rel="stylesheet" href="assets/css/style.css?v=20260829a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -26,7 +26,7 @@
     <div class="brand">MSA Toolkit</div>
     <div class="badge">Gage R&amp;R &middot; ANOVA cruzado</div>
     <div class="vsep"></div>
-    <div class="study-summary" id="captureCount"></div>
+    <div class="study-summary"><strong id="studyLabel"></strong><span id="captureCount"></span></div>
     <span class="spacer"></span>
     <div class="theme-toggle" id="themeToggle" role="group" aria-label="Tema de la interfaz">
       <button type="button" class="theme-opt" data-theme-choice="light">Claro</button>
@@ -57,6 +57,9 @@
       <p class="hint">Define el tamano del estudio y los nombres. AIAG sugiere 10 piezas, 3 operadores y 3 replicas.</p>
 
       <div id="configMsg"></div>
+
+      <label class="field study-name"><span>Nombre del estudio <span class="opt">(opcional)</span></span>
+        <input type="text" id="studyName" maxlength="120" placeholder="Ej. Planicidad bimetal 48200-215-5x"></label>
 
       <div class="config-row">
         <label class="field compact"><span>Operadores</span>
@@ -216,7 +219,13 @@
                 <p class="cap">Puntos fuera de limites indican que el gage distingue las piezas.</p></div>
               <div class="card chart-box"><h3>Mediciones por operador</h3>
                 <div class="holder"><canvas id="chartByOperator"></canvas></div>
-                <p class="cap">Diferencias entre las medias de operador indican reproducibilidad pobre.</p></div>
+                <p class="cap">Cajas desplazadas entre si indican reproducibilidad pobre.</p></div>
+              <div class="card chart-box"><h3>Rangos por operador</h3>
+                <div class="holder"><canvas id="chartRangesByOperator"></canvas></div>
+                <p class="cap">Rangos altos senalan al operador que repite con menos consistencia.</p></div>
+              <div class="card chart-box"><h3>Rangos por pieza</h3>
+                <div class="holder"><canvas id="chartRangesByPart"></canvas></div>
+                <p class="cap">Rangos altos senalan a la pieza mas dificil de medir.</p></div>
               <div class="card chart-box"><h3>Promedio de medicion por pieza</h3>
                 <div class="holder"><canvas id="chartPartMeans"></canvas></div>
                 <p class="cap">Un perfil plano significa que las piezas no cubren la variacion del proceso.</p></div>
@@ -277,10 +286,10 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260828n"></script>
-<script src="assets/js/stats.js?v=20260828n"></script>
-<script src="assets/js/anova.js?v=20260828n"></script>
-<script src="assets/js/charts.js?v=20260828n"></script>
-<script src="assets/js/app.js?v=20260828n"></script>
+<script src="assets/vendor/chart.umd.js?v=20260829a"></script>
+<script src="assets/js/stats.js?v=20260829a"></script>
+<script src="assets/js/anova.js?v=20260829a"></script>
+<script src="assets/js/charts.js?v=20260829a"></script>
+<script src="assets/js/app.js?v=20260829a"></script>
 </body>
 </html>

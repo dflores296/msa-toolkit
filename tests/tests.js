@@ -473,6 +473,55 @@
   });
 
   /* ---------------------------------------------------------------------- *
+   * Cuartiles y resumen de caja
+   * ---------------------------------------------------------------------- */
+  test('cuartiles: convencion (n+1)p de Minitab', function () {
+    var v = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+    // (n+1)p = 2.75 -> 2 + 0.75*(3-2) = 2.75 ; mediana 5.5 ; Q3 en 8.25
+    near(MSAStats.quantile(v, 0.25), 2.75, 1e-12, 'Q1');
+    near(MSAStats.quantile(v, 0.5), 5.5, 1e-12, 'mediana');
+    near(MSAStats.quantile(v, 0.75), 8.25, 1e-12, 'Q3');
+  });
+
+  test('resumen de caja: bigotes a 1.5 RIC y atipicos aparte', function () {
+    var b = MSAStats.boxStats([1, 2, 3, 4, 5, 6, 7, 8, 9, 100]);
+    assert(b.outliers.length === 1 && b.outliers[0] === 100, 'el 100 debe salir como atipico');
+    near(b.whiskerHigh, 9, 1e-12, 'bigote superior');
+    near(b.whiskerLow, 1, 1e-12, 'bigote inferior');
+    assert(b.q1 < b.median && b.median < b.q3, 'Q1 < mediana < Q3');
+    near(b.n, 10, 0, 'n');
+  });
+
+  test('resumen de caja: ordena la entrada y no la muta', function () {
+    var v = [5, 1, 3];
+    var b = MSAStats.boxStats(v);
+    near(b.median, 3, 1e-12, 'mediana');
+    assert(v[0] === 5 && v[1] === 1 && v[2] === 3, 'el arreglo original no debe cambiar');
+  });
+
+  test('graficas: rangos por operador y por pieza salen de los mismos datos', function () {
+    var res = MSAAnova.compute(aiagRows(), { alpha: 0.25 });
+    var ch = res.charts;
+    assert(ch.rangesByOperator.length === 3, 'tres operadores');
+    assert(ch.rangesByPart.length === 10, 'diez piezas');
+    assert(ch.rangesByOperator[0].values.length === 10, 'cada operador trae un rango por pieza');
+    assert(ch.rangesByPart[0].values.length === 3, 'cada pieza trae un rango por operador');
+    var sumOp = 0, sumPt = 0;
+    ch.rangesByOperator.forEach(function (g) { g.values.forEach(function (v) { sumOp += v; }); });
+    ch.rangesByPart.forEach(function (g) { g.values.forEach(function (v) { sumPt += v; }); });
+    near(sumOp, sumPt, 1e-12, 'las dos agrupaciones cubren los mismos 30 rangos');
+    near(sumOp / 30, ch.rChart.center, 1e-12, 'su promedio es el R promedio de la carta R');
+  });
+
+  test('graficas: cada operador trae su resumen de caja', function () {
+    var res = MSAAnova.compute(aiagRows(), { alpha: 0.25 });
+    res.charts.byOperator.forEach(function (o) {
+      assert(o.box && o.box.n === o.values.length, 'falta la caja de ' + o.operator);
+      assert(o.box.whiskerLow <= o.box.q1 && o.box.q3 <= o.box.whiskerHigh, 'bigotes fuera de la caja');
+    });
+  });
+
+  /* ---------------------------------------------------------------------- *
    * Los tests ya corrieron al cargar el archivo. Exponemos los resultados.
    * ---------------------------------------------------------------------- */
   var passed = results.filter(function (r) { return r.ok; }).length;

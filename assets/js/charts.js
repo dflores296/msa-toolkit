@@ -1,5 +1,5 @@
 /* ============================================================================
- * charts.js - Las seis graficas del estudio, sobre Chart.js.
+ * charts.js - Las ocho graficas del estudio, sobre Chart.js.
  * Sin redondeo de los datos antes de graficar (el VBA redondeaba a 4 dp).
  * ==========================================================================*/
 (function (global) {
@@ -70,6 +70,58 @@
     }
   };
   if (global.Chart) global.Chart.register(thresholdLines);
+
+  /* Plugin: diagrama de caja. Chart.js no trae boxplot y no vamos a cargar un
+     paquete extra (la app corre sin conexion), asi que la caja Q1-Q3 se dibuja
+     como barra flotante -el propio Chart.js soporta datos [min, max]- y este
+     plugin le agrega encima los bigotes, la mediana, la media y los atipicos.
+     El resumen viene en dataset.boxes, en el mismo orden que los datos. */
+  var boxWhiskers = {
+    id: 'boxWhiskers',
+    afterDatasetsDraw: function (chart) {
+      var y = chart.scales.y;
+      if (!y) return;
+      var ctx = chart.ctx;
+      chart.data.datasets.forEach(function (ds, di) {
+        if (!ds.boxes) return;
+        var meta = chart.getDatasetMeta(di);
+        if (meta.hidden) return;
+        ctx.save();
+        ctx.strokeStyle = ds.whiskerColor || ds.borderColor || '#000';
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.lineWidth = 1.4;
+        meta.data.forEach(function (bar, i) {
+          var b = ds.boxes[i];
+          if (!b) return;
+          var x = bar.x, half = (bar.width || 24) / 2;
+          function line(x1, y1, x2, y2) {
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+          }
+          // bigotes (linea vertical + tope horizontal a media caja)
+          line(x, y.getPixelForValue(b.q3), x, y.getPixelForValue(b.whiskerHigh));
+          line(x, y.getPixelForValue(b.q1), x, y.getPixelForValue(b.whiskerLow));
+          line(x - half / 2, y.getPixelForValue(b.whiskerHigh), x + half / 2, y.getPixelForValue(b.whiskerHigh));
+          line(x - half / 2, y.getPixelForValue(b.whiskerLow), x + half / 2, y.getPixelForValue(b.whiskerLow));
+          // mediana: linea gruesa de lado a lado de la caja
+          ctx.lineWidth = 2;
+          line(x - half, y.getPixelForValue(b.median), x + half, y.getPixelForValue(b.median));
+          ctx.lineWidth = 1.4;
+          // media: circulo relleno, como el marcador de Minitab
+          ctx.beginPath();
+          ctx.arc(x, y.getPixelForValue(b.mean), 3, 0, 2 * Math.PI);
+          ctx.fill();
+          // atipicos: circulos huecos
+          b.outliers.forEach(function (v) {
+            ctx.beginPath();
+            ctx.arc(x, y.getPixelForValue(v), 2.6, 0, 2 * Math.PI);
+            ctx.stroke();
+          });
+        });
+        ctx.restore();
+      });
+    }
+  };
+  if (global.Chart) global.Chart.register(boxWhiskers);
 
   function destroyAll() {
     Object.keys(registry).forEach(function (k) {
@@ -151,7 +203,7 @@
   }
 
   /* ---------------------------------------------------------------------- *
-   * render(result) - dibuja las 6 graficas a partir del objeto de compute()
+   * render(result) - dibuja las 8 graficas a partir del objeto de compute()
    * La barra "Evaluacion de la variacion" ya no vive aqui: es un widget
    * HTML/CSS (ver renderEvalBars en app.js), no una grafica de Chart.js.
    * ---------------------------------------------------------------------- */
@@ -240,33 +292,52 @@
       });
     }
 
-    /* 4. Mediciones por operador (dispersion + media) */
+    /* 4. Mediciones por operador (diagrama de caja, como el panel de efectos
+          principales del reporte de Minitab) */
     var opLabels = ch.byOperator.map(function (o) { return o.operator; });
-    var scatter = [];
-    ch.byOperator.forEach(function (o, i) {
-      o.values.forEach(function (v) { scatter.push({ x: i, y: v }); });
-    });
+    var boxes = ch.byOperator.map(function (o) { return o.box; });
+    var allByOp = [];
+    ch.byOperator.forEach(function (o) { allByOp = allByOp.concat(o.values); });
     make('chartByOperator', {
-      type: 'scatter',
+      type: 'bar',
       data: {
-        datasets: [
-          { label: 'Mediciones', data: scatter, backgroundColor: 'rgba(11,92,173,.45)',
-            pointRadius: 3 },
-          { label: 'Media del operador', type: 'line',
-            data: ch.byOperator.map(function (o, i) { return { x: i, y: o.mean }; }),
-            borderColor: PALETTE[1], backgroundColor: PALETTE[1], borderWidth: 1.6,
-            pointRadius: 5, pointStyle: 'rectRot', fill: false }
-        ]
+        labels: opLabels,
+        datasets: [{
+          label: 'Mediciones', boxes: boxes,
+          data: boxes.map(function (b) { return b ? [b.q1, b.q3] : [0, 0]; }),
+          backgroundColor: 'rgba(11,92,173,.30)', borderColor: PALETTE[0], borderWidth: 1.2,
+          whiskerColor: PALETTE[0], barPercentage: 0.5, categoryPercentage: 0.7
+        }]
       },
       options: baseOptions({
-        scales: {
-          x: { type: 'linear', min: -0.5, max: opLabels.length - 0.5,
-               ticks: { stepSize: 1, callback: function (v) { return opLabels[v] || ''; },
-                        font: { size: 10 }, color: TICK() } },
-          y: { ticks: { callback: tickFormatter(scatter.map(function (p) { return p.y; })) } }
-        }
+        plugins: {
+          legend: { display: false },
+          // Un tooltip por caja: los cinco numeros del resumen, no el par [q1, q3]
+          // que Chart.js mostraria de la barra flotante.
+          tooltip: { callbacks: { label: function (c) {
+            var b = boxes[c.dataIndex], f = tickFormatter(allByOp);
+            if (!b) return '';
+            return ['Mediana: ' + f(b.median), 'Media: ' + f(b.mean),
+                    'Q1: ' + f(b.q1) + '  Q3: ' + f(b.q3),
+                    'Bigotes: ' + f(b.whiskerLow) + ' a ' + f(b.whiskerHigh),
+                    'Atipicos: ' + b.outliers.length, 'n = ' + b.n];
+          } } }
+        },
+        // La barra solo abarca Q1-Q3, asi que el eje debe estirarse a mano hasta
+        // los bigotes y los atipicos; si no, se salen del area de trazado.
+        scales: { y: {
+          suggestedMin: Math.min.apply(null, allByOp),
+          suggestedMax: Math.max.apply(null, allByOp),
+          ticks: { callback: tickFormatter(allByOp) }
+        } }
       })
     });
+
+    /* 4b. Rangos por operador y por pieza (Test-Retest Ranges de Minitab):
+          los mismos rangos de la carta R, agrupados para ver quien repite peor
+          y que pieza cuesta mas medir. */
+    rangeChart('chartRangesByOperator', ch.rangesByOperator);
+    rangeChart('chartRangesByPart', ch.rangesByPart);
 
     /* 5. Promedio de medicion por pieza */
     make('chartPartMeans', {
@@ -294,6 +365,44 @@
       },
       options: baseOptions({
         scales: { y: { ticks: { callback: tickFormatter(allInter) } } }
+      })
+    });
+  }
+
+  /* Un grupo por categoria: un punto por cada rango y una linea con el rango
+     promedio del grupo. */
+  function rangeChart(id, groups) {
+    if (!groups || !groups.length) return;
+    var labels = groups.map(function (g) { return g.label; });
+    var points = [], all = [];
+    groups.forEach(function (g, i) {
+      g.values.forEach(function (v) { points.push({ x: i, y: v }); all.push(v); });
+    });
+    make(id, {
+      type: 'scatter',
+      data: {
+        datasets: [
+          { label: 'Rango', data: points, backgroundColor: 'rgba(11,92,173,.45)', pointRadius: 3 },
+          { label: 'Rango promedio', type: 'line',
+            data: groups.map(function (g, i) { return { x: i, y: g.mean }; }),
+            borderColor: PALETTE[1], backgroundColor: PALETTE[1], borderWidth: 1.6,
+            pointRadius: 4, pointStyle: 'rectRot', fill: false }
+        ]
+      },
+      options: baseOptions({
+        scales: {
+          // Eje lineal para poder apilar varios puntos sobre la misma categoria.
+          // Las marcas se fijan a mano en 0, 1, 2...: con stepSize sobre un eje
+          // que empieza en -0.5, Chart.js las pone en -0.5, 0.5, 1.5... y ningun
+          // rotulo caia sobre su grupo.
+          x: { type: 'linear', min: -0.5, max: labels.length - 0.5,
+               afterBuildTicks: function (axis) {
+                 axis.ticks = labels.map(function (_, i) { return { value: i }; });
+               },
+               ticks: { callback: function (v) { return labels[v] || ''; },
+                        autoSkip: false, font: { size: 10 }, color: TICK() } },
+          y: { beginAtZero: true, ticks: { callback: tickFormatter(all) } }
+        }
       })
     });
   }

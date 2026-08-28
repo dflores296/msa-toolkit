@@ -61,6 +61,25 @@
     return out;
   }
 
+  /* El nombre del estudio no entra en ningun calculo: identifica el archivo que
+     exportas y encabezara el reporte impreso. Se refleja en la barra superior y
+     en el titulo de la pestana para saber que estudio esta abierto. */
+  function studyName() { return $('studyName').value.trim(); }
+
+  function renderStudyName() {
+    var name = studyName();
+    $('studyLabel').textContent = name;
+    document.title = (name ? name + ' - ' : '') + 'MSA Toolkit - Gage R&R (ANOVA)';
+  }
+
+  /* Nombre de archivo a partir del nombre del estudio: sin acentos ni signos,
+     para que no dependa del sistema de archivos de quien lo abra. */
+  function studyFileName(ext) {
+    var slug = studyName().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').toLowerCase().slice(0, 60);
+    return (slug || 'estudio-gage-rr') + '.' + ext;
+  }
+
   function renderNameInputs() {
     var nOp = clamp(parseInt($('numOperators').value, 10), 2, 20, 3);
     var nPart = clamp(parseInt($('numParts').value, 10), 2, 50, 10);
@@ -526,6 +545,7 @@
       format: 'msa-toolkit/gage-rr-anova', version: 1,
       savedAt: new Date().toISOString(),
       config: {
+        studyName: studyName(),
         operators: state.operators, parts: state.parts, replicates: state.replicates,
         lsl: $('lsl').value, usl: $('usl').value, tolerance: $('tolerance').value,
         processMean: $('processMean').value, historicalSigma: $('historicalSigma').value,
@@ -534,7 +554,7 @@
       },
       data: collectRows()
     };
-    download('estudio-gage-rr.json', JSON.stringify(payload, null, 2), 'application/json');
+    download(studyFileName('json'), JSON.stringify(payload, null, 2), 'application/json');
   }
 
   function exportCSV() {
@@ -543,7 +563,7 @@
       lines.push([csvCell(i.dataset.op), csvCell(i.dataset.part),
                   Number(i.dataset.rep) + 1, i.value.trim()].join(','));
     });
-    download('estudio-gage-rr.csv', lines.join('\n'), 'text/csv');
+    download(studyFileName('csv'), lines.join('\n'), 'text/csv');
   }
 
   function csvCell(s) {
@@ -630,6 +650,7 @@
     var maxRep = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
 
     if (p.config) {
+      if (p.config.studyName !== undefined) { $('studyName').value = p.config.studyName; renderStudyName(); }
       if (p.config.lsl !== undefined) $('lsl').value = p.config.lsl;
       if (p.config.usl !== undefined) $('usl').value = p.config.usl;
       if (p.config.tolerance !== undefined) $('tolerance').value = p.config.tolerance;
@@ -702,6 +723,7 @@
     if (!confirm('Se reiniciara el estudio completo (configuracion y datos). Continuar?')) return;
     state = { operators: [], parts: [], replicates: 2, result: null };
     $('numOperators').value = 3; $('numParts').value = 10; $('numReplicates').value = 3;
+    $('studyName').value = ''; renderStudyName();
     $('lsl').value = ''; $('usl').value = '';
     $('tolerance').value = ''; $('processMean').value = ''; $('historicalSigma').value = '';
     $('alpha').value = '0.25'; $('interactionMode').value = 'auto';
@@ -722,6 +744,8 @@
     initTheme();
     initTabs();
     renderNameInputs();
+    renderStudyName();
+    $('studyName').addEventListener('input', renderStudyName);
     CONFIG_FIELDS.forEach(function (f) {
       $(f.id).addEventListener('input', validateConfig);
     });

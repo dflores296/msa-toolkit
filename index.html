@@ -81,10 +81,14 @@
 
     <div class="msg info" style="margin-bottom:16px">
       <strong>El % Tolerance solo aparece si le das una tolerancia.</strong>
-      Llena <em>LSL y USL</em> (los dos), o escribe la <em>tolerancia</em> directa si tu
-      especificacion es unilateral o ya la traes calculada. Si dejas los tres campos vacios,
-      la columna y la barra de % Tolerance simplemente no se muestran: es el mismo
-      comportamiento de Minitab, no es que falten datos.
+      Llena <em>LSL y USL</em> (bilateral), <em>uno solo de los dos</em> (unilateral) o la
+      <em>tolerancia directa</em> si ya la traes calculada. Si dejas todo vacio, la columna y la
+      barra de % Tolerance no se muestran: es el mismo comportamiento de Minitab, no es que falten
+      datos.<br><br>
+      Con un solo limite el calculo cambia: se compara <em>media</em> dispersion contra el margen
+      entre el limite y el centro del proceso. No hay una convencion unica en la industria para
+      ese caso, asi que la pagina te dice exactamente que uso. Si tienes la media historica del
+      proceso, indicala; si no, se usa la media del estudio, que depende de las piezas elegidas.
     </div>
 
     <div class="grid cols-4">
@@ -99,6 +103,8 @@
     </div>
 
     <div class="grid cols-4" style="margin-top:16px">
+      <label class="field"><span>Media historica del proceso <span class="opt">(opcional)</span></span>
+        <input type="text" id="processMean" inputmode="decimal" placeholder="solo si la spec es unilateral"></label>
       <label class="field"><span>Multiplicador de variacion</span>
         <select id="svMultiplier">
           <option value="6" selected>6 sigma (AIAG 4a ed.)</option>

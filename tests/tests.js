@@ -190,6 +190,62 @@
     assert(res.metrics.pctTolerance === null, '%Tolerance deberia ser null');
   });
 
+  /* --- Especificaciones unilaterales --- */
+  test('unilateral superior: margen = USL - centro, media dispersion', function () {
+    var res = MSAAnova.compute(aiagRows(), { usl: 5, alpha: 0.25 });
+    assert(res.toleranceInfo.oneSided === true, 'deberia marcarse como unilateral');
+    assert(res.toleranceInfo.mode === 'unilateral-superior', 'modo: ' + res.toleranceInfo.mode);
+    near(res.toleranceInfo.width, 5 - res.design.grandMean, 1e-12, 'margen');
+    var g = comp(res, 'grr');
+    near(g.pctTolerance, (g.studyVar / 2) / (5 - res.design.grandMean), 1e-12, '%Tol unilateral');
+    near(res.metrics.pctTolerance, 100 * g.pctTolerance, 1e-9, 'metrica coherente con la tabla');
+  });
+
+  test('unilateral inferior: margen = centro - LSL', function () {
+    var res = MSAAnova.compute(aiagRows(), { lsl: -5, alpha: 0.25 });
+    assert(res.toleranceInfo.mode === 'unilateral-inferior', 'modo: ' + res.toleranceInfo.mode);
+    near(res.toleranceInfo.width, res.design.grandMean - (-5), 1e-12, 'margen');
+    var g = comp(res, 'grr');
+    near(g.pctTolerance, (g.studyVar / 2) / (res.design.grandMean + 5), 1e-12, '%Tol unilateral');
+  });
+
+  test('unilateral y bilateral coinciden cuando el centro esta a la mitad', function () {
+    // Si el proceso esta centrado, medio margen es la mitad de la ventana completa,
+    // asi que ambas convenciones deben dar el mismo %Tolerance.
+    var res2 = MSAAnova.compute(aiagRows(), { lsl: -5, usl: 5, alpha: 0.25 });
+    var mu = res2.design.grandMean;
+    var res1 = MSAAnova.compute(aiagRows(), { usl: mu + 5, processMean: mu, alpha: 0.25 });
+    near(res1.metrics.pctTolerance, res2.metrics.pctTolerance, 1e-9,
+      '%Tolerance unilateral vs bilateral con proceso centrado');
+  });
+
+  test('unilateral: processMean explicito manda sobre la media del estudio', function () {
+    var res = MSAAnova.compute(aiagRows(), { usl: 5, processMean: 0, alpha: 0.25 });
+    near(res.toleranceInfo.width, 5, 1e-12, 'margen con centro fijado en 0');
+    assert(res.toleranceInfo.centerFromStudy === false, 'no deberia venir del estudio');
+  });
+
+  test('unilateral: avisa que la convencion no es unica y de donde salio el centro', function () {
+    var res = MSAAnova.compute(aiagRows(), { usl: 5, alpha: 0.25 });
+    var w = res.warnings.join(' | ');
+    assert(w.indexOf('unilateral') >= 0, 'falta el aviso de unilateral');
+    assert(w.indexOf('media global del estudio') >= 0, 'falta el aviso del centro');
+  });
+
+  test('unilateral imposible (limite del lado equivocado) se ignora', function () {
+    // USL por debajo del centro del proceso: el margen seria negativo.
+    var res = MSAAnova.compute(aiagRows(), { usl: -99, alpha: 0.25 });
+    assert(res.tolerance === null, 'no deberia haber tolerancia');
+    assert(res.metrics.pctTolerance === null, '%Tolerance deberia ser null');
+  });
+
+  test('tolerancia directa gana sobre un limite unilateral', function () {
+    var res = MSAAnova.compute(aiagRows(), { usl: 5, tolerance: 8, alpha: 0.25 });
+    assert(res.toleranceInfo.mode === 'directa', 'modo: ' + res.toleranceInfo.mode);
+    assert(res.toleranceInfo.oneSided === false, 'la directa se trata como bilateral');
+    near(res.toleranceInfo.width, 8, 1e-12, 'ancho');
+  });
+
   /* ---------------------------------------------------------------------- *
    * 3. Los errores concretos del motor VBA
    * ---------------------------------------------------------------------- */

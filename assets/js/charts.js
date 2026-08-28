@@ -111,7 +111,13 @@
 
     // Orden visual de arriba hacia abajo: Tolerance primero, luego Study Variation.
     var rows = [];
-    if (tol !== null) rows.push({ label: 'Total Gage – Tolerance', value: tol });
+    if (tol !== null) {
+      rows.push({
+        label: 'Total Gage – Tolerance' +
+          (result.toleranceInfo && result.toleranceInfo.oneSided ? ' (unilateral)' : ''),
+        value: tol
+      });
+    }
     rows.push({ label: 'Total Gage – Study Variation', value: sv });
 
     var real = rows.map(function (r) { return r.value; });

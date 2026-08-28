@@ -128,3 +128,11 @@ alojar el sitio en GitHub Pages, pero **no** se concede licencia de uso, copia,
 modificación ni redistribución. Ver [LICENSE](LICENSE).
 
 Chart.js (`assets/vendor/`) mantiene su licencia MIT propia.
+
+## Marcas
+
+Minitab es marca registrada de Minitab, LLC. AIAG es marca registrada de
+Automotive Industry Action Group. Este proyecto no está afiliado ni avalado por
+ellos. Se les menciona únicamente como referencia técnica: para citar la
+convención de cálculo que sigue cada quien y para documentar contra qué valores
+publicados se validó el motor.

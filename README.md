@@ -79,6 +79,25 @@ node tests/run-node.js      # en terminal
 o abre `tests/index.html` en el navegador, que además muestra lado a lado los
 resultados del motor corregido y los del motor VBA original.
 
+### Que un método no mueva al otro
+
+Los dos métodos comparten la misma pantalla, y eso una suite de motor no lo ve:
+el cálculo puede seguir dando los mismos números mientras la pantalla los
+muestra mal, se come una gráfica o rompe el reporte. Para eso está
+`tests/regresion-visual.js`, que corre el mismo estudio en dos versiones del
+repo y compara todo lo que la página publica —veredictos, tablas, notas, CSV,
+cada gráfica y el reporte impreso, pixel a pixel:
+
+```bash
+node tests/regresion-visual.js HEAD~1            # cruzado contra el commit anterior
+node tests/regresion-visual.js main anidado      # anidado contra main
+```
+
+Necesita Playwright y Chromium, que **no** son dependencias del proyecto: es
+una herramienta de escritorio aparte (`npm i playwright && npx playwright
+install chromium`). La aplicación y `tests/run-node.js` siguen corriendo sin
+instalar nada.
+
 ## Qué se corrigió respecto del Excel
 
 El libro `Gage_RR_Study.xlsm` tenía **12 defectos** en el motor de cálculo. Los

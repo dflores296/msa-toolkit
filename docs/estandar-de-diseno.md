@@ -304,6 +304,16 @@ Reglas que no se negocian:
   traslacion, escalado, orden de las filas).
 - Ningun cambio de presentacion toca los numeros. Si una prueba verifica una
   frase literal de un mensaje, se ajusta la prueba, no el mensaje.
+- **Compartir pantalla obliga a comprobarlo.** Como los metodos comparten el
+  HTML, tocar la pantalla toca a todos, y la suite de motor no lo ve: el
+  calculo puede seguir dando los mismos numeros mientras la pantalla los
+  muestra mal, se come una grafica o rompe el reporte. Antes de dar por bueno
+  un cambio de presentacion se corre `tests/regresion-visual.js` para cada
+  metodo, contra la revision anterior. Compara lo que la pagina publica -y lo
+  que **se ve**, no lo que hay en el DOM: los bloques de los otros metodos
+  estan ahi, ocultos-, incluido el reporte impreso pixel a pixel. Necesita
+  Playwright, que no es dependencia del proyecto: es herramienta de escritorio,
+  no requisito para usar la aplicacion.
 - Las URLs de `assets/` llevan `?v=` y se sube en cada cambio publicado.
 
 ---

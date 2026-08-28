@@ -86,10 +86,45 @@
     return Math.min(hi, Math.max(lo, v));
   }
 
+  /* Validacion de los tres tamanos del estudio. Antes solo se recortaban en
+     silencio (clamp): escribir 1 operador dejaba el campo en 1 pero el estudio
+     se armaba con 2, sin marca ni aviso. Ahora el campo se marca en rojo, el
+     motivo aparece en el mensaje de la tarjeta y "Regenerar tabla" se bloquea
+     hasta corregirlo. Los limites salen de los atributos min/max del propio
+     input, para no repetirlos aqui. */
+  var CONFIG_FIELDS = [
+    { id: 'numOperators', label: 'Operadores' },
+    { id: 'numParts', label: 'Piezas' },
+    { id: 'numReplicates', label: 'Replicas' }
+  ];
+
+  function configErrors() {
+    var errs = [];
+    CONFIG_FIELDS.forEach(function (f) {
+      var el = $(f.id);
+      var lo = parseInt(el.min, 10), hi = parseInt(el.max, 10);
+      var v = parseInt(el.value, 10);
+      var bad = !isFinite(v) || String(el.value).trim() === '' || v < lo || v > hi;
+      el.classList.toggle('invalid', bad);
+      el.setAttribute('aria-invalid', bad ? 'true' : 'false');
+      if (bad) errs.push(f.label + ': un numero entero entre ' + lo + ' y ' + hi + '.');
+    });
+    return errs;
+  }
+
+  function validateConfig() {
+    var errs = configErrors();
+    if (errs.length) showMessages($('configMsg'), errs, []);
+    else clearMessages($('configMsg'));
+    $('generateBtn').disabled = errs.length > 0;
+    return errs.length === 0;
+  }
+
   /* ------------------------------------------------------------------ *
    * Paso 2 - tabla de captura
    * ------------------------------------------------------------------ */
   function buildDataTable(preserve) {
+    if (!validateConfig()) return false;
     var previous = preserve ? readValues() : {};
     state.replicates = clamp(parseInt($('numReplicates').value, 10), 2, 25, 2);
 
@@ -672,6 +707,7 @@
     $('alpha').value = '0.25'; $('interactionMode').value = 'auto';
     $('svMultiplier').value = '6'; $('fDenominator').value = 'interaction';
     renderNameInputs();
+    validateConfig();
     $('captureSection').hidden = true;
     $('resultsSection').hidden = true;
     resetResultViz();
@@ -686,8 +722,13 @@
     initTheme();
     initTabs();
     renderNameInputs();
+    CONFIG_FIELDS.forEach(function (f) {
+      $(f.id).addEventListener('input', validateConfig);
+    });
     ['numOperators', 'numParts'].forEach(function (id) {
-      $(id).addEventListener('change', renderNameInputs);
+      $(id).addEventListener('change', function () {
+        if (validateConfig()) renderNameInputs();
+      });
     });
     $('generateBtn').addEventListener('click', function () { buildDataTable(true); });
     $('calcBtn').addEventListener('click', calculate);

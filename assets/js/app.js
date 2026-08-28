@@ -15,9 +15,9 @@
     return document.documentElement.getAttribute('data-theme') || 'light';
   }
 
-  function applyTheme(theme) {
+  function applyTheme(theme, remember) {
     document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem('msa-theme', theme); } catch (e) {}
+    if (remember !== false) { try { localStorage.setItem('msa-theme', theme); } catch (e) {} }
     [].slice.call(document.querySelectorAll('.theme-opt')).forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.themeChoice === theme);
     });
@@ -738,6 +738,97 @@
   }
 
   /* ------------------------------------------------------------------ *
+   * Reporte impreso
+   * Imprimir la pagina tal cual sacaba solo la pestana abierta (cero
+   * graficas), la tabla de captura con sus recuadros vacios y la barra de
+   * herramientas. Aqui se arma el reporte: encabezado con el nombre del
+   * estudio y sus parametros, y anexo con las mediciones como texto. El resto
+   * (veredictos, tablas, graficas) es el mismo DOM de pantalla, repaginado por
+   * la hoja de estilos de impresion.
+   * ------------------------------------------------------------------ */
+  var printRestore = null;
+
+  function preparePrint() {
+    if (printRestore) return;                       // ya preparado (Ctrl+P sobre el boton)
+    var theme = currentTheme();
+    // Los paneles ocultos hay que revelarlos ANTES de imprimir: un lienzo que
+    // nunca estuvo visible se dibujo en 0x0 y saldria en blanco.
+    var hiddenPanels = [].slice.call(document.querySelectorAll('.tab-panel[hidden]'));
+    hiddenPanels.forEach(function (el) { el.hidden = false; });
+    // El tema oscuro se imprimiria con fondos negros; los lienzos son mapas de
+    // bits, asi que no basta con CSS: hay que redibujar en claro.
+    if (theme === 'dark') applyTheme('light', false);
+    buildPrintHeader();
+    buildPrintAnnex();
+    void document.body.offsetHeight;                // fuerza el reflujo antes de medir
+    MSACharts.resizeAll();
+    printRestore = function () {
+      hiddenPanels.forEach(function (el) { el.hidden = true; });
+      if (theme === 'dark') applyTheme('dark', false);
+      MSACharts.resizeAll();
+      printRestore = null;
+    };
+  }
+
+  function restoreAfterPrint() { if (printRestore) printRestore(); }
+
+  function buildPrintHeader() {
+    var r = state.result;
+    var name = studyName() || 'Estudio Gage R&R';
+    var meta = [
+      ['Fecha', new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })],
+      ['Estudio', state.operators.length + ' operadores x ' + state.parts.length +
+        ' piezas x ' + state.replicates + ' replicas = ' +
+        (state.operators.length * state.parts.length * state.replicates) + ' mediciones'],
+      ['Especificacion', specLabel()],
+      ['Multiplicador', $('svMultiplier').value + ' sigma'],
+      ['Alfa', $('alpha').value],
+      ['Modelo', r ? (r.model === 'with-interaction' ? 'Con interaccion' : 'Sin interaccion (agrupada)') : '-'],
+      ['% Study Variation (GRR)', r ? r.metrics.pctStudyVar.toFixed(2) + ' %' : '-'],
+      ['Categorias distintas', r ? (r.ndc === null ? 'inf' : String(r.ndc)) : '-']
+    ];
+    $('printHeader').innerHTML =
+      '<h1 class="rep-title">' + esc(name) + '</h1>' +
+      '<p class="rep-sub">Estudio Gage R&amp;R por el metodo ANOVA cruzado &middot; MSA Toolkit</p>' +
+      '<div class="rep-meta">' + meta.map(function (m) {
+        return '<div><span>' + esc(m[0]) + '</span><strong>' + esc(m[1]) + '</strong></div>';
+      }).join('') + '</div>';
+  }
+
+  function specLabel() {
+    var tol = $('tolerance').value.trim();
+    if (tol) return 'Tolerancia directa = ' + tol;
+    var lsl = $('lsl').value.trim(), usl = $('usl').value.trim();
+    if (lsl && usl) return 'LSL = ' + lsl + ' , USL = ' + usl;
+    if (lsl) return 'LSL = ' + lsl + ' (unilateral)';
+    if (usl) return 'USL = ' + usl + ' (unilateral)';
+    return 'Sin especificacion';
+  }
+
+  function buildPrintAnnex() {
+    var vals = readValues(), k = state.replicates;
+    var h = '<h2>Anexo. Mediciones capturadas</h2><table><thead><tr>' +
+      '<th class="txt">Operador</th><th class="txt">Pieza</th>';
+    for (var i = 1; i <= k; i++) h += '<th>Replica ' + i + '</th>';
+    h += '</tr></thead><tbody>';
+    var n = 0;
+    state.operators.forEach(function (op) {
+      state.parts.forEach(function (pt) {
+        h += '<tr><td class="txt">' + esc(op) + '</td><td class="txt">' + esc(pt) + '</td>';
+        for (var j = 0; j < k; j++) {
+          var v = (vals[op + '\u0000' + pt + '\u0000' + j] || '').trim();
+          if (v !== '') n++;
+          h += '<td>' + esc(v || '-') + '</td>';
+        }
+        h += '</tr>';
+      });
+    });
+    h += '</tbody></table><p class="annex-note">' + n + ' mediciones capturadas. ' +
+      'Los calculos de este reporte salen exactamente de estos datos.</p>';
+    $('printAnnex').innerHTML = h;
+  }
+
+  /* ------------------------------------------------------------------ *
    * Arranque
    * ------------------------------------------------------------------ */
   document.addEventListener('DOMContentLoaded', function () {
@@ -762,7 +853,10 @@
     $('resetBtn').addEventListener('click', resetAll);
     $('exportJsonBtn').addEventListener('click', exportJSON);
     $('exportCsvBtn').addEventListener('click', exportCSV);
-    $('printBtn').addEventListener('click', function () { window.print(); });
+    $('printBtn').addEventListener('click', function () { preparePrint(); window.print(); });
+    // Ctrl+P tambien debe salir como reporte, no como pantallazo de la app.
+    window.addEventListener('beforeprint', preparePrint);
+    window.addEventListener('afterprint', restoreAfterPrint);
     $('importBtn').addEventListener('click', function () { $('importFile').click(); });
     $('importFile').addEventListener('change', function (e) {
       if (e.target.files && e.target.files[0]) importFile(e.target.files[0]);

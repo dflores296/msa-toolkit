@@ -315,20 +315,27 @@
       (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') + '</div>';
   }
 
-  /* Barras de "Evaluacion de la variacion" (%Study Variation por fuente).
-     HTML/CSS, no Chart.js: mismos datos que la Tabla de componentes, solo
-     que en forma de barra con las marcas de 10 % y 30 % del criterio AIAG. */
-  var EVAL_ORDER = ['grr', 'rep', 'repro', 'part'];
-  var EVAL_NAMES = { grr: 'Gage R&R', rep: 'Repetibilidad', repro: 'Reproducibilidad', part: 'Pieza a pieza' };
-
+  /* Barras de "Evaluacion de la variacion": mismos dos datos que mostraba
+     el chart de Chart.js que reemplaza (Total Gage -- Study Variation y,
+     si hay tolerancia, Total Gage -- Tolerance), solo que en HTML/CSS con
+     marcas de 10 % y 30 % del criterio AIAG en vez del canvas heredado
+     del Excel. Es un cambio de presentacion, no de datos. */
   function renderEvalBars(r) {
-    var comps = {};
-    r.components.forEach(function (c) { comps[c.key] = c; });
-    var rows = EVAL_ORDER.map(function (key) {
-      var v = 100 * comps[key].pctStudyVar;
+    var rows = [];
+    if (r.metrics.pctTolerance !== null) {
+      rows.push({
+        label: 'Total Gage – Tolerance' +
+          (r.toleranceInfo && r.toleranceInfo.oneSided ? ' (unilateral)' : ''),
+        value: r.metrics.pctTolerance
+      });
+    }
+    rows.push({ label: 'Total Gage – Study Variation', value: r.metrics.pctStudyVar });
+
+    $('evalBars').innerHTML = rows.map(function (row) {
+      var v = row.value;
       var level = v <= 10 ? 'ok' : v <= 30 ? 'warn' : 'bad';
       return '<div class="eval-row">' +
-        '<div class="eval-label">' + esc(EVAL_NAMES[key]) + '</div>' +
+        '<div class="eval-label">' + esc(row.label) + '</div>' +
         '<div class="eval-track">' +
           '<div class="eval-fill ' + level + '" style="width:' + Math.min(100, v).toFixed(2) + '%"></div>' +
           '<div class="eval-tick" style="left:10%"></div>' +
@@ -336,8 +343,7 @@
         '</div>' +
         '<div class="eval-val">' + v.toFixed(2) + '</div>' +
       '</div>';
-    });
-    $('evalBars').innerHTML = rows.join('');
+    }).join('');
   }
 
   function num(v, sig) {

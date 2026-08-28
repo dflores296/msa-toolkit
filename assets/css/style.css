@@ -72,11 +72,17 @@
 }
 
 * { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
 body {
   margin: 0; background: var(--page-bg); color: var(--ink);
   font-family: var(--sans); font-size: 15px; line-height: 1.5;
+  scrollbar-color: var(--border-strong) transparent;
 }
+* { scrollbar-color: var(--border-strong) transparent; }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 7px; border: 3px solid transparent; background-clip: content-box; }
 a { color: var(--accent-ink); }
 
 /* --- Paginas secundarias (pruebas de validacion): siguen el layout clasico
@@ -126,28 +132,33 @@ header.toolbar {
 .toolbar-nav a { color: var(--ink-soft); text-decoration: none; margin-right: 16px; }
 .toolbar-nav a:hover { color: var(--accent-ink); text-decoration: underline; }
 
-/* --- Banco de trabajo: dos columnas --- */
+/* --- Banco de trabajo: dos columnas. 40% captura / 60% resultados,
+   para darle mas aire al panel de resultados. --- */
 .workbench {
-  display: grid; grid-template-columns: minmax(0, 58fr) minmax(0, 42fr);
+  display: grid; grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
   align-items: start; max-width: 1760px; margin: 0 auto;
 }
 .col-capture {
-  padding: 18px 20px; display: flex; flex-direction: column; gap: 16px;
+  padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;
   border-right: 1px solid var(--border); min-width: 0;
 }
 .col-results { min-width: 0; position: sticky; top: 0; align-self: start; }
 .results-panel {
-  background: var(--surface-2); padding: 18px 20px;
-  max-height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 14px;
+  background: var(--surface-2); padding: 22px 28px;
+  max-height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
 }
 .results-head { display: flex; align-items: center; gap: 10px; }
 .results-title { font-size: 13.5px; font-weight: 600; }
 .results-head .spacer { flex: 1 1 auto; }
 .results-live { font-size: 11.5px; color: var(--ink-faint); }
 .results-placeholder { margin: 0; color: var(--ink-faint); }
-#resultsSection { display: flex; flex-direction: column; gap: 14px; }
+#resultsSection { display: flex; flex-direction: column; gap: 18px; }
 #resultsSection[hidden] { display: none; }
 #resultsSection:not([hidden]) ~ .results-placeholder { display: none; }
+/* #resultBody solo alterna [hidden]: sin esto sus hijos (veredictos,
+   evaluacion, pestañas) se apilaban pegados, sin espacio entre tarjetas. */
+#resultBody { display: flex; flex-direction: column; gap: 18px; }
+#resultBody[hidden] { display: none; }
 
 @media (max-width: 1100px) {
   .workbench { grid-template-columns: minmax(0, 1fr); }
@@ -318,15 +329,24 @@ input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 
 /* --- Evaluacion de la variacion: barras HTML/CSS, sin depender de Chart.js --- */
 .eval-title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
-.eval-bars { display: flex; flex-direction: column; gap: 9px; }
-.eval-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 56px; align-items: center; gap: 10px; }
+.eval-bars { display: flex; flex-direction: column; gap: 12px; }
+.eval-row { display: grid; grid-template-columns: 190px minmax(0, 1fr) 60px; align-items: center; gap: 12px; }
 .eval-label { font-size: 12px; color: var(--ink-soft); }
-.eval-track { position: relative; height: 14px; border-radius: 3px; background: var(--toggle-track-bg); overflow: hidden; }
+.eval-track { position: relative; height: 16px; border-radius: 3px; background: var(--toggle-track-bg); overflow: visible; }
 .eval-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px 0 0 3px; }
 .eval-fill.ok { background: var(--ok); }
 .eval-fill.warn { background: var(--warn); }
 .eval-fill.bad { background: var(--bad); }
-.eval-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--border-strong); }
+/* Lineas punteadas en 10% y 30% (criterio AIAG), al estilo Minitab: bien
+   visibles, se salen un poco de la pista para que se noten sobre la barra.
+   mix-blend-mode:difference para que se vea tanto sobre la pista clara/oscura
+   como sobre el relleno de color (verde/ambar/rojo) sin necesitar un color
+   distinto para cada caso. */
+.eval-tick {
+  position: absolute; top: -3px; bottom: -3px; width: 0;
+  border-left: 1.5px dashed #fff;
+  mix-blend-mode: difference;
+}
 .eval-val { font: 12px var(--mono); text-align: right; color: var(--ink); }
 
 /* --- Pestañas del panel de resultados --- */

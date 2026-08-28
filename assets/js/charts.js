@@ -122,6 +122,13 @@
       ds1.push({ label: '% Tolerance', data: order.map(function (k) { return 100 * comps[k].pctTolerance; }),
                  backgroundColor: PALETTE[3] });
     }
+    // Lineas de referencia del criterio AIAG (10 % y 30 %), como en Minitab.
+    ds1.push(
+      { type: 'line', label: 'Umbral 10 %', data: order.map(function () { return 10; }),
+        borderColor: TICK(), borderWidth: 1.4, borderDash: [6, 4], pointRadius: 0, fill: false },
+      { type: 'line', label: 'Umbral 30 %', data: order.map(function () { return 30; }),
+        borderColor: TICK(), borderWidth: 1.4, borderDash: [6, 4], pointRadius: 0, fill: false }
+    );
     make('chartComponents', {
       type: 'bar',
       data: { labels: labels1, datasets: ds1 },

@@ -246,7 +246,8 @@
 
   function collectRows() {
     return inputs().map(function (i) {
-      return { operator: i.dataset.op, part: i.dataset.part, value: i.value.trim().replace(',', '.') };
+      return { operator: i.dataset.op, part: i.dataset.part,
+               replicate: Number(i.dataset.rep) + 1, value: i.value.trim().replace(',', '.') };
     });
   }
 
@@ -557,13 +558,58 @@
     download(studyFileName('json'), JSON.stringify(payload, null, 2), 'application/json');
   }
 
-  function exportCSV() {
-    var lines = ['operador,pieza,replica,medicion'];
-    inputs().forEach(function (i) {
-      lines.push([csvCell(i.dataset.op), csvCell(i.dataset.part),
-                  Number(i.dataset.rep) + 1, i.value.trim()].join(','));
+  /* CSV y JSON guardan lo mismo. El CSV lleva los parametros del estudio en
+     lineas de comentario (#clave: valor) arriba de la tabla: asi el archivo que
+     exportas se puede volver a importar tal cual, con todo y especificaciones,
+     y sigue abriendose en Excel como una tabla normal. */
+  var CSV_META = [
+    ['estudio', function () { return studyName(); }, function (v) { $('studyName').value = v; renderStudyName(); }],
+    ['lsl', function () { return $('lsl').value; }, function (v) { $('lsl').value = v; }],
+    ['usl', function () { return $('usl').value; }, function (v) { $('usl').value = v; }],
+    ['tolerancia', function () { return $('tolerance').value; }, function (v) { $('tolerance').value = v; }],
+    ['media_historica', function () { return $('processMean').value; }, function (v) { $('processMean').value = v; }],
+    ['sigma_historica', function () { return $('historicalSigma').value; }, function (v) { $('historicalSigma').value = v; }],
+    ['alfa', function () { return $('alpha').value; }, function (v) { $('alpha').value = v; }],
+    ['multiplicador', function () { return $('svMultiplier').value; }, function (v) { $('svMultiplier').value = v; }],
+    ['interaccion', function () { return $('interactionMode').value; }, function (v) { $('interactionMode').value = v; }],
+    ['denominador_f', function () { return $('fDenominator').value; }, function (v) { $('fDenominator').value = v; }]
+  ];
+
+  function csvHeader() {
+    var out = ['# MSA Toolkit - estudio Gage R&R (ANOVA cruzado)',
+               '# una fila por medicion; columnas: operador, pieza, replica, medicion',
+               '# fecha_exportacion: ' + new Date().toISOString().slice(0, 10)];
+    CSV_META.forEach(function (m) { out.push('# ' + m[0] + ': ' + String(m[1]()).trim()); });
+    out.push('operador,pieza,replica,medicion');
+    return out;
+  }
+
+  function csvRows(getValue) {
+    var lines = [];
+    state.operators.forEach(function (op) {
+      state.parts.forEach(function (pt) {
+        for (var k = 0; k < state.replicates; k++) {
+          lines.push([csvCell(op), csvCell(pt), k + 1, getValue(op, pt, k)].join(','));
+        }
+      });
     });
+    return lines;
+  }
+
+  function exportCSV() {
+    var vals = readValues();
+    var lines = csvHeader().concat(csvRows(function (op, pt, k) {
+      return (vals[op + '\u0000' + pt + '\u0000' + k] || '').trim();
+    }));
     download(studyFileName('csv'), lines.join('\n'), 'text/csv');
+  }
+
+  /* Plantilla: el mismo archivo que exporta la app, con la columna de medicion
+     vacia. Contesta "en que formato y en que orden capturo" sin tener que
+     explicarlo en un texto. */
+  function exportTemplate() {
+    var lines = csvHeader().concat(csvRows(function () { return ''; }));
+    download('plantilla-gage-rr.csv', lines.join('\n'), 'text/csv');
   }
 
   function csvCell(s) {
@@ -596,20 +642,40 @@
   }
 
   function loadCSV(text) {
-    var lines = text.replace(/\r\n?/g, '\n').split('\n').filter(function (l) { return l.trim(); });
-    if (!lines.length) throw new Error('archivo vacio');
+    var all = text.replace(/\r\n?/g, '\n').split('\n').filter(function (l) { return l.trim(); });
+    // Las lineas de comentario traen los parametros del estudio que escribio
+    // exportCSV; se aplican antes de cargar los datos.
+    var meta = {}, lines = [];
+    all.forEach(function (l) {
+      if (l.charAt(0) === '#') {
+        var m = l.slice(1).match(/^\s*([^:]+):\s*(.*)$/);
+        if (m) meta[m[1].trim().toLowerCase()] = m[2].trim();
+      } else { lines.push(l); }
+    });
+    if (!lines.length) throw new Error('el archivo no tiene filas de datos');
     var sep = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : ',';
     var head = splitCSV(lines[0], sep).map(function (s) { return s.trim().toLowerCase(); });
     var iOp = idxOf(head, ['operador', 'operator']);
     var iPt = idxOf(head, ['pieza', 'parte', 'part']);
     var iVal = idxOf(head, ['medicion', 'medición', 'valor', 'value', 'measurement']);
+    var iRep = idxOf(head, ['replica', 'réplica', 'replicate', 'repeticion', 'repetición']);
     if (iOp < 0 || iPt < 0 || iVal < 0) {
-      throw new Error('se esperan columnas operador, pieza y medicion (encabezado: ' + head.join(', ') + ')');
+      throw new Error('se esperan columnas operador, pieza y medicion (encabezado leido: ' + head.join(', ') + ')');
     }
     var rows = lines.slice(1).map(function (l) {
       var c = splitCSV(l, sep);
-      return { operator: (c[iOp] || '').trim(), part: (c[iPt] || '').trim(), value: (c[iVal] || '').trim() };
+      var row = { operator: (c[iOp] || '').trim(), part: (c[iPt] || '').trim(), value: (c[iVal] || '').trim() };
+      // La columna replica ya no se ignora: si viene, manda sobre el orden de
+      // las filas, asi que un archivo desordenado se recompone igual.
+      if (iRep >= 0) {
+        var rep = parseInt((c[iRep] || '').trim(), 10);
+        if (isFinite(rep) && rep > 0) row.replicate = rep;
+      }
+      return row;
     }).filter(function (r) { return r.operator && r.part; });
+    CSV_META.forEach(function (m) {
+      if (meta[m[0]] !== undefined) m[2](meta[m[0]]);
+    });
     loadPayload({ data: rows });
   }
 
@@ -645,7 +711,10 @@
       var o = String(r.operator).trim(), t = String(r.part).trim();
       if (ops.indexOf(o) < 0) ops.push(o);
       if (parts.indexOf(t) < 0) parts.push(t);
-      counts[o + '\u0000' + t] = (counts[o + '\u0000' + t] || 0) + 1;
+      var key = o + '\u0000' + t;
+      // Con columna replica el numero de replicas lo fija el mayor indice, no
+      // el conteo de filas: asi un archivo con huecos no encoge el estudio.
+      counts[key] = Math.max(counts[key] || 0, r.replicate > 0 ? r.replicate : (counts[key] || 0) + 1);
     });
     var maxRep = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
 
@@ -673,7 +742,7 @@
     rows.forEach(function (r) {
       var o = String(r.operator).trim(), t = String(r.part).trim();
       var key = o + '\u0000' + t;
-      var rep = seen[key] === undefined ? 0 : seen[key];
+      var rep = r.replicate > 0 ? r.replicate - 1 : (seen[key] === undefined ? 0 : seen[key]);
       seen[key] = rep + 1;
       var inp = $('dataTable').querySelector(
         'input[data-op="' + cssEsc(o) + '"][data-part="' + cssEsc(t) + '"][data-rep="' + rep + '"]');
@@ -853,6 +922,7 @@
     $('resetBtn').addEventListener('click', resetAll);
     $('exportJsonBtn').addEventListener('click', exportJSON);
     $('exportCsvBtn').addEventListener('click', exportCSV);
+    $('templateBtn').addEventListener('click', exportTemplate);
     $('printBtn').addEventListener('click', function () { preparePrint(); window.print(); });
     // Ctrl+P tambien debe salir como reporte, no como pantallazo de la app.
     window.addEventListener('beforeprint', preparePrint);

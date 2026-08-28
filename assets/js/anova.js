@@ -115,7 +115,7 @@
         'muy impreciso. AIAG sugiere 10x3x3 = 90.');
     }
     if (nPart < 10) warnings.push('Con ' + nPart + ' piezas el intervalo de confianza del componente pieza-a-pieza es amplio; AIAG sugiere 10.');
-    if (nOp < 3) warnings.push(nOp + ' operadores: la reproducibilidad queda mal estimada. AIAG sugiere 3.');
+    if (nOp < 3) warnings.push('Con ' + nOp + ' operadores la reproducibilidad se estima con poca precision; AIAG sugiere 3.');
 
     return {
       ok: true, errors: [], warnings: warnings,

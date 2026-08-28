@@ -72,7 +72,7 @@ assets/js/charts.js      las ocho gráficas (Chart.js)
 assets/js/app.js         interfaz y flujo
 tests/                   suite de regresión + reimplementación del VBA original
 datasets/                casos de validación con resultados publicados
-docs/                    auditoría del motor de Excel y estándar de diseño
+docs/                    auditoría, estándar de diseño y plan de trabajo
 ```
 
 `assets/js/anova.js` no depende del DOM ni de ninguna librería: se puede
@@ -115,7 +115,9 @@ Chart.js va servido desde el propio repositorio y no hay dependencias externas.
 ## Hoja de ruta
 
 Los siguientes métodos MSA se irán añadiendo uno por uno, cada uno con sus
-propias pruebas de regresión y datasets de validación:
+propias pruebas de regresión y datasets de validación. El plan de trabajo —con
+el modelo de cada uno, qué se reutiliza y cómo se agrega— está en
+**[`docs/plan-siguientes-metodos.md`](docs/plan-siguientes-metodos.md)**:
 
 - Promedio y Rango (X̄ & R) con constantes K1/K2/K3
 - Estudio Tipo 1 (Cg / Cgk) sobre patrón

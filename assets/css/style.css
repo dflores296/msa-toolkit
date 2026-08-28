@@ -329,11 +329,32 @@ input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 .msg strong { font-weight: 600; }
 
 /* --- Veredicto --- */
-.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
-.verdict { border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface); }
-.verdict .k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); }
-.verdict .v { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; margin: 3px 0 6px; color: var(--ink); }
-.verdict .t { font-size: 11.5px; font-weight: 500; display: inline-block; padding: 2px 8px; border-radius: 4px; }
+/* Tarjetas de veredicto. Las tres lineas (titulo, valor, etiqueta) se alinean
+   ENTRE tarjetas, no solo dentro de cada una: cada tarjeta ocupa tres filas de
+   la rejilla madre con grid-template-rows:subgrid, asi que el alto de cada
+   banda lo fija la tarjeta mas alta. Los numeros quedan al mismo nivel aunque
+   un titulo ocupe dos lineas ("% Study Variation (GRR)") y las etiquetas
+   empiezan todas a la misma altura aunque una se parta en dos lineas
+   ("Monitor de primera clase (ICC >= 0.80)"). */
+.verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 10px; }
+.verdict {
+  display: grid; grid-row: span 3; grid-template-rows: subgrid; align-content: start;
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; background: var(--surface);
+}
+.verdict .k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); align-self: start; }
+.verdict .v { font-size: 24px; font-weight: 600; font-variant-numeric: tabular-nums; margin: 0; color: var(--ink); align-self: start; }
+.verdict .t {
+  font-size: 11.5px; font-weight: 500; padding: 2px 8px; border-radius: 4px;
+  justify-self: start; align-self: start;
+}
+/* Navegadores sin subgrid: al menos reservar dos lineas de titulo y empujar la
+   etiqueta al pie, para que el desalineado no sea el de antes. */
+@supports not (grid-template-rows: subgrid) {
+  .verdict { display: flex; flex-direction: column; }
+  .verdict .k { min-height: 2.6em; }
+  .verdict .v { margin: 3px 0 6px; }
+  .verdict .t { align-self: flex-start; margin-top: auto; }
+}
 .verdict .t.ok   { background: var(--ok-soft);   color: var(--ok); }
 .verdict .t.warn { background: var(--warn-soft); color: var(--warn); }
 .verdict .t.bad  { background: var(--bad-soft);  color: var(--bad); }

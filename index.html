@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por el metodo ANOVA cruzado. Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260829a">
+<link rel="stylesheet" href="assets/css/style.css?v=20260829b">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -45,6 +45,9 @@
     <a href="docs/auditoria-motor-excel.md">Auditoria del motor</a>
   </nav>
 </header>
+
+<!-- Encabezado del reporte impreso. En pantalla no existe; se llena al imprimir. -->
+<div id="printHeader" class="print-only"></div>
 
 <div class="workbench">
 
@@ -193,12 +196,12 @@
             <button type="button" class="tab-btn" data-tab="notas" role="tab" aria-selected="false">Notas</button>
           </div>
 
-          <div class="tab-panel" data-panel="componentes" role="tabpanel">
+          <div class="tab-panel" data-panel="componentes" data-print-title="Componentes de varianza y evaluacion" role="tabpanel">
             <div class="table-scroll"><table id="varianceTable"></table></div>
             <div class="table-scroll" style="margin-top:20px"><table id="assessTable"></table></div>
           </div>
 
-          <div class="tab-panel" data-panel="anova" role="tabpanel" hidden>
+          <div class="tab-panel" data-panel="anova" data-print-title="Analisis de varianza" role="tabpanel" hidden>
             <div class="table-scroll"><table id="anovaTable"></table></div>
             <p class="note" id="modelNote"></p>
             <p class="note" style="margin-top:16px">ANOVA completo (siempre con interaccion, para auditar el calculo):</p>
@@ -206,7 +209,7 @@
             <p class="note" id="decompNote"></p>
           </div>
 
-          <div class="tab-panel" data-panel="graficas" role="tabpanel" hidden>
+          <div class="tab-panel" data-panel="graficas" data-print-title="Graficas del estudio" role="tabpanel" hidden>
             <div class="charts">
               <div class="card chart-box"><h3>Componentes de variacion</h3>
                 <div class="holder"><canvas id="chartComponents"></canvas></div>
@@ -235,7 +238,7 @@
             </div>
           </div>
 
-          <div class="tab-panel" data-panel="notas" role="tabpanel" hidden>
+          <div class="tab-panel" data-panel="notas" data-print-title="Notas de interpretacion" role="tabpanel" hidden>
             <div id="resultNotes"></div>
             <p style="font-size:13.5px;margin-top:16px">
               <strong>% Study Variation</strong> (base desviacion estandar, criterio AIAG): menos de 10 % aceptable,
@@ -277,6 +280,10 @@
 
 </div>
 
+<!-- Anexo de datos del reporte impreso: la tabla de mediciones ya capturada,
+     como texto y no como campos de formulario. -->
+<div id="printAnnex" class="print-only"></div>
+
 <footer class="site">
   <p>MSA Toolkit &middot; motor validado contra el dataset del apendice del manual AIAG MSA 4a ed.
     &middot; <a href="tests/">ver pruebas</a></p>
@@ -286,10 +293,10 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260829a"></script>
-<script src="assets/js/stats.js?v=20260829a"></script>
-<script src="assets/js/anova.js?v=20260829a"></script>
-<script src="assets/js/charts.js?v=20260829a"></script>
-<script src="assets/js/app.js?v=20260829a"></script>
+<script src="assets/vendor/chart.umd.js?v=20260829b"></script>
+<script src="assets/js/stats.js?v=20260829b"></script>
+<script src="assets/js/anova.js?v=20260829b"></script>
+<script src="assets/js/charts.js?v=20260829b"></script>
+<script src="assets/js/app.js?v=20260829b"></script>
 </body>
 </html>

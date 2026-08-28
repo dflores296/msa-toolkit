@@ -107,15 +107,15 @@
     if (errors.length) return { ok: false, errors: errors, warnings: warnings, meta: null };
 
     if (!CTRL[nRep]) {
-      warnings.push('No hay constantes de carta de control tabuladas para ' + nRep +
-        ' replicas (tabla: 2 a 25). Las cartas R y X-barra se omitiran.');
+      warnings.push('Sin constantes tabuladas para ' + nRep +
+        ' replicas (la tabla cubre 2 a 25): se omiten las cartas R y X-barra.');
     }
     if (nPart * nOp * nRep < 40) {
-      warnings.push('Solo ' + (nPart * nOp * nRep) + ' mediciones. AIAG sugiere 10x3x3 = 90; ' +
-        'por debajo de 40 la estimacion del %GRR es muy imprecisa.');
+      warnings.push('Solo ' + (nPart * nOp * nRep) + ' mediciones: por debajo de 40 el %GRR es ' +
+        'muy impreciso. AIAG sugiere 10x3x3 = 90.');
     }
-    if (nPart < 10) warnings.push('Con ' + nPart + ' piezas el intervalo de confianza del componente pieza-a-pieza es amplio; AIAG sugiere 10.');
-    if (nOp < 3) warnings.push('Con ' + nOp + ' operadores la reproducibilidad se estima con poca precision; AIAG sugiere 3.');
+    if (nPart < 10) warnings.push(nPart + ' piezas: la variacion pieza a pieza queda mal estimada. AIAG sugiere 10.');
+    if (nOp < 3) warnings.push(nOp + ' operadores: la reproducibilidad queda mal estimada. AIAG sugiere 3.');
 
     return {
       ok: true, errors: [], warnings: warnings,
@@ -341,29 +341,28 @@
     };
 
     if (negatives.length) {
-      result.warnings.push('Componente(s) de varianza negativo(s) truncado(s) a cero: ' + negatives.join(', ') +
-        '. Indica que el efecto no se distingue del ruido; considera un estimador REML si se repite.');
+      result.warnings.push('Varianza negativa truncada a cero en ' + negatives.join(', ') +
+        ': ese efecto no se distingue del ruido.');
     }
     if (decompositionError > 1e-9) {
-      result.warnings.push('La identidad SS_Total = SS_Parte + SS_Operador + SS_Interaccion + SS_Repetibilidad ' +
-        'no se cumple (error relativo ' + decompositionError.toExponential(2) + '). Revisa los datos de entrada.');
+      result.warnings.push('La descomposicion de sumas de cuadrados no cierra (error relativo ' +
+        decompositionError.toExponential(2) + '). Revisa los datos capturados.');
     }
     if (ndc !== null && ndc < 5) {
-      result.warnings.push('NDC = ' + ndc + ' (menor que 5). O el instrumento no resuelve, o las piezas del ' +
-        'estudio no cubren la variacion real del proceso. Revisa la seleccion de piezas antes de culpar al gage.');
+      result.warnings.push('NDC = ' + ndc + ' (menor que 5): el sistema no separa las piezas. ' +
+        'Revisa la resolucion del instrumento y las piezas elegidas.');
     }
     if (tol === null) {
-      result.warnings.push('Sin limites de especificacion ni tolerancia: no se calcula ' +
-        '%Tolerance (P/T). Es el comportamiento normal, no falta ningun dato.');
+      result.warnings.push('Sin LSL/USL ni tolerancia directa: no se calcula %Tolerance (P/T).');
     } else if (tol.oneSided) {
       result.warnings.push('Especificacion unilateral (' + tol.mode.replace('unilateral-', '') +
-        '): el %Tolerance compara media dispersion (' + (k / 2) + ' sigma) contra el margen ' +
-        tol.label + ' = ' + tol.width.toPrecision(6) + '. No existe una convencion unica en la ' +
-        'industria para este caso; si la tuya es otra, usa el campo de tolerancia directa.');
+        '): el %Tolerance compara media dispersion (' + (k / 2) + ' sigma) contra ' +
+        tol.label + ' = ' + tol.width.toPrecision(6) + '. Si usas otra convencion, captura la ' +
+        'tolerancia directa.');
       if (tol.centerFromStudy) {
-        result.warnings.push('El centro del proceso se tomo de la media global del estudio (' +
-          grand.toPrecision(6) + '), que depende de las piezas que elegiste. Si tienes la media ' +
-          'historica del proceso, indicala para un %Tolerance mas estable.');
+        result.warnings.push('Centro del proceso tomado de la media del estudio (' +
+          grand.toPrecision(6) + '), que depende de las piezas elegidas. Captura la media ' +
+          'historica para un %Tolerance mas estable.');
       }
     }
     return result;

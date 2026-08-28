@@ -123,6 +123,50 @@
   };
   if (global.Chart) global.Chart.register(boxWhiskers);
 
+  /* Plugin: bloques por operador en las cartas R y X-barra. El eje x solo lleva
+     la pieza; el operador se marca con una linea punteada entre bloques y su
+     nombre arriba, como en Minitab. En el libro de Excel esto no se podia y por
+     eso cada punto se rotulaba "Operador A - Pieza 1": el rotulo era tan largo
+     que aplastaba la grafica. */
+  var operatorBands = {
+    id: 'operatorBands',
+    beforeDatasetsDraw: function (chart, args, opts) {
+      var groups = (opts && opts.groups) || [];
+      var area = chart.chartArea, x = chart.scales.x;
+      if (groups.length < 2 || !area || !x) return;
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = opts.color || '#9aa4b0';
+      for (var i = 1; i < groups.length; i++) {
+        var px = (x.getPixelForValue(groups[i - 1].to) + x.getPixelForValue(groups[i].from)) / 2;
+        ctx.beginPath();
+        ctx.moveTo(px, area.top);
+        ctx.lineTo(px, area.bottom);
+        ctx.stroke();
+      }
+      ctx.restore();
+    },
+    afterDatasetsDraw: function (chart, args, opts) {
+      var groups = (opts && opts.groups) || [];
+      var area = chart.chartArea, x = chart.scales.x;
+      if (!groups.length || !area || !x) return;
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.font = '600 10px ' + (themeVar('--sans', '') || 'sans-serif');
+      ctx.fillStyle = opts.color || TICK();
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      groups.forEach(function (g) {
+        var px = (x.getPixelForValue(g.from) + x.getPixelForValue(g.to)) / 2;
+        ctx.fillText(g.label, px, area.top - 3);
+      });
+      ctx.restore();
+    }
+  };
+  if (global.Chart) global.Chart.register(operatorBands);
+
   function destroyAll() {
     Object.keys(registry).forEach(function (k) {
       if (registry[k]) { registry[k].destroy(); registry[k] = null; }
@@ -158,6 +202,8 @@
     return merge(o, extra || {});
   }
 
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+
   function merge(a, b) {
     Object.keys(b).forEach(function (k) {
       if (b[k] && typeof b[k] === 'object' && !Array.isArray(b[k]) && a[k] && typeof a[k] === 'object') {
@@ -172,6 +218,25 @@
     if (!el) return;
     if (registry[id]) registry[id].destroy();
     registry[id] = new Chart(el.getContext('2d'), config);
+  }
+
+  /* Quita el prefijo comun de los nombres de pieza ("Pieza 1", "Pieza 2" ->
+     "1", "2"). Con 30 puntos en el eje, el nombre completo obliga a girar los
+     rotulos y se come la mitad de la grafica; el numero cabe derecho. Si los
+     nombres no comparten prefijo, se dejan tal cual. */
+  function shortPartLabels(seq, parts) {
+    if (parts.length < 2) return seq.slice();
+    var first = parts[0], n = first.length;
+    parts.forEach(function (p) {
+      var i = 0;
+      while (i < n && i < p.length && p.charAt(i) === first.charAt(i)) i++;
+      n = i;
+    });
+    var prefix = first.slice(0, n).replace(/[0-9]+$/, '');
+    if (!prefix) return seq.slice();
+    var ok = parts.every(function (p) { return p.slice(prefix.length).trim() !== ''; });
+    if (!ok) return seq.slice();
+    return seq.map(function (p) { return p.slice(prefix.length).trim(); });
   }
 
   /** Linea horizontal constante (limite de control). */
@@ -251,12 +316,23 @@
     });
 
     /* 2. Carta R por operador */
+    var partAxis = shortPartLabels(ch.partSequence, result.charts.partMeans.labels);
+    var bandOptions = {
+      layout: { padding: { top: 14 } },
+      plugins: { operatorBands: { groups: ch.operatorGroups } },
+      scales: { x: {
+        title: { display: true, text: 'Pieza', font: { size: 10 }, color: TICK() },
+        // Sin autoSkip: con el numero de pieza a secas caben las 10 de cada
+        // bloque, y saltarse la mitad haria dudar de que punto es cual.
+        ticks: { maxRotation: 0, autoSkip: false }
+      } }
+    };
     if (ch.rChart.available) {
       var n = ch.labels.length;
       make('chartR', {
         type: 'line',
         data: {
-          labels: ch.labels,
+          labels: partAxis,
           datasets: [
             pointSeries('Rango', ch.rChart.values, PALETTE[0]),
             limitSeries('LCS = ' + fmt(ch.rChart.ucl), ch.rChart.ucl, n, PALETTE[1], true),
@@ -264,10 +340,13 @@
             limitSeries('LCI = ' + fmt(ch.rChart.lcl), ch.rChart.lcl, n, PALETTE[1], true)
           ]
         },
-        options: baseOptions({
+        options: baseOptions(merge({
+          // El tooltip si nombra al operador: el eje ya no lo repite.
+          plugins: { tooltip: { callbacks: { title: function (items) {
+            return ch.labels[items[0].dataIndex]; } } } },
           scales: { y: { ticks: { callback: tickFormatter(
             ch.rChart.values.concat([ch.rChart.ucl, ch.rChart.lcl])) } } }
-        })
+        }, clone(bandOptions)))
       });
     }
 
@@ -277,7 +356,7 @@
       make('chartXbar', {
         type: 'line',
         data: {
-          labels: ch.labels,
+          labels: partAxis,
           datasets: [
             pointSeries('Media', ch.xbarChart.values, PALETTE[0]),
             limitSeries('LCS = ' + fmt(ch.xbarChart.ucl), ch.xbarChart.ucl, m, PALETTE[1], true),
@@ -285,10 +364,12 @@
             limitSeries('LCI = ' + fmt(ch.xbarChart.lcl), ch.xbarChart.lcl, m, PALETTE[1], true)
           ]
         },
-        options: baseOptions({
+        options: baseOptions(merge({
+          plugins: { tooltip: { callbacks: { title: function (items) {
+            return ch.labels[items[0].dataIndex]; } } } },
           scales: { y: { ticks: { callback: tickFormatter(
             ch.xbarChart.values.concat([ch.xbarChart.ucl, ch.xbarChart.lcl])) } } }
-        })
+        }, clone(bandOptions)))
       });
     }
 

@@ -456,10 +456,12 @@
 
   /* --- Series para las 6 graficas --- */
   function buildChartData(operators, parts, cell, cellMean, cellRange, partMean, r) {
-    var labels = [], ranges = [], means = [];
-    operators.forEach(function (op) {
+    var labels = [], ranges = [], means = [], partSeq = [], groups = [];
+    operators.forEach(function (op, oi) {
+      groups.push({ label: op, from: oi * parts.length, to: (oi + 1) * parts.length - 1 });
       parts.forEach(function (pt) {
         labels.push(op + ' - ' + pt);              // conserva los nombres reales
+        partSeq.push(pt);                          // eje de las cartas: solo la pieza
         ranges.push(cellRange[op + '\u0000' + pt]);
         means.push(cellMean[op + '\u0000' + pt]);
       });
@@ -469,6 +471,11 @@
 
     return {
       labels: labels,
+      /* Las cartas R y X-barra recorren operador por operador, pero su eje solo
+         necesita la pieza: el operador se marca por bloques (como en Minitab),
+         no repitiendo su nombre en cada punto. */
+      partSequence: partSeq,
+      operatorGroups: groups,
       rChart: c ? { values: ranges, center: rBar, ucl: c.D4 * rBar, lcl: c.D3 * rBar, available: true }
                 : { values: ranges, center: rBar, available: false },
       xbarChart: c ? { values: means, center: xBar, ucl: xBar + c.A2 * rBar, lcl: xBar - c.A2 * rBar, available: true }

@@ -351,22 +351,43 @@
     MSACharts.render(result);
   }
 
+  /* Que significa cada tarjeta. Se muestra al pasar el cursor: el numero solo
+     no dice contra que se compara ni de donde sale. */
+  var VERDICT_HELP = {
+    sv: 'Cuanta de la variacion del estudio se debe al sistema de medicion, en desviacion estandar ' +
+        '(6 sigma del Gage R&R / 6 sigma total). Criterio AIAG: menos de 10 % aceptable, 10 a 30 % ' +
+        'marginal, mas de 30 % inaceptable.',
+    contrib: 'Que fraccion de la varianza total aporta el sistema de medicion. Es aditivo: todas las ' +
+        'fuentes suman 100 %, por eso sirve para comparar fuentes entre si. Minitab considera menos ' +
+        'de 1 % excelente y mas de 9 % pobre.',
+    tol: 'Que parte de la tolerancia se come el sistema de medicion: (multiplicador x sigma del Gage R&R) ' +
+        '/ (USL - LSL). No depende de las piezas que elegiste, pero si de la tolerancia. Solo se calcula ' +
+        'si diste LSL y USL o la tolerancia directa.',
+    ndc: 'Cuantos grupos distintos de piezas alcanza a separar el sistema de medicion. AIAG pide 5 o mas. ' +
+        'Si sale bajo con piezas representativas, el problema es el instrumento; si las piezas eran casi ' +
+        'identicas, el problema es la muestra.',
+    icc: 'Fraccion de la varianza total que aporta el producto y no la medicion. Wheeler: 0.80 o mas es ' +
+        'un monitor de primera clase, 0.50 a 0.80 de segunda, 0.20 a 0.50 de tercera. Lectura ' +
+        'complementaria al criterio AIAG, no sustituto.'
+  };
+
   function renderVerdict(r) {
     var a = r.assessment;
     var cards = [
-      card('% Study Variation (GRR)', r.metrics.pctStudyVar.toFixed(2) + ' %', a.studyVar),
-      card('% Contribucion (GRR)', r.metrics.pctContribution.toFixed(2) + ' %', a.contribution),
+      card('% Study Variation (GRR)', r.metrics.pctStudyVar.toFixed(2) + ' %', a.studyVar, VERDICT_HELP.sv),
+      card('% Contribucion (GRR)', r.metrics.pctContribution.toFixed(2) + ' %', a.contribution, VERDICT_HELP.contrib),
       r.metrics.pctTolerance === null
-        ? card('% Tolerance (P/T)', 'sin LSL/USL', null)
-        : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %', a.tolerance),
-      card('Categorias distintas', r.ndc === null ? 'inf' : String(r.ndc), a.ndc),
-      card('ICC (EMP, Wheeler)', r.icc.toFixed(3), a.emp)
+        ? card('% Tolerance (P/T)', 'sin LSL/USL', null, VERDICT_HELP.tol)
+        : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %', a.tolerance, VERDICT_HELP.tol),
+      card('Categorias distintas', r.ndc === null ? 'inf' : String(r.ndc), a.ndc, VERDICT_HELP.ndc),
+      card('ICC (EMP, Wheeler)', r.icc.toFixed(3), a.emp, VERDICT_HELP.icc)
     ];
     $('verdicts').innerHTML = cards.join('');
   }
 
-  function card(k, v, t) {
-    return '<div class="verdict"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' +
+  function card(k, v, t, help) {
+    return '<div class="verdict"' + (help ? ' title="' + esc(k + ': ' + help) + '"' : '') + '>' +
+      '<div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' +
       (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') + '</div>';
   }
 

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260830e">
+<link rel="stylesheet" href="assets/css/style.css?v=20260830f">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -35,8 +35,10 @@
       <button type="button" class="method-opt" data-method="cruzado">Cruzado</button>
       <button type="button" class="method-opt" data-method="anidado">Anidado</button>
       <span class="method-sep" aria-hidden="true"></span>
-      <span class="method-family">Atributos</span>
-      <button type="button" class="method-opt" data-method="atributos">Acuerdo</button>
+      <!-- La familia de atributos no lleva rotulo: su unico metodo ya se llama
+           asi, y "ATRIBUTOS Atributos" seria decirlo dos veces. La linea
+           separadora basta para que se lean como dos grupos. -->
+      <button type="button" class="method-opt" data-method="atributos">Atributos</button>
     </div>
     <div class="badge" id="methodBadge">Gage R&amp;R &middot; ANOVA cruzado</div>
     <div class="vsep"></div>
@@ -416,12 +418,12 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260830e"></script>
-<script src="assets/js/stats.js?v=20260830e"></script>
-<script src="assets/js/anova.js?v=20260830e"></script>
-<script src="assets/js/anova-nested.js?v=20260830e"></script>
-<script src="assets/js/attribute.js?v=20260830e"></script>
-<script src="assets/js/charts.js?v=20260830e"></script>
-<script src="assets/js/app.js?v=20260830e"></script>
+<script src="assets/vendor/chart.umd.js?v=20260830f"></script>
+<script src="assets/js/stats.js?v=20260830f"></script>
+<script src="assets/js/anova.js?v=20260830f"></script>
+<script src="assets/js/anova-nested.js?v=20260830f"></script>
+<script src="assets/js/attribute.js?v=20260830f"></script>
+<script src="assets/js/charts.js?v=20260830f"></script>
+<script src="assets/js/app.js?v=20260830f"></script>
 </body>
 </html>

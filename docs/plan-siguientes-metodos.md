@@ -14,7 +14,7 @@ impreso, importacion y exportacion, validacion de entradas y tooltips.
 el cruzado, cinco graficas, reporte impreso e importacion con deteccion del
 diseno.
 
-**Attribute Agreement (atributos): terminado.** Motor propio, captura por
+**Attribute Agreement Analysis (atributos): terminado.** Motor propio, captura por
 categorias con estandar opcional, cuatro concordancias con intervalo exacto de
 Clopper-Pearson, kappa de Fleiss y de Cohen, efectividad con error de fuga y
 falsa alarma, tres graficas, reporte impreso y su vista de resultados propia.
@@ -139,7 +139,7 @@ identidad se queda: es una buena prueba por si sola.
 
 ---
 
-## 2. Attribute Agreement (atributos) — HECHO
+## 2. Attribute Agreement Analysis (atributos) — HECHO
 
 **Por que.** Pasa / no pasa, calibres, inspeccion visual. No hay varianza que
 descomponer: se mide **acuerdo**, no dispersion.

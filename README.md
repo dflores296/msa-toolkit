@@ -70,7 +70,8 @@ mismos números. Se suma un caso construido a mano con los tres cuadrados medios
 exactos, y pruebas de propiedad. El dataset está en
 `datasets/aiag-msa4-anidado.json`.
 
-80 pruebas de regresión entre los dos motores. Para correrlas:
+80 pruebas de regresión entre los dos motores —todas sobre el cálculo: corren en
+Node, sin navegador, y no tocan la pantalla. Para correrlas:
 
 ```bash
 node tests/run-node.js      # en terminal
@@ -97,6 +98,16 @@ Necesita Playwright y Chromium, que **no** son dependencias del proyecto: es
 una herramienta de escritorio aparte (`npm i playwright && npx playwright
 install chromium`). La aplicación y `tests/run-node.js` siguen corriendo sin
 instalar nada.
+
+**Lo que esto todavía no cubre.** La herramienta compara *dos revisiones del
+repo*, así que sirve para no mover lo que ya estaba bien, no para encontrar lo
+que nunca estuvo bien: un defecto presente en las dos coincide y pasa por bueno.
+Su recorrido carga además el dataset de ejemplo, cuyos nombres de pieza son los
+que el programa pone solo, y eso deja fuera los fallos que solo aparecen con
+nombres escritos por el usuario. Entre eso y que ninguna suite toca el DOM, un
+cambio en `assets/js/app.js` puede dejar las 80 pruebas en verde y romper la
+pantalla: se comprueba a mano, en el navegador. Está anotado como deuda en
+[`docs/plan-siguientes-metodos.md`](docs/plan-siguientes-metodos.md).
 
 ## Qué se corrigió respecto del Excel
 

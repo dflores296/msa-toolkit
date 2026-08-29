@@ -100,7 +100,7 @@ instalar nada.
 
 ## Qué se corrigió respecto del Excel
 
-El libro `Gage_RR_Study.xlsm` tenía **12 defectos** en el motor de cálculo. Los
+El libro [`docs/Gage R&R Study.xlsm`](docs/Gage%20R&R%20Study.xlsm) tenía **12 defectos** en el motor de cálculo. Los
 cuatro más graves:
 
 1. `SS_Parte` y `SS_Operador` no incluían el factor de réplicas, así que la
@@ -154,7 +154,7 @@ tal cual, sin sorpresas con rutas ni carpetas.
 Los enlaces a los assets llevan un sufijo `?v=AAAAMMDDx`:
 
 ```html
-<link rel="stylesheet" href="assets/css/style.css?v=20260828a">
+<link rel="stylesheet" href="assets/css/style.css?v=20260830b">
 ```
 
 GitHub Pages sirve el CSS y el JS con caché, así que sin ese sufijo un

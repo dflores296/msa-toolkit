@@ -150,8 +150,18 @@ header.toolbar {
    un control nuevo. Los metodos que todavia no existen se ven, deshabilitados:
    asi se sabe que vienen sin prometer que ya estan. */
 .method-switch {
-  display: flex; padding: 2px; border-radius: 7px;
+  display: flex; align-items: center; padding: 2px; border-radius: 7px;
   background: var(--toggle-track-bg); border: 1px solid var(--toggle-track-border);
+}
+/* Rotulo de familia. Va dentro del mismo riel que los botones para que se lea
+   como un grupo y no como un titulo suelto encima. */
+.method-family {
+  padding: 0 7px 0 6px; font-size: 9.5px; font-weight: 700; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; user-select: none;
+}
+.method-sep {
+  width: 1px; align-self: stretch; margin: 3px 4px;
+  background: var(--toggle-track-border);
 }
 .method-switch .method-opt {
   border: none; padding: 4px 10px; border-radius: 5px; background: transparent;

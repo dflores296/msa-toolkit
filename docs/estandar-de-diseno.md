@@ -53,6 +53,13 @@ tambien que el producto tiene mas de un metodo.
   defecto, no en una pantalla vacia.
 - El metodo activo se anuncia en la insignia de la barra y encabeza el reporte
   impreso.
+- **El selector agrupa por familia**, no alinea metodos sueltos: `Variables`
+  (cruzado, anidado) y `Atributos` (acuerdo), separados por una linea dentro
+  del mismo riel. La division dice de entrada en que mundo esta parado el
+  estudio -si se descompone varianza o se mide acuerdo- y ahorra tener que
+  explicarlo despues con un parrafo. El rotulo de familia va **dentro** de la
+  caja: encima se leeria como un titulo de seccion y perderia el vinculo con
+  los botones.
 - Cuando la lista pase de unas ocho entradas o aparezcan familias distintas
   (MSA, cartas de control, capacidad), el paso siguiente es un desplegable
   agrupado anclado en la barra, no un cajon lateral.
@@ -263,6 +270,28 @@ Cada pie se sostiene solo: no supone que el lector venga de la grafica anterior
 ---
 
 ## 5. Redaccion
+
+### No se le explica al lector lo que ya sabe
+
+El publico son ingenieros de calidad. Que atributos no es lo mismo que
+variables, que una categoria no tiene varianza, que una pieza destruida no se
+vuelve a medir: eso lo saben antes de abrir la pagina. Un bloque que arranca
+explicandolo no informa, estorba, y de paso resta credibilidad a los avisos
+que si valen la pena.
+
+La regla que quedo:
+
+| Se dice | No se dice |
+|---|---|
+| Que convencion se eligio y por que (kappa vs %, un solo limite) | Que significa el metodo que el usuario acaba de elegir |
+| Que supuesto NO puede comprobar el estudio | Definiciones de manual |
+| Que hara el programa con un dato ambiguo | Recordatorios de teoria |
+
+Y donde se dice tambien importa: lo que limita la lectura de un resultado va
+**con el resultado**, no antes de capturar. El anidado avisa de la homogeneidad
+del lote y de la interaccion no estimable, pero lo hace en los avisos del motor,
+cuando ya hay numeros que esos avisos matizan. Un parrafo de advertencia sobre
+una pantalla vacia se lee una vez y se ignora siempre.
 
 Aplica a avisos, errores, pies, rotulos y ayudas.
 

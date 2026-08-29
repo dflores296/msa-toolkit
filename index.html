@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260830d">
+<link rel="stylesheet" href="assets/css/style.css?v=20260830e">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -27,10 +27,16 @@
     <div class="vsep"></div>
     <!-- Selector de metodo. Mismo patron que el interruptor de tema, no un menu
          aparte: con tres entradas conviene verlas todas, no esconderlas. -->
+    <!-- Dos familias, no tres botones sueltos: variables descompone varianza,
+         atributos mide acuerdo. La division en el selector dice de entrada en
+         que mundo esta parado el estudio, y ahorra explicarlo despues. -->
     <div class="method-switch" id="methodSwitch" role="group" aria-label="Metodo del estudio">
+      <span class="method-family">Variables</span>
       <button type="button" class="method-opt" data-method="cruzado">Cruzado</button>
       <button type="button" class="method-opt" data-method="anidado">Anidado</button>
-      <button type="button" class="method-opt" data-method="atributos">Atributos</button>
+      <span class="method-sep" aria-hidden="true"></span>
+      <span class="method-family">Atributos</span>
+      <button type="button" class="method-opt" data-method="atributos">Acuerdo</button>
     </div>
     <div class="badge" id="methodBadge">Gage R&amp;R &middot; ANOVA cruzado</div>
     <div class="vsep"></div>
@@ -74,29 +80,6 @@
       <p class="hint" data-methods="atributos">Define el tamano del estudio y los nombres. Cada evaluador
         clasifica <strong>las mismas piezas</strong> varias veces. AIAG sugiere alrededor de 50 piezas,
         3 evaluadores y 3 replicas, con mitad buenas y mitad malas.</p>
-
-      <div class="msg info" data-methods="atributos" style="margin-bottom:14px">
-        <strong>Aqui no se mide dispersion, se mide acuerdo.</strong>
-        La medicion es una categoria (pasa / no pasa), no un numero, asi que no hay varianza que
-        descomponer: no salen %GRR, ni NDC, ni ICC. Salen porcentajes de concordancia y kappa.<br><br>
-        <strong>El estandar es la respuesta correcta de cada pieza</strong>, y es opcional. Sin el solo
-        se puede saber si los evaluadores coinciden entre si; pueden estar todos de acuerdo y todos
-        equivocados. Con el se sabe ademas si aciertan, y se calculan efectividad, error de fuga
-        (dejar pasar una pieza mala) y falsa alarma (rechazar una buena).<br><br>
-        Una pieza cuenta como concordante solo si <em>todas</em> las clasificaciones coinciden.
-        Dos aciertos y un fallo no valen dos tercios: valen cero. Es la convencion de AIAG y de
-        Minitab, y es a proposito: en inspeccion, dudar es fallar.
-      </div>
-
-      <div class="msg info" data-methods="anidado" style="margin-bottom:14px">
-        <strong>El diseno anidado no separa la interaccion operador x pieza.</strong>
-        Ninguna pieza la miden dos operadores, asi que no hay con que estimarla: la reproducibilidad que
-        vas a leer es el efecto de operador y nada mas. Es una limitacion del diseno, no del calculo.<br><br>
-        Todo el metodo se apoya en que las piezas de los tres operadores salen de un lote homogeneo, y el
-        estudio <em>no puede comprobarlo</em>: si el lote de un operador viene distinto, esa diferencia se
-        contabiliza como reproducibilidad y el instrumento carga con la culpa. Reparte las piezas al azar
-        sobre un mismo lote y en el mismo orden de produccion.
-      </div>
 
       <div id="configMsg"></div>
 
@@ -433,12 +416,12 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260830d"></script>
-<script src="assets/js/stats.js?v=20260830d"></script>
-<script src="assets/js/anova.js?v=20260830d"></script>
-<script src="assets/js/anova-nested.js?v=20260830d"></script>
-<script src="assets/js/attribute.js?v=20260830d"></script>
-<script src="assets/js/charts.js?v=20260830d"></script>
-<script src="assets/js/app.js?v=20260830d"></script>
+<script src="assets/vendor/chart.umd.js?v=20260830e"></script>
+<script src="assets/js/stats.js?v=20260830e"></script>
+<script src="assets/js/anova.js?v=20260830e"></script>
+<script src="assets/js/anova-nested.js?v=20260830e"></script>
+<script src="assets/js/attribute.js?v=20260830e"></script>
+<script src="assets/js/charts.js?v=20260830e"></script>
+<script src="assets/js/app.js?v=20260830e"></script>
 </body>
 </html>

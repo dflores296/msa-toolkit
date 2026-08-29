@@ -220,9 +220,10 @@
     /* En el anidado el nombre de la pieza no se puede repetir entre operadores:
        la numeracion corre de largo (1..30), que es como se etiqueta un lote del
        que se van sacando piezas. */
+    var prevByOperator = state.partsByOperator || [];
     state.partsByOperator = [];
     for (var o = 0; o < nOp; o++) {
-      var prev = (state.partsByOperator[o] || []);
+      var prev = prevByOperator[o] || [];
       var group = [];
       for (var p = 0; p < nPart; p++) group.push(prev[p] || ('Pieza ' + (o * nPart + p + 1)));
       state.partsByOperator.push(group);

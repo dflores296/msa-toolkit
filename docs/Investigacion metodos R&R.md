@@ -1,5 +1,26 @@
 # Universo completo de métodos de Análisis de Sistemas de Medición (MSA / Gage R&R): guía técnica para ampliar tu Excel y construir "Quality Tools – MSA"
 
+> **Cómo leerlo hoy.** Es la investigación de partida, escrita cuando el
+> proyecto todavía era un Excel que se quería ampliar. Su contenido técnico
+> sigue vigente —es un repaso de la literatura, no del programa—, pero el plan
+> de trabajo vivo es [`plan-siguientes-metodos.md`](plan-siguientes-metodos.md).
+> De sus recomendaciones, hasta hoy:
+>
+> - **Hecho:** ANOVA cruzado corregido y validado contra Minitab; diseño
+>   anidado para pruebas destructivas (recomendación 8); **Attribute Agreement
+>   con Kappa de Cohen y de Fleiss** (recomendación 5); casos límite explícitos
+>   —varianza negativa truncada a cero y avisada, aviso de ndc < 5
+>   (recomendación 4); `datasets/` de validación y suite de regresión
+>   (recomendación 10).
+> - **Fuera de alcance, por decisión:** Promedio-y-Rango (1), Tipo 1 Cg/Cgk (2),
+>   Linealidad/Sesgo y Estabilidad (6), EMP de Wheeler como método aparte (7),
+>   intervalos de confianza del %GRR (9) y VDA 5 (11). Con los tres métodos
+>   hechos se cubren los casos de planta; lo demás pide instrumentación o
+>   patrones que rara vez están disponibles en línea.
+> - **Descartado por ahora:** MkDocs Material (recomendación 10). El sitio se
+>   sirve como HTML estático sin build, que es lo que permite abrirlo con doble
+>   clic y sin dependencias.
+
 ## TL;DR
 - El ANOVA es solo uno de una docena larga de métodos MSA: existen métodos para datos variables (Promedio y Rango, Rango corto, Tipo 1 Cg/Cgk, Linealidad y Sesgo, Estabilidad, EMP de Wheeler, R&R anidado/expandido, REML/modelos mixtos, intervalos GPQ/MLS y Monte Carlo) y para atributos (Attribute Agreement con Kappa de Cohen/Fleiss y Kendall, Teoría de Detección de Señales, y el método analítico AIAG con curva de desempeño/probit). Tu Excel debería, como mínimo, añadir Promedio-y-Rango, Tipo 1 y Attribute Agreement.
 - Los criterios de aceptación son polémicos: AIAG usa %GRR sobre desviación estándar (<10% bueno, 10–30% marginal, >30% inaceptable; ndc≥5), mientras Wheeler (EMP) usa el coeficiente de correlación intraclase (ICC) y —según la síntesis de EMP publicada por SPC for Excel— "un sistema de medición responsable de hasta el 45% de la variación total puede aún ser un monitor de primera clase" ("a measurement system responsible for up to 45% of the total variation can still be a First Class Monitor"). VDA 5 / ISO 22514-7 usan un enfoque de incertidumbre (GUM) referido a tolerancia; el manual VDA 5 recomienda que "el ratio de capacidad para sistemas de medición, QMS_max sea 15% y, para procesos de medición, QMP_max sea 30%" ("QMS_max amounts to 15% and, for measurement processes, QMP_max amounts to 30%").

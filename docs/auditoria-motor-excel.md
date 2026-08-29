@@ -1,4 +1,4 @@
-# Auditoría del motor de cálculo `Gage_RR_Study.xlsm`
+# Auditoría del motor de cálculo `Gage R&R Study.xlsm`
 
 Revisión del código VBA del libro actual, los errores encontrados, su efecto
 numérico y cómo quedan corregidos en `assets/js/anova.js`.
@@ -195,6 +195,21 @@ nombre real que escribiste en el formulario se pierde.
 
 El motor nuevo conserva los nombres tal cual y respeta el orden de aparición.
 
+> **Postdata (28-08-2026).** Este hallazgo volvió, en otra capa. El motor
+> siempre respetó los nombres, pero la **interfaz** los perdía en el método
+> anidado: `renderNameInputs()` vaciaba `state.partsByOperator` antes de
+> leerlo, así que cada redibujado los devolvía a `Pieza 1..N`. La consecuencia
+> grave no eran las etiquetas sino las mediciones: importar un archivo anidado
+> con nombres propios (`Lote-A-04`) reconstruía la tabla con los nombres por
+> defecto, el llenado posterior buscaba celdas que ya no existían y las 90
+> mediciones se perdían **en silencio**. Corregido en `assets/js/app.js`.
+>
+> Vale la pena dejarlo escrito junto al hallazgo original: el defecto del VBA
+> era de cálculo y estaba en el motor; este era de estado y estaba en la
+> pantalla. Ninguna de las 80 pruebas lo vio, porque ninguna toca el DOM. Un
+> motor correcto no garantiza que el nombre que escribió el usuario sobreviva
+> el viaje hasta la tabla.
+
 ### 9 — Constantes de carta de control incompletas
 
 ```vba
@@ -299,7 +314,7 @@ y validación de entradas mal formadas.
 
 ---
 
-## Nota sobre el documento `Instrucciones_recomendadas_Claude_Code.md`
+## Nota sobre el documento `Instrucciones recomendadas Claude Code.md`
 
 Ese documento indica *"replicar las fórmulas EXACTAMENTE como están ahí, no las
 reinterpretes"*, y transcribe las fórmulas del VBA **con los errores 1, 2, 3

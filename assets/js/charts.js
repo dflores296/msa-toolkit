@@ -168,6 +168,41 @@
   };
   if (global.Chart) global.Chart.register(operatorBands);
 
+  /* Plugin: barra de intervalo de confianza sobre cada punto o barra. En un
+     estudio por atributos el porcentaje solo no alcanza: con 30 piezas, un
+     95 % puede significar cualquier cosa entre 80 y 99, y esa diferencia
+     cambia la decision. El intervalo se dibuja como un bigote vertical con
+     sus dos topes, encima de la barra. */
+  var ciWhiskers = {
+    id: 'ciWhiskers',
+    afterDatasetsDraw: function (chart, args, opts) {
+      var ranges = (opts && opts.ranges) || [];
+      if (!ranges.length) return;
+      var meta = chart.getDatasetMeta(opts.datasetIndex || 0);
+      var y = chart.scales.y, area = chart.chartArea;
+      if (!meta || !y || !area) return;
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.strokeStyle = opts.color || TICK();
+      ctx.lineWidth = 1.4;
+      ranges.forEach(function (r, i) {
+        var el = meta.data[i];
+        if (!el || r == null || !isFinite(r.lo) || !isFinite(r.hi)) return;
+        var x = el.x;
+        var top = Math.max(area.top, y.getPixelForValue(r.hi));
+        var bot = Math.min(area.bottom, y.getPixelForValue(r.lo));
+        var cap = Math.max(4, Math.min(9, (el.width || 20) / 4));
+        ctx.beginPath();
+        ctx.moveTo(x, top); ctx.lineTo(x, bot);
+        ctx.moveTo(x - cap, top); ctx.lineTo(x + cap, top);
+        ctx.moveTo(x - cap, bot); ctx.lineTo(x + cap, bot);
+        ctx.stroke();
+      });
+      ctx.restore();
+    }
+  };
+  if (global.Chart) global.Chart.register(ciWhiskers);
+
   function destroyAll() {
     Object.keys(registry).forEach(function (k) {
       if (registry[k]) { registry[k].destroy(); registry[k] = null; }
@@ -290,6 +325,9 @@
     // Las graficas que este metodo no dibuja no pueden quedarse en pantalla
     // con los datos del metodo anterior.
     destroyAll();
+    /* Atributos publica otras series -concordancias con su intervalo, no
+       componentes de varianza-, asi que tiene su propio juego de graficas. */
+    if (result.model === 'attribute') return renderAttribute(result);
     var comps = {};
     result.components.forEach(function (c) { comps[c.key] = c; });
 
@@ -488,6 +526,84 @@
 
   /* Un grupo por categoria: un punto por cada rango y una linea con el rango
      promedio del grupo. */
+  /* Las tres graficas del metodo de atributos. Dos de concordancia -consigo
+     mismo y contra el estandar-, con el intervalo de confianza encima y las
+     lineas de 80 y 90 %; y una de los dos errores, que no comparten umbral. */
+  function renderAttribute(result) {
+    var ch = result.charts;
+
+    var agreeChart = function (id, series, label) {
+      if (!series.length) return;
+      make(id, {
+        type: 'bar',
+        data: {
+          labels: series.map(function (d) { return d.label; }),
+          datasets: [{
+            label: label, data: series.map(function (d) { return d.pct; }),
+            backgroundColor: PALETTE[0] + 'cc', borderColor: PALETTE[0], borderWidth: 1,
+            maxBarThickness: 64
+          }]
+        },
+        options: baseOptions({
+          scales: {
+            y: { min: 0, max: 100, title: axisTitle('% de piezas concordantes') },
+            x: { title: axisTitle('Evaluador') }
+          },
+          plugins: {
+            legend: { display: false },
+            thresholdLines: { lines: [
+              { value: 90, color: SEM_OK(), label: '90 %' },
+              { value: 80, color: SEM_WARN(), label: '80 %' }
+            ] },
+            ciWhiskers: { datasetIndex: 0, ranges: series.map(function (d) {
+              return { lo: d.lo, hi: d.hi };
+            }) },
+            tooltip: { callbacks: { label: function (item) {
+              var d = series[item.dataIndex];
+              return [label + ': ' + d.pct.toFixed(2) + ' %',
+                      'IC 95 %: ' + d.lo.toFixed(1) + ' a ' + d.hi.toFixed(1) + ' %'];
+            } } }
+          }
+        })
+      });
+    };
+
+    agreeChart('chartWithin', ch.withinAppraiser, 'Consigo mismo');
+    agreeChart('chartVsStandard', ch.vsStandard, 'Contra el estandar');
+
+    if (ch.errorRates.length && ch.errorRates[0].missRate !== null) {
+      make('chartErrorRates', {
+        type: 'bar',
+        data: {
+          labels: ch.errorRates.map(function (d) { return d.label; }),
+          datasets: [
+            { label: 'Error de fuga', data: ch.errorRates.map(function (d) { return d.missRate; }),
+              backgroundColor: PALETTE[1] + 'cc', borderColor: PALETTE[1], borderWidth: 1 },
+            { label: 'Falsa alarma', data: ch.errorRates.map(function (d) { return d.falseAlarmRate; }),
+              backgroundColor: PALETTE[3] + 'cc', borderColor: PALETTE[3], borderWidth: 1 }
+          ]
+        },
+        options: baseOptions({
+          scales: {
+            y: { min: 0, title: axisTitle('% de decisiones') },
+            x: { title: axisTitle('Evaluador') }
+          },
+          plugins: {
+            thresholdLines: { lines: [
+              { value: 2, color: SEM_OK(), label: 'fuga 2 %' },
+              { value: 5, color: SEM_WARN(), label: 'falsa alarma 5 %' }
+            ] },
+            tooltip: { callbacks: { afterBody: function (items) {
+              return items.length && items[0].datasetIndex === 0
+                ? 'La fuga se juzga contra 2 %; la falsa alarma contra 5 %.'
+                : '';
+            } } }
+          }
+        })
+      });
+    }
+  }
+
   function rangeChart(id, groups, title, shorten) {
     if (!groups || !groups.length) return;   // el anidado no publica rangesByPart
     var labels = groups.map(function (g) { return g.label; });

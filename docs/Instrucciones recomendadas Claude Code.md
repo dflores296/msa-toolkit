@@ -1,5 +1,19 @@
 # Gage R&R App — especificación para Claude Code
 
+> **Documento histórico. No lo sigas al pie de la letra.**
+>
+> Es el encargo original con el que arrancó el proyecto, y se conserva como
+> registro de dónde venía. Su sección 4 pide replicar las fórmulas del Excel
+> *"EXACTAMENTE como están ahí"*, y las transcribe **con los errores 1, 2, 3 y
+> 4 incluidos**: seguirlo habría reproducido los defectos del libro en la web.
+> Las fórmulas correctas y su verificación contra Minitab están en
+> [`auditoria-motor-excel.md`](auditoria-motor-excel.md).
+>
+> El resto también quedó atrás: el proyecto tiene hoy dos métodos (cruzado y
+> anidado) sobre una sola pantalla, y el criterio vigente de interfaz es
+> [`estandar-de-diseno.md`](estandar-de-diseno.md). Para saber qué sigue,
+> [`plan-siguientes-metodos.md`](plan-siguientes-metodos.md).
+
 ## 1. Qué hace tu Excel actual (ya lo revisé)
 
 Tu archivo implementa un estudio **Gage R&R por método ANOVA cruzado**, prácticamente un clon del "Gage R&R Study (ANOVA Method)" de Minitab. El flujo de las macros es:

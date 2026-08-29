@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260830f">
+<link rel="stylesheet" href="assets/css/style.css?v=20260830g">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -237,15 +237,20 @@
 
         <div class="card tabs-card">
           <div class="tabs-bar" role="tablist">
-            <button type="button" class="tab-btn active" data-tab="componentes" data-methods="cruzado anidado" role="tab" aria-selected="true">Componentes</button>
+            <!-- Graficas va primera y abierta en todos los metodos: es lo que se
+                 mira antes de leer un numero, y es la unica pestana que existe en
+                 los tres. El ORDEN DE LOS PANELES no se toca -abajo siguen como
+                 estaban-, porque de ese orden sale el reporte impreso, donde las
+                 tablas van antes que las graficas. -->
+            <button type="button" class="tab-btn active" data-tab="graficas" role="tab" aria-selected="true">Graficas</button>
+            <button type="button" class="tab-btn" data-tab="componentes" data-methods="cruzado anidado" role="tab" aria-selected="false">Componentes</button>
             <button type="button" class="tab-btn" data-tab="anova" data-methods="cruzado anidado" role="tab" aria-selected="false">ANOVA</button>
             <button type="button" class="tab-btn" data-tab="acuerdo" data-methods="atributos" role="tab" aria-selected="false">Concordancia</button>
             <button type="button" class="tab-btn" data-tab="kappa" data-methods="atributos" role="tab" aria-selected="false">Kappa</button>
-            <button type="button" class="tab-btn" data-tab="graficas" role="tab" aria-selected="false">Graficas</button>
             <button type="button" class="tab-btn" data-tab="notas" role="tab" aria-selected="false">Notas</button>
           </div>
 
-          <div class="tab-panel" data-panel="componentes" data-methods="cruzado anidado" data-print-title="Componentes de varianza y evaluacion" role="tabpanel">
+          <div class="tab-panel" data-panel="componentes" data-methods="cruzado anidado" data-print-title="Componentes de varianza y evaluacion" role="tabpanel" hidden>
             <div class="table-scroll"><table id="varianceTable"></table></div>
             <div class="table-scroll" style="margin-top:20px"><table id="assessTable"></table></div>
           </div>
@@ -272,7 +277,7 @@
             <p class="note" id="kappaNote"></p>
           </div>
 
-          <div class="tab-panel" data-panel="graficas" data-print-title="Graficas del estudio" role="tabpanel" hidden>
+          <div class="tab-panel" data-panel="graficas" data-print-title="Graficas del estudio" role="tabpanel">
             <div class="charts">
               <div class="card chart-box" data-methods="cruzado anidado"><h3>Componentes de variacion</h3>
                 <div class="holder"><canvas id="chartComponents"></canvas></div>
@@ -418,12 +423,12 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260830f"></script>
-<script src="assets/js/stats.js?v=20260830f"></script>
-<script src="assets/js/anova.js?v=20260830f"></script>
-<script src="assets/js/anova-nested.js?v=20260830f"></script>
-<script src="assets/js/attribute.js?v=20260830f"></script>
-<script src="assets/js/charts.js?v=20260830f"></script>
-<script src="assets/js/app.js?v=20260830f"></script>
+<script src="assets/vendor/chart.umd.js?v=20260830g"></script>
+<script src="assets/js/stats.js?v=20260830g"></script>
+<script src="assets/js/anova.js?v=20260830g"></script>
+<script src="assets/js/anova-nested.js?v=20260830g"></script>
+<script src="assets/js/attribute.js?v=20260830g"></script>
+<script src="assets/js/charts.js?v=20260830g"></script>
+<script src="assets/js/app.js?v=20260830g"></script>
 </body>
 </html>

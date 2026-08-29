@@ -86,12 +86,24 @@
   function isNested() { return state.method === 'anidado'; }
   function isAttribute() { return state.method === 'atributos'; }
 
-  /* Muestra u oculta lo que es propio de un metodo. El atributo lleva la lista
-     de metodos donde el elemento aplica; sin atributo, aplica a todos. */
+  /* Un elemento aplica al metodo si su lista lo incluye; sin lista, aplica a
+     todos. Lo usan la visibilidad por metodo y el reporte impreso. */
+  function appliesToMethod(el, id) {
+    var list = el.getAttribute('data-methods');
+    return !list || list.split(/[\s,]+/).indexOf(id) >= 0;
+  }
+
+  /* Muestra u oculta lo que es propio de un metodo.
+     EXCEPCION: los paneles de resultados. Sobre su `hidden` mandan las
+     pestanas -solo el panel activo se ve- y si aqui tambien se tocara, los dos
+     sistemas se pelearian: al entrar a cruzado esto abriria Componentes y
+     ANOVA a la vez, uno debajo del otro, porque los dos "aplican" al metodo.
+     El panel de un metodo ajeno no necesita ocultarse aqui: su boton si esta
+     oculto, y sin boton no hay manera de abrirlo. */
   function applyMethodVisibility(id) {
     [].slice.call(document.querySelectorAll('[data-methods]')).forEach(function (el) {
-      var list = el.getAttribute('data-methods').split(/[\s,]+/);
-      el.hidden = list.indexOf(id) < 0;
+      if (el.classList.contains('tab-panel')) return;
+      el.hidden = !appliesToMethod(el, id);
     });
   }
 
@@ -1564,7 +1576,11 @@
     var theme = currentTheme();
     // Los paneles ocultos hay que revelarlos ANTES de imprimir: un lienzo que
     // nunca estuvo visible se dibujo en 0x0 y saldria en blanco.
-    var hiddenPanels = [].slice.call(document.querySelectorAll('.tab-panel[hidden]'));
+    /* Se revelan los paneles del metodo ACTIVO, no todos: los del otro metodo
+       existen en el mismo HTML y saldrian impresos con sus tablas vacias. */
+    var method = state.method;
+    var hiddenPanels = [].slice.call(document.querySelectorAll('.tab-panel[hidden]'))
+      .filter(function (el) { return appliesToMethod(el, method); });
     hiddenPanels.forEach(function (el) { el.hidden = false; });
     // El tema oscuro se imprimiria con fondos negros; los lienzos son mapas de
     // bits, asi que no basta con CSS: hay que redibujar en claro.

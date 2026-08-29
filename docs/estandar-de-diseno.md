@@ -100,6 +100,19 @@ tarjetas, las mismas pestanas. **Lo que cambia se marca en el HTML**, con
   quien decide es el modelo, no la pantalla.
 - Al cambiar de metodo hay que **destruir las graficas anteriores**. Una que el
   metodo nuevo no dibuja se quedaria en pantalla con los datos del anterior.
+- **Los paneles de resultados son la excepcion.** Sobre su `hidden` mandan las
+  pestanas, no la visibilidad por metodo, y los dos sistemas no pueden tocar el
+  mismo interruptor: si `applyMethodVisibility` tambien los abriera, al entrar
+  a cruzado se verian Componentes y ANOVA a la vez, uno debajo del otro,
+  porque los dos "aplican" al metodo. El panel de un metodo ajeno no necesita
+  ocultarse ahi: su boton si esta oculto, y sin boton no hay como abrirlo. Su
+  `data-methods` se sigue leyendo, pero solo para el reporte impreso, que
+  revela los paneles del metodo activo y no todos.
+- **La pestana de Graficas va primera y abierta**, en todos los metodos. Es lo
+  que se mira antes de leer un numero, y es la unica que existe en los tres.
+  El **orden de los paneles en el HTML no la sigue**: de ese orden sale el
+  reporte impreso, donde las tablas van antes que las graficas. Se reordenan
+  los botones, no los paneles.
 - `[hidden] { display: none !important; }` va en la hoja, una sola vez. La
   regla del navegador es `[hidden]{display:none}` a secas, y cualquier regla de
   componente de esta hoja (`label.field` es flex, `.grid` es grid) le gana por

@@ -292,6 +292,22 @@ Reglas que no se negocian:
 - El importador tolera lo razonable: separador `,` o `;`, alias de nombre de
   columna, lineas de comentario `#`, y usa la columna de replica cuando viene.
 - El nombre del estudio da nombre al archivo exportado.
+- **Una importacion nunca pierde mediciones en silencio.** Si una celda del
+  archivo no encuentra su lugar en la tabla, se dice. El patron
+  `var inp = ...; if (inp) inp.value = ...` es comodo y es una trampa: se traga
+  el fallo y deja la tabla vacia sin una sola queja. Cuando el usuario ve
+  noventa celdas en blanco despues de importar, ya perdio la confianza en el
+  programa, y no tiene como saber por que.
+- **Los nombres vienen del estado, y el estado no se destruye antes de leerlo.**
+  Redibujar la lista de nombres es *conservar* lo que el usuario escribio, no
+  regenerarlo. Un `state.x = []` antes del bucle que lee `state.x` deja los
+  defaults y se ve inofensivo, porque los defaults son plausibles. El orden es:
+  primero se resuelven los nombres, despues se arma la tabla que depende de
+  ellos.
+- Un round-trip exportar -> importar de un estudio recien creado **no** prueba
+  esto: sus nombres son los que el programa pone solo, asi que coinciden con
+  cualquier default y esconden el fallo. Se prueba con nombres reales
+  (`Lote-A-04`), que es como los escribe una planta.
 
 ---
 
@@ -314,6 +330,16 @@ Reglas que no se negocian:
   estan ahi, ocultos-, incluido el reporte impreso pixel a pixel. Necesita
   Playwright, que no es dependencia del proyecto: es herramienta de escritorio,
   no requisito para usar la aplicacion.
+- **Lo que la regresion visual todavia no ve.** Su recorrido carga el dataset de
+  ejemplo, cuyos nombres de pieza son los que el programa pone solo. Eso deja
+  fuera toda una familia de fallos: los que solo aparecen con nombres escritos
+  por el usuario. Ademas compara **dos revisiones del repo**, asi que un defecto
+  presente en las dos coincide y pasa por bueno; sirve para no mover lo que ya
+  estaba bien, no para encontrar lo que nunca estuvo bien. Al recorrido le falta
+  renombrar un par de piezas antes de calcular.
+- **Ninguna suite toca el DOM.** Las de motor corren en Node sin navegador. Un
+  cambio en `app.js` puede dejar las 80 pruebas en verde y romper la pantalla:
+  se comprueba a mano, en el navegador, con y sin el cambio.
 - Las URLs de `assets/` llevan `?v=` y se sube en cada cambio publicado.
 
 ---
@@ -334,5 +360,7 @@ Reglas que no se negocian:
 - [ ] Entradas invalidas: rojo, motivo y accion bloqueada.
 - [ ] Mensajes con hallazgo y accion, sin relleno.
 - [ ] Aparece en el reporte impreso, en el orden establecido.
-- [ ] Exporta e importa con el formato unico.
+- [ ] Exporta e importa con el formato unico, y se prueba el viaje completo con
+      **nombres propios**, no con los que pone el programa.
+- [ ] Ninguna medicion se pierde callada: lo que no encuentra su lugar se avisa.
 - [ ] Dataset de validacion y pruebas verdes.

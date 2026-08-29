@@ -74,10 +74,6 @@
   function activeMethod() { return methodById(state.method); }
   function isNested() { return state.method === 'anidado'; }
   function isAttribute() { return state.method === 'atributos'; }
-  /* La celda del estudio: numero en los metodos de variables, categoria en
-     atributos. Es la unica pregunta que hay que hacerse para saber si dos
-     metodos pueden intercambiar una captura. */
-  function cellsAreNumbers(id) { return id !== 'atributos'; }
 
   /* Muestra u oculta lo que es propio de un metodo. El atributo lleva la lista
      de metodos donde el elemento aplica; sin atributo, aplica a todos. */
@@ -88,16 +84,43 @@
     });
   }
 
-  /* Cambiar de metodo conserva las mediciones: la rejilla es la misma
-     (operadores x piezas x replicas) y cada valor se queda en su lugar. Lo que
-     cambia es el significado y los nombres de las piezas -- en el anidado no
-     pueden repetirse entre operadores -- y eso se dice, no se hace callado. */
+  /* Cambiar de metodo NO conserva la captura, y da igual entre cuales dos.
+     La rejilla se ve igual (operadores x piezas x replicas), y esa es
+     justamente la trampa: el mismo numero en la misma celda significa otra
+     cosa en cada metodo. En el cruzado la fila 2 del operador B es LA MISMA
+     pieza que midio el operador A; en el anidado es una pieza distinta que
+     solo el midio; en atributos ni siquiera es un numero. Conservar el dato
+     conserva el valor y cambia lo que dice, que es la peor de las dos
+     opciones: el estudio sigue viendose valido y ya no lo es.
+
+     Asi que se borra. Pero nunca en silencio: se pregunta antes, se dice
+     cuantos datos se van, y cancelar deja todo exactamente como estaba. */
   function applyMethod(id, isUserAction) {
     var m = methodById(id);
     if (!m.available) m = METHODS[0];
     var changed = state.method !== m.id;
-    var previousMethod = state.method;
-    var captured = changed && isUserAction ? readValuesByPosition() : null;
+
+    /* Se pregunta ANTES de tocar nada. Si se cambia primero y se revierte
+       despues, la pantalla parpadea entre los dos metodos y el usuario ve un
+       cambio que dijo que no queria. */
+    if (changed && isUserAction) {
+      var n = capturedCount();
+      if (n) {
+        var BR = String.fromCharCode(10);
+        if (!confirm('El estudio tiene ' + n + ' dato(s) capturado(s).' + BR + BR +
+              'Cambiar de metodo los borra. La rejilla se ve igual en los tres, pero el mismo ' +
+              'dato en la misma celda significa otra cosa en cada uno, asi que conservarlo daria ' +
+              'un estudio que parece valido y no lo es.' + BR + BR + 'Continuar?')) {
+          /* Si se llego por la direccion (#anidado), la barra ya cambio: hay
+             que regresarla, o quedaria diciendo un metodo que no es el activo. */
+          if (location.hash !== '#' + state.method) {
+            try { history.replaceState(null, '', '#' + state.method); }
+            catch (e) { location.hash = state.method; }
+          }
+          return state.method;
+        }
+      }
+    }
 
     state.method = m.id;
     document.documentElement.setAttribute('data-method', m.id);
@@ -118,39 +141,26 @@
     selectFirstVisibleTab();
 
     if (changed && isUserAction) {
-      /* Cruzar la frontera de atributos NO conserva la captura: un numero no
-         es una categoria ni al reves. Se pregunta antes, nunca se descarta en
-         silencio, y si dicen que no se regresa al metodo anterior. */
-      if (cellsAreNumbers(previousMethod) !== cellsAreNumbers(m.id) &&
-          captured && Object.keys(captured).length) {
-        var goingToCats = !cellsAreNumbers(m.id);
-        var BR = String.fromCharCode(10);
-        var ok = confirm('El estudio tiene ' + Object.keys(captured).length +
-          ' dato(s) capturado(s).' + BR + BR +
-          (goingToCats
-            ? 'En atributos la celda deja de ser un numero y pasa a ser una categoria, asi que las ' +
-              'mediciones no se pueden conservar.'
-            : 'En este metodo la celda vuelve a ser un numero, asi que las clasificaciones no se ' +
-              'pueden conservar.') +
-          BR + BR + 'Se borraran. Continuar?');
-        if (!ok) return applyMethod(previousMethod, false);
-        captured = null;
-      }
       // Al pasar al anidado, unos nombres de pieza que venian repetidos entre
       // operadores (lo normal en el cruzado) no sirven: se renumeran de cero.
       if (m.id === 'anidado' && firstDuplicate(allPartNames())) state.partsByOperator = [];
+      state.standard = {};
       renderNameInputs();
       if (!$('captureSection').hidden) {
-        buildDataTable(false);
-        var kept = writeValuesByPosition(captured);
+        buildDataTable(false);          // sin preservar: la tabla nace vacia
         validateLive();
-        if (kept) {
-          showMessages($('configMsg'), [], [methodSwitchNote(m, kept)]);
-        }
-        if (state.result) calculate(); else resetResultViz();
+        showMessages($('configMsg'), [], [methodSwitchNote(m)]);
+        state.result = null;
+        $('resultsSection').hidden = true;
+        resetResultViz();
       }
     }
     return m.id;
+  }
+
+  /** Cuantas celdas de captura traen algo escrito. */
+  function capturedCount() {
+    return inputs().filter(function (i) { return i.value.trim() !== ''; }).length;
   }
 
   /* Las pestanas de resultados no son las mismas en todos los metodos
@@ -165,15 +175,23 @@
     visible[0].click();
   }
 
-  function methodSwitchNote(m, kept) {
+  /* Al cambiar de metodo la tabla queda vacia. El aviso no dice "se borro" y
+     ya: dice que supone el metodo nuevo, que es lo que hay que tener en la
+     cabeza al recapturar. */
+  function methodSwitchNote(m) {
     if (m.id === 'anidado') {
-      return 'Metodo cambiado a anidado: se conservaron las ' + kept + ' medicion(es) en su lugar de la ' +
-        'rejilla y las piezas se renombraron para que ninguna se repita entre operadores, como exige el ' +
-        'diseno. Revisa que los nombres correspondan a las piezas que midio cada quien.';
+      return 'Metodo cambiado a anidado y tabla vaciada. El anidado supone que cada operador midio ' +
+        'SUS PROPIAS piezas, tomadas de un lote homogeneo, porque medirlas las destruye. Por eso las ' +
+        'piezas se renumeran corridas y ningun nombre puede repetirse entre operadores.';
     }
-    return 'Metodo cambiado a cruzado: se conservaron las ' + kept + ' medicion(es) en su lugar de la ' +
-      'rejilla y las piezas volvieron a la lista compartida. El cruzado supone que los operadores ' +
-      'midieron LA MISMA pieza; si eran piezas distintas, el estudio es anidado.';
+    if (m.id === 'atributos') {
+      return 'Metodo cambiado a atributos y tabla vaciada. Aqui la celda no es un numero sino una ' +
+        'categoria, y si conoces la clasificacion correcta de cada pieza puedes capturarla como ' +
+        'estandar: sin el solo se sabe si los evaluadores coinciden, no si aciertan.';
+    }
+    return 'Metodo cambiado a cruzado y tabla vaciada. El cruzado supone que todos los operadores ' +
+      'midieron LA MISMA pieza varias veces; si cada quien midio piezas distintas, el estudio es ' +
+      'anidado.';
   }
 
   function initMethods() {
@@ -523,30 +541,6 @@
       map[i.dataset.op + '\u0000' + i.dataset.part + '\u0000' + i.dataset.rep] = i.value;
     });
     return map;
-  }
-
-  /* Las mismas mediciones, pero indexadas por su LUGAR en la rejilla y no por
-     los nombres. Es lo que permite cambiar de metodo sin perder la captura: en
-     el anidado las piezas se renombran, pero la celda "operador 2, tercera
-     pieza, replica 1" sigue siendo la misma celda. */
-  function readValuesByPosition() {
-    var map = {};
-    inputs().forEach(function (i) {
-      if (i.value.trim() === '') return;
-      map[i.dataset.oi + '|' + i.dataset.pi + '|' + i.dataset.rep] = i.value;
-    });
-    return map;
-  }
-
-  /** Devuelve cuantas mediciones se pudieron reubicar. */
-  function writeValuesByPosition(map) {
-    if (!map) return 0;
-    var n = 0;
-    inputs().forEach(function (i) {
-      var v = map[i.dataset.oi + '|' + i.dataset.pi + '|' + i.dataset.rep];
-      if (v !== undefined) { i.value = v; n++; }
-    });
-    return n;
   }
 
   /** Pegar un bloque desde Excel: rellena hacia abajo y a la derecha. */
@@ -1662,7 +1656,6 @@
         renderRejectOptions();
         if (isAttribute() && !$('captureSection').hidden) {
           buildDataTable(true);
-          wirePaste();
           validateLive();
         }
       });

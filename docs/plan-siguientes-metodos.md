@@ -11,8 +11,8 @@ volver a levantar el contexto desde cero.
 impreso, importacion y exportacion, validacion de entradas y tooltips.
 
 **Gage R&R (ANOVA anidado): terminado.** Motor propio, interfaz compartida con
-el cruzado, cinco graficas, reporte impreso, importacion con deteccion del
-diseno y cambio de metodo sin perder la captura.
+el cruzado, cinco graficas, reporte impreso e importacion con deteccion del
+diseno.
 
 **Attribute Agreement (atributos): terminado.** Motor propio, captura por
 categorias con estandar opcional, cuatro concordancias con intervalo exacto de
@@ -102,8 +102,10 @@ Truncar a cero los negativos y avisar, igual que hoy.
   grafica si el dato no viene.
 - **Avisos fijos**: la homogeneidad del lote y la ausencia de interaccion salen
   siempre, como supuesto y como limitacion, nunca como resultado.
-- **Cambiar de metodo conserva la captura**, por posicion en la rejilla, y lo
-  avisa. Importar detecta el diseno del archivo y cambia de metodo solo.
+- **Cambiar de metodo vacia la captura**, preguntando antes. (Al cerrar el
+  anidado esto se conservaba por posicion; con el tercer metodo se cambio para
+  los tres. Ver el estandar de diseno.) Importar detecta el diseno del archivo
+  y cambia de metodo solo.
 
 ### Deuda: el dataset publicado
 
@@ -175,9 +177,10 @@ cliente, rechazar una buena se queda en la planta.
 
 **En la pantalla.** El estandar se captura una vez por pieza, no una por
 medicion, porque es una propiedad de la pieza. La celda es un `<select>` con las
-categorias. Cruzar la frontera entre atributos y los metodos de variables no
-conserva la captura -un numero no es una categoria- y se pregunta antes, nunca
-se descarta en silencio. Importar detecta por el tipo de dato: un archivo de
+categorias. Cambiar de metodo vacia la captura, preguntando antes y nunca en
+silencio; atributos obligo a plantearlo -un numero no es una categoria- y de
+ahi salio la regla que hoy vale para los tres. Importar detecta por el tipo de
+dato: un archivo de
 clasificaciones cambia solo al metodo de atributos, igual que uno anidado
 cambiaba al anidado.
 
@@ -254,12 +257,11 @@ Estan en el README y siguen vigentes:
    con `data-methods` lo que sea propio suyo en el HTML. Nada mas: la pantalla
    se comparte.
 
-   **Que pasa con los datos al cambiar de metodo.** Ya esta decidido y hecho
-   entre cruzado y anidado: se conservan **por posicion en la rejilla**, se
-   renombran las piezas si el metodo destino no admite los nombres anteriores, y
-   se avisa que se conservo y que supone ahora el metodo nuevo. Con **atributos**
-   no aplica: la celda deja de ser un numero y pasa a ser una categoria, asi que
-   ahi toca preguntar antes de descartar. Nunca perderlos en silencio.
+   **Que pasa con los datos al cambiar de metodo.** Se vacia la captura, entre
+   cualesquiera dos metodos, preguntando antes y nunca en silencio. La rejilla
+   se ve igual en todos y por eso mismo el dato no se puede reutilizar: el mismo
+   numero en la misma celda significa otra cosa en cada metodo, asi que
+   conservarlo daria un estudio que parece valido y no lo es.
 
 ## Deudas conocidas del metodo cruzado
 

@@ -47,19 +47,30 @@
    * data-methods="..." y se muestra u oculta aqui. Un metodo nuevo no inventa
    * lenguaje visual (docs/estandar-de-diseno.md).
    * ------------------------------------------------------------------ */
+  /* IDIOMA. La interfaz esta en espanol; los NOMBRES DE ESTUDIO no, porque en
+     una planta se conocen por su nombre en ingles: nadie pide un "ANOVA
+     anidado", pide un Gage R&R nested. Lo mismo que ya se hacia con las
+     metricas (% Study Variation, % Tolerance, NDC, ICC), que se dejan como las
+     imprime Minitab para que un reporte se pueda contrastar renglon por
+     renglon. El selector si va en espanol: ahi se esta eligiendo, no citando.
+
+       Selector (espanol)   Badge del estudio (ingles)
+       Cruzado              Gage R&R . Crossed ANOVA
+       Anidado              Gage R&R . Nested ANOVA
+       Atributos            Attribute Agreement Analysis           */
   var METHODS = [
-    { id: 'cruzado', badge: 'Gage R&R \u00b7 ANOVA cruzado', available: true,
+    { id: 'cruzado', badge: 'Gage R&R \u00b7 Crossed ANOVA', available: true,
       engine: function () { return MSAAnova; },
       partsLabel: 'Piezas', partNamesLabel: 'Nombres de las piezas',
       countLabel: 'piezas',
       help: 'Gage R&R por ANOVA cruzado: cada operador mide las mismas piezas varias veces.' },
-    { id: 'anidado', badge: 'Gage R&R \u00b7 ANOVA anidado', available: true,
+    { id: 'anidado', badge: 'Gage R&R \u00b7 Nested ANOVA', available: true,
       engine: function () { return MSANested; },
       partsLabel: 'Piezas por operador', partNamesLabel: 'Nombres de las piezas, por operador',
       countLabel: 'piezas por operador',
       help: 'Gage R&R anidado, para pruebas destructivas: cada operador mide sus propias piezas, ' +
             'tomadas de un lote homogeneo. El diseno no separa la interaccion operador x pieza.' },
-    { id: 'atributos', badge: 'Attribute Agreement', available: true,
+    { id: 'atributos', badge: 'Attribute Agreement Analysis', available: true,
       engine: function () { return MSAAttribute; },
       partsLabel: 'Piezas', partNamesLabel: 'Nombres de las piezas',
       countLabel: 'piezas',
@@ -242,8 +253,9 @@
   function renderStudyName() {
     var name = studyName();
     $('studyLabel').textContent = name;
-    document.title = (name ? name + ' - ' : '') + 'MSA Toolkit - Gage R&R (ANOVA ' +
-      (isNested() ? 'anidado' : 'cruzado') + ')';
+    /* El titulo sale del badge del metodo activo. Antes se armaba con un if
+       de dos ramas, asi que en atributos la pestana decia "ANOVA cruzado". */
+    document.title = (name ? name + ' - ' : '') + 'MSA Toolkit - ' + activeMethod().badge;
   }
 
   /* Nombre de archivo a partir del nombre del estudio: sin acentos ni signos,

@@ -54,12 +54,13 @@ tambien que el producto tiene mas de un metodo.
 - El metodo activo se anuncia en la insignia de la barra y encabeza el reporte
   impreso.
 - **El selector agrupa por familia**, no alinea metodos sueltos: `Variables`
-  (cruzado, anidado) y `Atributos` (acuerdo), separados por una linea dentro
-  del mismo riel. La division dice de entrada en que mundo esta parado el
-  estudio -si se descompone varianza o se mide acuerdo- y ahorra tener que
-  explicarlo despues con un parrafo. El rotulo de familia va **dentro** de la
-  caja: encima se leeria como un titulo de seccion y perderia el vinculo con
-  los botones.
+  (cruzado, anidado) y atributos, separados por una linea dentro del mismo
+  riel. La division dice de entrada en que mundo esta parado el estudio -si se
+  descompone varianza o se mide acuerdo- y ahorra tener que explicarlo despues
+  con un parrafo. El rotulo de familia va **dentro** de la caja: encima se
+  leeria como un titulo de seccion y perderia el vinculo con los botones. Una
+  familia con un solo metodo que ya se llama como ella **no lleva rotulo**: la
+  linea separadora basta, y "ATRIBUTOS Atributos" seria decirlo dos veces.
 - Cuando la lista pase de unas ocho entradas o aparezcan familias distintas
   (MSA, cartas de control, capacidad), el paso siguiente es un desplegable
   agrupado anclado en la barra, no un cajon lateral.
@@ -270,6 +271,26 @@ Cada pie se sostiene solo: no supone que el lector venga de la grafica anterior
 ---
 
 ## 5. Redaccion
+
+### Espanol para usar, ingles para citar
+
+La interfaz esta en espanol. Los **nombres de estudio** y los **nombres de
+metrica** no, y es a proposito:
+
+| | Idioma | Por que |
+|---|---|---|
+| Selector de metodo | espanol | ahi se esta **eligiendo**: Cruzado, Anidado, Atributos |
+| Insignia y encabezado del reporte | ingles | ahi se esta **citando** el estudio: `Gage R&R . Crossed ANOVA`, `Attribute Agreement Analysis` |
+| Metricas | ingles | `% Study Variation`, `% Tolerance`, `NDC`, `ICC` |
+| Todo lo demas | espanol | avisos, notas, tablas, tooltips, errores |
+
+En planta nadie pide un "ANOVA anidado": pide un Gage R&R nested. Y quien
+contrasta este reporte contra una salida de Minitab necesita leer la misma
+etiqueta en los dos, renglon por renglon; traducir `% Study Variation` obliga a
+un mapeo mental en cada revision.
+
+El titulo de la pestana del navegador sale del mismo badge, no de un `if` por
+metodo: cuando se armaba a mano, atributos heredaba el texto del cruzado.
 
 ### No se le explica al lector lo que ya sabe
 

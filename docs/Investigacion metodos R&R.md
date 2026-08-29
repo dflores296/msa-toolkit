@@ -8,7 +8,7 @@
 >
 > - **Hecho:** ANOVA cruzado corregido y validado contra Minitab; diseño
 >   anidado para pruebas destructivas (recomendación 8); **Attribute Agreement
->   con Kappa de Cohen y de Fleiss** (recomendación 5); casos límite explícitos
+>   Analysis con Kappa de Cohen y de Fleiss** (recomendación 5); casos límite explícitos
 >   —varianza negativa truncada a cero y avisada, aviso de ndc < 5
 >   (recomendación 4); `datasets/` de validación y suite de regresión
 >   (recomendación 10).

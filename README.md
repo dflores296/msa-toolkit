@@ -15,7 +15,7 @@ estudios Gage R&R.
   un lote que se supone homogéneo. El diseño no puede separar la interacción
   operador × pieza —la reproducibilidad sale como efecto de operador— y la
   aplicación lo dice en pantalla en vez de esconderlo.
-- **Attribute Agreement** (concordancia por atributos), para inspección
+- **Attribute Agreement Analysis** (concordancia por atributos), para inspección
   **pasa / no pasa**: la medición es una categoría, no un número. Aquí no hay
   varianza que descomponer, así que no salen %GRR ni NDC; sale **acuerdo**:
   si cada evaluador se repite a sí mismo, si coinciden entre ellos y —cuando se

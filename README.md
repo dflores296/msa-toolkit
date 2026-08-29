@@ -15,9 +15,17 @@ estudios Gage R&R.
   un lote que se supone homogéneo. El diseño no puede separar la interacción
   operador × pieza —la reproducibilidad sale como efecto de operador— y la
   aplicación lo dice en pantalla en vez de esconderlo.
+- **Attribute Agreement** (concordancia por atributos), para inspección
+  **pasa / no pasa**: la medición es una categoría, no un número. Aquí no hay
+  varianza que descomponer, así que no salen %GRR ni NDC; sale **acuerdo**:
+  si cada evaluador se repite a sí mismo, si coinciden entre ellos y —cuando se
+  conoce la respuesta correcta— si además aciertan, con kappa, efectividad,
+  error de fuga y falsa alarma.
 
 Se cambia de método desde el selector de la barra, y cada uno tiene su dirección
-(`#cruzado`, `#anidado`). Cambiar de método conserva las mediciones capturadas.
+(`#cruzado`, `#anidado`, `#atributos`). Entre cruzado y anidado se conservan las
+mediciones capturadas; al entrar o salir de atributos no, porque un número no es
+una categoría, y se pregunta antes de borrar nada.
 
 ## Cómo se usa
 
@@ -30,6 +38,13 @@ Se cambia de método desde el selector de la barra, y cada uno tiene su direcci�
    hay gráfica de interacción ni agrupaciones por pieza compartida, porque
    ninguna pieza la miden dos operadores). Los límites de especificación son
    opcionales.
+
+En **atributos** los tres pasos son los mismos, pero la celda es una categoría y
+no un número, hay una columna de **estándar** —la clasificación correcta de cada
+pieza, opcional— y los resultados son concordancias y kappa en vez de
+componentes de varianza. Sin estándar solo se puede saber si los evaluadores
+coinciden; pueden estar todos de acuerdo y todos equivocados, y la página lo
+dice.
 
 Los datos se pueden exportar e importar como CSV o JSON, y la vista de
 resultados está preparada para imprimir a PDF.
@@ -70,8 +85,30 @@ mismos números. Se suma un caso construido a mano con los tres cuadrados medios
 exactos, y pruebas de propiedad. El dataset está en
 `datasets/aiag-msa4-anidado.json`.
 
-80 pruebas de regresión entre los dos motores —todas sobre el cálculo: corren en
-Node, sin navegador, y no tocan la pantalla. Para correrlas:
+### Motor de atributos
+
+Falta un dataset de atributos con resultados publicados (el candidato es el
+ejemplo del manual AIAG MSA 4.ª ed.), y está anotado como deuda. Mientras tanto
+el motor **no** se valida contra números inventados, sino contra tres cosas que
+no dependen de conseguir ese archivo:
+
+- **Casos resueltos a mano** —cuatro piezas, dos evaluadores, dos réplicas— con
+  la cuenta escrita junto a la prueba.
+- **Identidades exactas de kappa**: un caso de Fleiss que da 7/15, y dos de
+  Cohen que dan 0.75 y 0.40, con las tablas construidas para que el valor salga
+  fracción exacta.
+- **Propiedades**: renombrar las categorías no cambia nada, el orden de las
+  filas tampoco, el acuerdo perfecto da 100 % y kappa 1, kappa cae a cero cuando
+  el acuerdo lo explica el desbalance del lote, y el intervalo de
+  Clopper-Pearson se comprueba **contra la propia binomial**, sin tablas de por
+  medio.
+
+El ejemplo que carga el botón es un caso **construido a mano** para enseñar a
+leer las cifras —cada evaluador falla de una manera distinta a propósito—, no un
+dataset de validación, y lo dice al cargarlo.
+
+106 pruebas de regresión entre los tres motores —todas sobre el cálculo: corren
+en Node, sin navegador, y no tocan la pantalla. Para correrlas:
 
 ```bash
 node tests/run-node.js      # en terminal
@@ -179,17 +216,17 @@ Chart.js va servido desde el propio repositorio y no hay dependencias externas.
 
 ## Hoja de ruta
 
-Los siguientes métodos MSA se irán añadiendo uno por uno, cada uno con sus
-propias pruebas de regresión y datasets de validación. El plan de trabajo —con
-el modelo de cada uno, qué se reutiliza y cómo se agrega— está en
-**[`docs/plan-siguientes-metodos.md`](docs/plan-siguientes-metodos.md)**:
+**El alcance planeado está cubierto.** Los tres métodos que se usan en planta
+—mediciones normales, pruebas destructivas e inspección por atributos— están
+hechos, cada uno con su suite de regresión.
 
-- Attribute Agreement (Kappa de Cohen/Fleiss, Kendall) — el que sigue
-- Promedio y Rango (X̄ & R) con constantes K1/K2/K3
-- Estudio Tipo 1 (Cg / Cgk) sobre patrón
-- Linealidad y sesgo
-- Estabilidad (cartas I-mR del patrón)
-- Intervalos de confianza para el %GRR (MLS / GPQ)
+Lo que se evaluó y se decidió **no** hacer, con su razón, está en
+**[`docs/plan-siguientes-metodos.md`](docs/plan-siguientes-metodos.md)**:
+Promedio y Rango (X̄ & R), Estudio Tipo 1 (Cg / Cgk), linealidad y sesgo,
+estabilidad, Kendall para categorías ordenadas, e intervalos de confianza para
+el %GRR. Ninguno está descartado para siempre; simplemente piden instrumentación
+o patrones que rara vez están disponibles en línea, y con los tres hechos se
+cubren los casos reales.
 
 ## Licencia
 

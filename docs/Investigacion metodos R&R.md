@@ -7,13 +7,16 @@
 > De sus recomendaciones, hasta hoy:
 >
 > - **Hecho:** ANOVA cruzado corregido y validado contra Minitab; diseño
->   anidado para pruebas destructivas (recomendación 8); casos límite
->   explícitos —varianza negativa truncada a cero y avisada, aviso de ndc < 5
+>   anidado para pruebas destructivas (recomendación 8); **Attribute Agreement
+>   con Kappa de Cohen y de Fleiss** (recomendación 5); casos límite explícitos
+>   —varianza negativa truncada a cero y avisada, aviso de ndc < 5
 >   (recomendación 4); `datasets/` de validación y suite de regresión
 >   (recomendación 10).
-> - **Lo que sigue:** Attribute Agreement (recomendación 5), y después
->   Promedio-y-Rango (1), Tipo 1 Cg/Cgk (2), Linealidad/Sesgo y Estabilidad (6),
->   EMP de Wheeler (7), intervalos de confianza del %GRR (9) y VDA 5 (11).
+> - **Fuera de alcance, por decisión:** Promedio-y-Rango (1), Tipo 1 Cg/Cgk (2),
+>   Linealidad/Sesgo y Estabilidad (6), EMP de Wheeler como método aparte (7),
+>   intervalos de confianza del %GRR (9) y VDA 5 (11). Con los tres métodos
+>   hechos se cubren los casos de planta; lo demás pide instrumentación o
+>   patrones que rara vez están disponibles en línea.
 > - **Descartado por ahora:** MkDocs Material (recomendación 10). El sitio se
 >   sirve como HTML estático sin build, que es lo que permite abrirlo con doble
 >   clic y sin dependencias.

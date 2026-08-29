@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260830b">
+<link rel="stylesheet" href="assets/css/style.css?v=20260830c">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -30,7 +30,7 @@
     <div class="method-switch" id="methodSwitch" role="group" aria-label="Metodo del estudio">
       <button type="button" class="method-opt" data-method="cruzado">Cruzado</button>
       <button type="button" class="method-opt" data-method="anidado">Anidado</button>
-      <button type="button" class="method-opt" data-method="atributos" disabled>Atributos</button>
+      <button type="button" class="method-opt" data-method="atributos">Atributos</button>
     </div>
     <div class="badge" id="methodBadge">Gage R&amp;R &middot; ANOVA cruzado</div>
     <div class="vsep"></div>
@@ -71,6 +71,23 @@
         <strong>sus propias</strong> piezas, tomadas del mismo lote. AIAG sugiere 10 piezas por operador,
         3 operadores y 3 replicas.</p>
 
+      <p class="hint" data-methods="atributos">Define el tamano del estudio y los nombres. Cada evaluador
+        clasifica <strong>las mismas piezas</strong> varias veces. AIAG sugiere alrededor de 50 piezas,
+        3 evaluadores y 3 replicas, con mitad buenas y mitad malas.</p>
+
+      <div class="msg info" data-methods="atributos" style="margin-bottom:14px">
+        <strong>Aqui no se mide dispersion, se mide acuerdo.</strong>
+        La medicion es una categoria (pasa / no pasa), no un numero, asi que no hay varianza que
+        descomponer: no salen %GRR, ni NDC, ni ICC. Salen porcentajes de concordancia y kappa.<br><br>
+        <strong>El estandar es la respuesta correcta de cada pieza</strong>, y es opcional. Sin el solo
+        se puede saber si los evaluadores coinciden entre si; pueden estar todos de acuerdo y todos
+        equivocados. Con el se sabe ademas si aciertan, y se calculan efectividad, error de fuga
+        (dejar pasar una pieza mala) y falsa alarma (rechazar una buena).<br><br>
+        Una pieza cuenta como concordante solo si <em>todas</em> las clasificaciones coinciden.
+        Dos aciertos y un fallo no valen dos tercios: valen cero. Es la convencion de AIAG y de
+        Minitab, y es a proposito: en inspeccion, dudar es fallar.
+      </div>
+
       <div class="msg info" data-methods="anidado" style="margin-bottom:14px">
         <strong>El diseno anidado no separa la interaccion operador x pieza.</strong>
         Ninguna pieza la miden dos operadores, asi que no hay con que estimarla: la reproducibilidad que
@@ -100,6 +117,13 @@
         <button class="danger" id="resetBtn">Reiniciar estudio</button>
       </div>
 
+      <div class="grid cols-4" data-methods="atributos" style="margin-bottom:14px">
+        <label class="field" title="Las categorias en que se clasifica cada pieza, separadas por coma. Con dos (lo normal: pasa / no pasa) se calculan ademas efectividad, fuga y falsa alarma; con tres o mas solo concordancia y kappa."><span>Categorias</span>
+          <input type="text" id="categories" value="Pasa, No pasa" placeholder="Pasa, No pasa"></label>
+        <label class="field" title="Cual de las dos categorias significa pieza no conforme. Define que error es una fuga (dejarla pasar) y cual una falsa alarma (rechazar una buena). Solo aplica con dos categorias."><span>Categoria de rechazo</span>
+          <select id="rejectCategory"></select></label>
+      </div>
+
       <div class="namelist-cols">
         <div class="namelist-block">
           <label class="field"><span>Nombres de los operadores</span></label>
@@ -118,17 +142,25 @@
         <strong id="captureStatus" class="status-pill"></strong></summary>
       <p class="hint">Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: se reparte solo.</p>
 
+      <div data-methods="atributos" style="margin-bottom:18px">
+        <h3 class="subhead" style="margin-top:0">Estandar de cada pieza <span class="opt">(opcional)</span></h3>
+        <p class="hint" style="margin-left:0">La clasificacion correcta, la que se sabe por otro medio.
+          Es una propiedad de la pieza, no de quien la mira, por eso se captura una sola vez.
+          Dejalo en blanco -todas las piezas- si no lo tienes.</p>
+        <div class="table-scroll"><table id="standardTable"></table></div>
+      </div>
+
       <div class="table-scroll capture-scroll"><table id="dataTable"></table></div>
 
       <div class="actions">
         <button class="danger" id="clearDataBtn">Limpiar mediciones</button>
       </div>
 
-      <h3 class="subhead">Especificaciones y opciones de calculo</h3>
-      <p class="hint" style="margin-left:0">Todo esto es opcional y se puede cambiar despues sin recapturar.
+      <h3 class="subhead" data-methods="cruzado anidado">Especificaciones y opciones de calculo</h3>
+      <p class="hint" data-methods="cruzado anidado" style="margin-left:0">Todo esto es opcional y se puede cambiar despues sin recapturar.
         Se acepta punto o coma decimal.</p>
 
-      <div class="msg info" style="margin-bottom:16px">
+      <div class="msg info" data-methods="cruzado anidado" style="margin-bottom:16px">
         <strong>El % Tolerance solo aparece si le das una tolerancia.</strong>
         Llena <em>LSL y USL</em> (bilateral), <em>uno solo de los dos</em> (unilateral) o la
         <em>tolerancia directa</em> si ya la traes calculada. Si dejas todo vacio, la columna y la
@@ -140,7 +172,7 @@
         proceso, indicala; si no, se usa la media del estudio, que depende de las piezas elegidas.
       </div>
 
-      <div class="grid cols-4">
+      <div class="grid cols-4" data-methods="cruzado anidado">
         <label class="field" title="Limite inferior de especificacion. Con LSL y USL se calcula el % Tolerance (P/T)."><span>LSL <span class="opt">(opcional)</span></span>
           <input type="text" id="lsl" inputmode="decimal" placeholder="limite inferior"></label>
         <label class="field" title="Limite superior de especificacion. Con LSL y USL se calcula el % Tolerance (P/T)."><span>USL <span class="opt">(opcional)</span></span>
@@ -151,7 +183,7 @@
           <input type="text" id="historicalSigma" inputmode="decimal" placeholder="para % Proceso"></label>
       </div>
 
-      <div class="grid cols-4" style="margin-top:12px">
+      <div class="grid cols-4" style="margin-top:12px" data-methods="cruzado anidado">
         <label class="field" title="Centro del proceso. Solo se usa con especificacion unilateral: si no la das, se toma la media de este estudio, que depende de las piezas que elegiste."><span>Media historica <span class="opt">(opcional)</span></span>
           <input type="text" id="processMean" inputmode="decimal" placeholder="solo si la spec es unilateral"></label>
         <label class="field" title="Cuantas sigmas se consideran la variacion del estudio. La 4a edicion del manual AIAG usa 6; la 3a usaba 5.15. Cambia el % Study Variation y el % Tolerance, no los componentes de varianza."><span>Multiplicador</span>
@@ -181,7 +213,7 @@
           </select></label>
       </div>
 
-      <p class="hint" style="margin:12px 0 0;color:var(--ink-faint)">El % Tolerance solo aparece si das LSL y USL o la tolerancia directa.</p>
+      <p class="hint" data-methods="cruzado anidado" style="margin:12px 0 0;color:var(--ink-faint)">El % Tolerance solo aparece si das LSL y USL o la tolerancia directa.</p>
 
       <div class="actions">
         <button class="primary" id="calcBtn" disabled>Calcular</button>
@@ -206,26 +238,34 @@
       <div id="resultBody" hidden>
         <div class="verdicts" id="verdicts"></div>
 
-        <div class="card eval-card">
+        <div class="card eval-card" data-methods="cruzado anidado">
           <h3 class="eval-title">Evaluacion de la variacion</h3>
           <p class="chart-subcap">&lt;10 % bueno &middot; 10&ndash;30 % marginal &middot; &gt;30 % malo</p>
           <div class="eval-bars" id="evalBars"></div>
         </div>
 
+        <div class="card eval-card" data-methods="atributos">
+          <h3 class="eval-title">Concordancia por evaluador</h3>
+          <p class="chart-subcap">&gt;90 % aceptable &middot; 80&ndash;90 % marginal &middot; &lt;80 % malo</p>
+          <div class="eval-bars" id="attrBars"></div>
+        </div>
+
         <div class="card tabs-card">
           <div class="tabs-bar" role="tablist">
-            <button type="button" class="tab-btn active" data-tab="componentes" role="tab" aria-selected="true">Componentes</button>
-            <button type="button" class="tab-btn" data-tab="anova" role="tab" aria-selected="false">ANOVA</button>
+            <button type="button" class="tab-btn active" data-tab="componentes" data-methods="cruzado anidado" role="tab" aria-selected="true">Componentes</button>
+            <button type="button" class="tab-btn" data-tab="anova" data-methods="cruzado anidado" role="tab" aria-selected="false">ANOVA</button>
+            <button type="button" class="tab-btn" data-tab="acuerdo" data-methods="atributos" role="tab" aria-selected="false">Concordancia</button>
+            <button type="button" class="tab-btn" data-tab="kappa" data-methods="atributos" role="tab" aria-selected="false">Kappa</button>
             <button type="button" class="tab-btn" data-tab="graficas" role="tab" aria-selected="false">Graficas</button>
             <button type="button" class="tab-btn" data-tab="notas" role="tab" aria-selected="false">Notas</button>
           </div>
 
-          <div class="tab-panel" data-panel="componentes" data-print-title="Componentes de varianza y evaluacion" role="tabpanel">
+          <div class="tab-panel" data-panel="componentes" data-methods="cruzado anidado" data-print-title="Componentes de varianza y evaluacion" role="tabpanel">
             <div class="table-scroll"><table id="varianceTable"></table></div>
             <div class="table-scroll" style="margin-top:20px"><table id="assessTable"></table></div>
           </div>
 
-          <div class="tab-panel" data-panel="anova" data-print-title="Analisis de varianza" role="tabpanel" hidden>
+          <div class="tab-panel" data-panel="anova" data-methods="cruzado anidado" data-print-title="Analisis de varianza" role="tabpanel" hidden>
             <div class="table-scroll"><table id="anovaTable"></table></div>
             <p class="note" id="modelNote"></p>
             <p class="note" id="anovaFullNote" style="margin-top:16px"></p>
@@ -233,21 +273,35 @@
             <p class="note" id="decompNote"></p>
           </div>
 
+          <div class="tab-panel" data-panel="acuerdo" data-methods="atributos" data-print-title="Concordancia" role="tabpanel" hidden>
+            <div class="table-scroll"><table id="agreeWithinTable"></table></div>
+            <div class="table-scroll" style="margin-top:20px"><table id="agreeStdTable"></table></div>
+            <div class="table-scroll" style="margin-top:20px"><table id="agreeAllTable"></table></div>
+            <div class="table-scroll" style="margin-top:20px"><table id="errorRateTable"></table></div>
+            <p class="note" id="agreeNote"></p>
+          </div>
+
+          <div class="tab-panel" data-panel="kappa" data-methods="atributos" data-print-title="Kappa" role="tabpanel" hidden>
+            <div class="table-scroll"><table id="kappaStdTable"></table></div>
+            <div class="table-scroll" style="margin-top:20px"><table id="kappaBetweenTable"></table></div>
+            <p class="note" id="kappaNote"></p>
+          </div>
+
           <div class="tab-panel" data-panel="graficas" data-print-title="Graficas del estudio" role="tabpanel" hidden>
             <div class="charts">
-              <div class="card chart-box"><h3>Componentes de variacion</h3>
+              <div class="card chart-box" data-methods="cruzado anidado"><h3>Componentes de variacion</h3>
                 <div class="holder"><canvas id="chartComponents"></canvas></div>
                 <p class="cap">Comparacion de las tres bases porcentuales por fuente.</p></div>
-              <div class="card chart-box"><h3>Carta R por operador</h3>
+              <div class="card chart-box" data-methods="cruzado anidado"><h3>Carta R por operador</h3>
                 <div class="holder"><canvas id="chartR"></canvas></div>
                 <p class="cap">Puntos fuera de limites indican inconsistencia al repetir la medicion.</p></div>
-              <div class="card chart-box"><h3>Carta X-barra por operador</h3>
+              <div class="card chart-box" data-methods="cruzado anidado"><h3>Carta X-barra por operador</h3>
                 <div class="holder"><canvas id="chartXbar"></canvas></div>
                 <p class="cap">Puntos fuera de limites indican que el gage distingue las piezas.</p></div>
-              <div class="card chart-box"><h3>Mediciones por operador</h3>
+              <div class="card chart-box" data-methods="cruzado anidado"><h3>Mediciones por operador</h3>
                 <div class="holder"><canvas id="chartByOperator"></canvas></div>
                 <p class="cap">Cajas desplazadas entre si indican reproducibilidad pobre.</p></div>
-              <div class="card chart-box"><h3>Rangos por operador</h3>
+              <div class="card chart-box" data-methods="cruzado anidado"><h3>Rangos por operador</h3>
                 <div class="holder"><canvas id="chartRangesByOperator"></canvas></div>
                 <p class="cap">Rangos altos senalan al operador que repite con menos consistencia.</p></div>
               <div class="card chart-box" data-methods="cruzado"><h3>Rangos por pieza</h3>
@@ -259,11 +313,46 @@
               <div class="card chart-box" data-methods="cruzado"><h3>Interaccion operador x pieza</h3>
                 <div class="holder"><canvas id="chartInteraction"></canvas></div>
                 <p class="cap">Lineas cruzadas o no paralelas sugieren interaccion real.</p></div>
+
+              <div class="card chart-box" data-methods="atributos"><h3>Dentro del evaluador</h3>
+                <div class="holder"><canvas id="chartWithin"></canvas></div>
+                <p class="cap">Cada evaluador contra si mismo. La barra vertical es el intervalo de
+                  confianza: si es ancha, el estudio trae pocas piezas para concluir.</p></div>
+              <div class="card chart-box" data-methods="atributos"><h3>Evaluador contra el estandar</h3>
+                <div class="holder"><canvas id="chartVsStandard"></canvas></div>
+                <p class="cap">Repetirse no es acertar. Un evaluador puede salir bien arriba y bajar
+                  aqui: es consistente, pero consistentemente equivocado.</p></div>
+              <div class="card chart-box" data-methods="atributos"><h3>Fuga y falsa alarma</h3>
+                <div class="holder"><canvas id="chartErrorRates"></canvas></div>
+                <p class="cap">Los dos errores no cuestan lo mismo ni se juzgan igual: la fuga se mide
+                  contra 2 % y la falsa alarma contra 5 %.</p></div>
             </div>
           </div>
 
           <div class="tab-panel" data-panel="notas" data-print-title="Notas de interpretacion" role="tabpanel" hidden>
             <div id="resultNotes"></div>
+            <p style="font-size:13.5px;margin-top:16px" data-methods="atributos">
+              <strong>Como se lee un estudio por atributos.</strong> Aqui no hay varianza que repartir,
+              asi que ninguna de las cifras del Gage R&amp;R aparece. Lo que se publica es esto:<br><br>
+              &bull; <strong>Dentro del evaluador</strong> es la repetibilidad: si le pones la misma pieza
+              tres veces, dice lo mismo las tres. Es lo unico que se puede medir sin conocer la respuesta
+              correcta.<br><br>
+              &bull; <strong>Evaluador contra el estandar</strong> es lo que de verdad importa, y no es lo
+              mismo: alguien puede repetirse el 100 % de las veces y estar siempre equivocado. Si un
+              evaluador sale alto arriba y bajo aqui, no necesita mas practica, necesita recalibrar el
+              criterio.<br><br>
+              &bull; <strong>Entre evaluadores</strong> es la reproducibilidad: todos ven lo mismo en la
+              misma pieza. Sin estandar es lo maximo que el estudio alcanza a decir.<br><br>
+              &bull; <strong>Kappa</strong> descuenta el acuerdo que se explica por azar. Es la cifra que
+              delata un lote desbalanceado: si 45 de 50 piezas son buenas, contestar "pasa" a todo acierta
+              el 90 % sin mirar, y kappa lo baja a cero. Por eso AIAG pide una mezcla cercana a mitad y
+              mitad. Referencia usual: mas de 0.75 buen acuerdo, menos de 0.40 pobre.<br><br>
+              &bull; <strong>Fuga y falsa alarma</strong> son los dos errores, y son asimetricos. Dejar
+              pasar una pieza mala le llega al cliente; rechazar una buena le cuesta a la planta. Por eso
+              los umbrales no son el mismo numero: 2 % la fuga, 5 % la falsa alarma.<br><br>
+              Los intervalos de confianza son exactos (Clopper-Pearson). Con 20 o 30 piezas son anchos y
+              conviene mirarlos: un 95 % que va de 75 a 99 no es lo mismo que un 95 % firme.
+            </p>
             <p style="font-size:13.5px;margin-top:16px" data-methods="anidado">
               <strong>Que cambia en el anidado.</strong> Las piezas estan anidadas dentro del operador:
               cada operador midio las suyas, porque medirlas las destruye. De ahi salen tres cosas que no
@@ -344,11 +433,12 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260830b"></script>
-<script src="assets/js/stats.js?v=20260830b"></script>
-<script src="assets/js/anova.js?v=20260830b"></script>
-<script src="assets/js/anova-nested.js?v=20260830b"></script>
-<script src="assets/js/charts.js?v=20260830b"></script>
-<script src="assets/js/app.js?v=20260830b"></script>
+<script src="assets/vendor/chart.umd.js?v=20260830c"></script>
+<script src="assets/js/stats.js?v=20260830c"></script>
+<script src="assets/js/anova.js?v=20260830c"></script>
+<script src="assets/js/anova-nested.js?v=20260830c"></script>
+<script src="assets/js/attribute.js?v=20260830c"></script>
+<script src="assets/js/charts.js?v=20260830c"></script>
+<script src="assets/js/app.js?v=20260830c"></script>
 </body>
 </html>

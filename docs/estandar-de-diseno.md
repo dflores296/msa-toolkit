@@ -97,20 +97,44 @@ tarjetas, las mismas pestanas. **Lo que cambia se marca en el HTML**, con
   componente de esta hoja (`label.field` es flex, `.grid` es grid) le gana por
   especificidad: sin la regla global, ocultar un campo no hace nada.
 
-### Cambiar de metodo no pierde la captura
+### Cambiar de metodo vacia la captura
 
-La rejilla de captura es la misma (operadores x piezas x replicas), asi que las
-mediciones se conservan **por su lugar en la rejilla**, no por el nombre de la
-pieza. Lo que cambia es el significado y los nombres, y eso se dice en un aviso
-de la tarjeta: que se conservo, cuanto, y que supone ahora el metodo nuevo.
+Entre cualesquiera dos metodos. La rejilla se ve igual en los tres (operadores
+x piezas x replicas) y **esa es justamente la trampa**: el mismo numero, en la
+misma celda, significa otra cosa en cada uno.
 
-> Nunca se pierden datos en silencio, y nunca se cambia el significado de un
-> dato sin decirlo.
+| En la celda "operador B, segunda pieza" | Que es |
+|---|---|
+| Cruzado | la MISMA pieza que midio el operador A |
+| Anidado | una pieza distinta, que solo midio B |
+| Atributos | ni siquiera un numero |
 
-Cuando el metodo destino no admite los nombres de pieza que traia el anterior
--el anidado no acepta que dos operadores compartan pieza- se renumeran y el
-aviso lo dice, en vez de mostrar un error de nombre repetido que el usuario no
-provoco.
+Conservar el dato conserva el valor y le cambia el significado, que es la peor
+de las dos opciones: el estudio se sigue viendo valido y ya no lo es. Un %GRR
+calculado sobre una captura cruzada reinterpretada como anidada es un numero
+con todas sus cifras y ningun sentido.
+
+Esto **reemplaza** la regla anterior, que conservaba las mediciones por su lugar
+en la rejilla entre cruzado y anidado. Se hizo asi al principio porque parecia
+un servicio al usuario; con el tercer metodo quedo claro que era un riesgo
+disfrazado de comodidad, y que la excepcion que atributos obligaba a hacer era
+en realidad la regla buena para los tres.
+
+> Nunca se pierden datos en silencio. Se pregunta antes, se dice cuantos se
+> van, y cancelar deja todo exactamente como estaba -incluida la direccion de
+> la barra-.
+
+Se pregunta **antes** de tocar nada. Cambiar primero y revertir despues hace
+parpadear la pantalla entre los dos metodos y le ensena al usuario un cambio
+que acaba de rechazar.
+
+El aviso posterior no se gasta en decir "se borro": dice **que supone el metodo
+nuevo**, que es lo que hay que tener en la cabeza al recapturar.
+
+Importar es otra cosa y si cambia de metodo solo, sin preguntar: un archivo
+trae sus propios datos, asi que no hay nada que perder. Lo decide el contenido
+-si las piezas se comparten o no, si los valores son numeros o categorias-, no
+el metodo activo.
 
 ### Espaciado
 
@@ -368,7 +392,7 @@ Reglas que no se negocian:
 - [ ] Comparte el HTML de los demas metodos; lo propio va con `data-methods`.
 - [ ] Lo que no aplica se oculta, no se deshabilita, y las graficas que no
       corresponden no se dibujan porque el motor no publica su serie.
-- [ ] Cambiar de metodo conserva la captura por posicion y lo avisa.
+- [ ] Cambiar de metodo vacia la captura, preguntando antes y sin excepciones.
 - [ ] Sus rejillas usan `auto-fill` con minimo en px.
 - [ ] Sus tarjetas de resumen se alinean con `subgrid`.
 - [ ] Sus colores de nivel salen de `--sem-*` y no cambian con el tema.

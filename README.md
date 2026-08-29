@@ -23,9 +23,11 @@ estudios Gage R&R.
   error de fuga y falsa alarma.
 
 Se cambia de método desde el selector de la barra, y cada uno tiene su dirección
-(`#cruzado`, `#anidado`, `#atributos`). Entre cruzado y anidado se conservan las
-mediciones capturadas; al entrar o salir de atributos no, porque un número no es
-una categoría, y se pregunta antes de borrar nada.
+(`#cruzado`, `#anidado`, `#atributos`). **Cambiar de método vacía la captura**,
+entre cualesquiera dos: la rejilla se ve igual en los tres, pero el mismo dato en
+la misma celda significa otra cosa en cada uno, así que conservarlo daría un
+estudio que parece válido y no lo es. Se pregunta antes, y cancelar no toca
+nada.
 
 ## Cómo se usa
 

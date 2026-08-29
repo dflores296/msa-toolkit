@@ -16,6 +16,15 @@ diseno y cambio de metodo sin perder la captura.
 
 80 pruebas verdes (`node tests/run-node.js`), entre las dos suites.
 
+**Correccion posterior (28-08-2026).** Se encontro y arreglo un fallo de la
+interfaz del anidado: `renderNameInputs()` vaciaba `state.partsByOperator`
+antes de leerlo, asi que los nombres de pieza volvian a `Pieza 1..N` en cada
+redibujado. Lo grave era la importacion: un archivo anidado con nombres propios
+perdia **todas** las mediciones sin decir nada. Las 80 pruebas seguian en verde,
+porque ninguna toca el DOM. Ver la postdata al hallazgo 8 de
+`docs/auditoria-motor-excel.md` y las reglas que quedaron en las secciones 8 y 9
+del estandar.
+
 Piezas que ya existen y que los metodos nuevos **reutilizan tal cual**:
 
 | Pieza | Archivo | Reutilizable |
@@ -194,6 +203,15 @@ Nada de esto bloquea, pero conviene tenerlo escrito:
 - Las especificaciones (LSL/USL, alfa, multiplicador) **no se guardan** en el
   CSV. Se decidio a proposito, para no llenar el archivo de campos. Si algun dia
   estorba, la via es un JSON opcional, no ensuciar el CSV.
+- **No hay cobertura automatica de la pantalla.** Las suites de motor corren en
+  Node sin DOM, y `tests/regresion-visual.js` compara dos revisiones del repo:
+  un defecto presente en ambas coincide y pasa por bueno. Su recorrido usa
+  ademas el dataset de ejemplo, con los nombres por defecto, que es justo el
+  caso donde se esconden los fallos de nombres. Lo minimo para cerrar el hueco
+  es agregarle un paso que renombre un par de piezas antes de calcular; lo
+  siguiente seria llevar el caso completo -importar con nombres propios y
+  comprobar que la tabla queda llena- a `tests/index.html`, que si corre en
+  navegador. Vale para los dos metodos, y para los que vengan.
 - El reporte impreso ocupa 7 hojas. Se intento compactar y se revirtio: apretar
   margenes y bajar la altura de las graficas encoge los rotulos. Si hay que
   ahorrar papel, el camino es sacar las Notas de interpretacion del papel, no

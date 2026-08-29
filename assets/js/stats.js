@@ -93,6 +93,73 @@
     };
   }
 
+  /* --------------------------------------------------------------------- *
+   * Normal estandar y proporciones (para el metodo de atributos)
+   * --------------------------------------------------------------------- */
+
+  /** erfc por fraccion continua de Chebyshev (Numerical Recipes, erfcc).
+      Error relativo < 1.2e-7, de sobra para un valor p reportado a 4 cifras. */
+  function erfc(x) {
+    var z = Math.abs(x), t = 2 / (2 + z);
+    var ty = 4 * t - 2;
+    var cof = [-1.3026537197817094, 6.4196979235649026e-1, 1.9476473204185836e-2,
+               -9.561514786808631e-3, -9.46595344482036e-4, 3.66839497852761e-4,
+               4.2523324806907e-5, -2.0278578112534e-5, -1.624290004647e-6,
+               1.303655835580e-6, 1.5626441722e-8, -8.5238095915e-8,
+               6.529054439e-9, 5.059343495e-9, -9.91364156e-10];
+    var d = 0, dd = 0, tmp;
+    for (var j = cof.length - 1; j > 0; j--) { tmp = d; d = ty * d - dd + cof[j]; dd = tmp; }
+    var ans = t * Math.exp(-z * z + 0.5 * (cof[0] + ty * d) - dd);
+    return x >= 0 ? ans : 2 - ans;
+  }
+
+  /** Valor p a dos colas de un estadistico z normal estandar. */
+  function normalTwoSided(z) {
+    if (!isFinite(z)) return NaN;
+    return erfc(Math.abs(z) / Math.SQRT2);
+  }
+
+  /** Inversa de la beta incompleta regularizada: x tal que betai(a,b,x) = p.
+      Biseccion sobre una funcion monotona creciente; 200 pasos dejan el
+      intervalo en 2^-200, mucho mas fino que la precision de betai. */
+  function betaInv(a, b, p) {
+    if (p <= 0) return 0;
+    if (p >= 1) return 1;
+    var lo = 0, hi = 1, mid;
+    for (var i = 0; i < 200; i++) {
+      mid = 0.5 * (lo + hi);
+      if (betai(a, b, mid) < p) lo = mid; else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+  }
+
+  /** Intervalo de confianza exacto de Clopper-Pearson para una proporcion.
+      Exacto en el sentido de que su cobertura nunca baja de 1 - alfa; es el
+      que reporta Minitab en el analisis de concordancia por atributos. Se
+      construye invirtiendo la binomial, que en forma cerrada es la beta:
+        inferior = BetaInv(alfa/2;  x,     n - x + 1)
+        superior = BetaInv(1-alfa/2; x + 1, n - x)
+      con los extremos x = 0 y x = n resueltos aparte, donde esa beta no
+      existe y el limite correspondiente es exactamente 0 o 1. */
+  function proportionCI(x, n, alpha) {
+    if (!(n > 0) || x < 0 || x > n) return { lo: NaN, hi: NaN };
+    var a = alpha === undefined ? 0.05 : alpha;
+    return {
+      lo: x === 0 ? 0 : betaInv(x, n - x + 1, a / 2),
+      hi: x === n ? 1 : betaInv(x + 1, n - x, 1 - a / 2)
+    };
+  }
+
+  /** P(X <= k) para X ~ Binomial(n, p). Se usa en las pruebas para comprobar
+      que el intervalo de Clopper-Pearson cumple su definicion. */
+  function binomialCDF(k, n, p) {
+    if (k < 0) return 0;
+    if (k >= n) return 1;
+    return betai(n - k, k + 1, 1 - p);
+  }
+
   global.MSAStats = { fSurvival: fSurvival, logGamma: logGamma, betai: betai,
-                      quantile: quantile, boxStats: boxStats };
+                      quantile: quantile, boxStats: boxStats,
+                      erfc: erfc, normalTwoSided: normalTwoSided, betaInv: betaInv,
+                      proportionCI: proportionCI, binomialCDF: binomialCDF };
 })(typeof window !== 'undefined' ? window : globalThis);

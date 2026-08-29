@@ -64,6 +64,24 @@ tarjetas, las mismas pestanas. **Lo que cambia se marca en el HTML**, con
 `data-methods="cruzado"` (o la lista de metodos donde el elemento aplica), y
 `applyMethod` lo muestra u oculta. Sin atributo, el elemento vale para todos.
 
+> **Hasta donde llega la regla, y donde deja de aplicar.** Con atributos quedo
+> claro que la pantalla se comparte porque cruzado y anidado **dan la misma
+> forma de respuesta**: componentes de varianza, la misma tabla, las mismas
+> tarjetas. Atributos no la da -no hay varianza que repartir, hay
+> concordancias- y forzarlo a las mismas tablas habria sido peor que darle las
+> suyas. El reparto que quedo, y que vale para los metodos que vengan:
+>
+> | Se comparte siempre | Es propio del metodo |
+> |---|---|
+> | Banco de dos columnas, pasos numerados, tarjetas plegables | El motor |
+> | Tema, tooltips, validacion en vivo, mensajes | La vista de resultados |
+> | Reporte impreso, importar y exportar, nombres | Sus graficas |
+>
+> Un metodo nuevo NO abre pagina aparte, NO inventa lenguaje visual y NO
+> duplica el marco. Lo unico que puede traer propio es lo que de verdad
+> publica distinto. Si dos metodos publican lo mismo, comparten vista: eso es
+> lo que hacen cruzado y anidado y no hay razon para deshacerlo.
+
 - Un campo que no aplica **se oculta, no se deshabilita**: un `<select>` gris
   que nunca se puede usar es ruido que el lector tiene que descartar cada vez.
   En el anidado se van Alfa, Interaccion y Denominador de F, porque sin

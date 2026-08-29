@@ -10,7 +10,7 @@
      partsByOperator - metodo anidado: las piezas propias de cada operador.
      Los dos viven a la vez para no perder la captura al cambiar de metodo. */
   var state = { method: 'cruzado', operators: [], parts: [], partsByOperator: [],
-                replicates: 2, result: null };
+                replicates: 2, result: null, standard: {} };
 
   /* ------------------------------------------------------------------ *
    * Tema claro / oscuro - manual, se recuerda en localStorage.
@@ -59,8 +59,12 @@
       countLabel: 'piezas por operador',
       help: 'Gage R&R anidado, para pruebas destructivas: cada operador mide sus propias piezas, ' +
             'tomadas de un lote homogeneo. El diseno no separa la interaccion operador x pieza.' },
-    { id: 'atributos', badge: 'Attribute Agreement', available: false,
-      help: 'En camino. Acuerdo entre evaluadores para datos de pasa / no pasa (Kappa, Kendall).' }
+    { id: 'atributos', badge: 'Attribute Agreement', available: true,
+      engine: function () { return MSAAttribute; },
+      partsLabel: 'Piezas', partNamesLabel: 'Nombres de las piezas',
+      countLabel: 'piezas',
+      help: 'Acuerdo entre evaluadores para datos de pasa / no pasa. Aqui no hay varianza que ' +
+            'descomponer: se mide concordancia (porcentajes y kappa), no dispersion.' }
   ];
 
   function methodById(id) {
@@ -69,6 +73,11 @@
   }
   function activeMethod() { return methodById(state.method); }
   function isNested() { return state.method === 'anidado'; }
+  function isAttribute() { return state.method === 'atributos'; }
+  /* La celda del estudio: numero en los metodos de variables, categoria en
+     atributos. Es la unica pregunta que hay que hacerse para saber si dos
+     metodos pueden intercambiar una captura. */
+  function cellsAreNumbers(id) { return id !== 'atributos'; }
 
   /* Muestra u oculta lo que es propio de un metodo. El atributo lleva la lista
      de metodos donde el elemento aplica; sin atributo, aplica a todos. */
@@ -87,6 +96,7 @@
     var m = methodById(id);
     if (!m.available) m = METHODS[0];
     var changed = state.method !== m.id;
+    var previousMethod = state.method;
     var captured = changed && isUserAction ? readValuesByPosition() : null;
 
     state.method = m.id;
@@ -105,8 +115,27 @@
       try { history.replaceState(null, '', '#' + m.id); } catch (e) { location.hash = m.id; }
     }
     renderStudyName();
+    selectFirstVisibleTab();
 
     if (changed && isUserAction) {
+      /* Cruzar la frontera de atributos NO conserva la captura: un numero no
+         es una categoria ni al reves. Se pregunta antes, nunca se descarta en
+         silencio, y si dicen que no se regresa al metodo anterior. */
+      if (cellsAreNumbers(previousMethod) !== cellsAreNumbers(m.id) &&
+          captured && Object.keys(captured).length) {
+        var goingToCats = !cellsAreNumbers(m.id);
+        var BR = String.fromCharCode(10);
+        var ok = confirm('El estudio tiene ' + Object.keys(captured).length +
+          ' dato(s) capturado(s).' + BR + BR +
+          (goingToCats
+            ? 'En atributos la celda deja de ser un numero y pasa a ser una categoria, asi que las ' +
+              'mediciones no se pueden conservar.'
+            : 'En este metodo la celda vuelve a ser un numero, asi que las clasificaciones no se ' +
+              'pueden conservar.') +
+          BR + BR + 'Se borraran. Continuar?');
+        if (!ok) return applyMethod(previousMethod, false);
+        captured = null;
+      }
       // Al pasar al anidado, unos nombres de pieza que venian repetidos entre
       // operadores (lo normal en el cruzado) no sirven: se renumeran de cero.
       if (m.id === 'anidado' && firstDuplicate(allPartNames())) state.partsByOperator = [];
@@ -122,6 +151,18 @@
       }
     }
     return m.id;
+  }
+
+  /* Las pestanas de resultados no son las mismas en todos los metodos
+     (Componentes/ANOVA contra Concordancia/Kappa). Si la activa se oculto al
+     cambiar de metodo, el panel quedaria en blanco sin explicacion. */
+  function selectFirstVisibleTab() {
+    var buttons = [].slice.call(document.querySelectorAll('.tab-btn'));
+    var visible = buttons.filter(function (b) { return !b.hidden; });
+    if (!visible.length) return;
+    var active = visible.filter(function (b) { return b.classList.contains('active'); });
+    if (active.length) return;
+    visible[0].click();
   }
 
   function methodSwitchNote(m, kept) {
@@ -311,6 +352,71 @@
   /* ------------------------------------------------------------------ *
    * Paso 2 - tabla de captura
    * ------------------------------------------------------------------ */
+  /* Las categorias del estudio, leidas del campo de configuracion. Se limpian
+     y se quitan repetidas: escribir "Pasa, Pasa, No pasa" no crea tres. */
+  function parseCategories() {
+    var raw = ($('categories') ? $('categories').value : '') || '';
+    var out = [];
+    raw.split(',').forEach(function (c) {
+      var t = c.trim();
+      if (t && out.indexOf(t) < 0) out.push(t);
+    });
+    return out;
+  }
+
+  /* El desplegable de "categoria de rechazo" se rearma cuando cambian las
+     categorias, conservando la eleccion si sigue existiendo. Solo tiene
+     sentido con dos: con tres o mas no hay una decision binaria que juzgar. */
+  function renderRejectOptions() {
+    var sel = $('rejectCategory');
+    if (!sel) return;
+    var cats = parseCategories(), prev = sel.value;
+    sel.innerHTML = cats.map(function (c) {
+      return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
+    }).join('');
+    sel.value = cats.indexOf(prev) >= 0 ? prev : (cats[1] || cats[0] || '');
+    sel.disabled = cats.length !== 2;
+    sel.title = cats.length === 2
+      ? 'Cual de las dos categorias significa pieza no conforme.'
+      : 'Solo aplica con dos categorias: con mas no hay decision binaria que juzgar.';
+  }
+
+  /* El estandar es una propiedad de la pieza, asi que se captura una vez por
+     pieza y no una vez por medicion. Vacio significa "no lo tengo", que es un
+     estudio valido: se mide acuerdo entre evaluadores y nada mas. */
+  function buildStandardTable() {
+    var cats = parseCategories();
+    var h = '<thead><tr><th class="col-part">Pieza</th>' +
+            '<th class="col-meas">Clasificacion correcta</th></tr></thead><tbody>';
+    state.parts.forEach(function (pt) {
+      var cur = state.standard[pt] || '';
+      h += '<tr><td class="col-part">' + esc(pt) + '</td><td class="col-meas">' +
+           '<select data-std-part="' + esc(pt) + '" aria-label="Estandar de ' + esc(pt) + '">' +
+           '<option value="">(sin estandar)</option>' +
+           cats.map(function (c) {
+             return '<option value="' + esc(c) + '"' + (c === cur ? ' selected' : '') + '>' +
+                    esc(c) + '</option>';
+           }).join('') +
+           '</select></td></tr>';
+    });
+    $('standardTable').innerHTML = h + '</tbody>';
+    [].slice.call($('standardTable').querySelectorAll('select')).forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        state.standard[sel.dataset.stdPart] = sel.value;
+        validateLive();
+      });
+    });
+  }
+
+  function readStandard() {
+    var map = {};
+    if (!isAttribute()) return map;
+    [].slice.call($('standardTable').querySelectorAll('select')).forEach(function (sel) {
+      if (sel.value) map[sel.dataset.stdPart] = sel.value;
+    });
+    return map;
+  }
+
   function buildDataTable(preserve) {
     if (!validateConfig()) return false;
     var previous = preserve ? readValues() : {};
@@ -347,6 +453,7 @@
     }
     thead += '</tr></thead>';
 
+    var cats = parseCategories();
     var body = '<tbody>';
     ops.forEach(function (op, oi) {
       var parts = partsOfOperator(oi);
@@ -360,10 +467,17 @@
         for (var k = 0; k < state.replicates; k++) {
           var key = op + '\u0000' + pt + '\u0000' + k;
           var v = previous[key] === undefined ? '' : previous[key];
-          body += '<td class="col-meas"><input type="text" inputmode="decimal" data-op="' + esc(op) +
-                  '" data-part="' + esc(pt) + '" data-rep="' + k + '" data-oi="' + oi +
-                  '" data-pi="' + pi + '" value="' + esc(v) +
-                  '" aria-label="' + esc(op + ', ' + pt + ', replica ' + (k + 1)) + '"></td>';
+          var attrs = ' data-op="' + esc(op) + '" data-part="' + esc(pt) + '" data-rep="' + k +
+                      '" data-oi="' + oi + '" data-pi="' + pi + '" aria-label="' +
+                      esc(op + ', ' + pt + ', replica ' + (k + 1)) + '"';
+          body += '<td class="col-meas">' + (isAttribute()
+            ? '<select' + attrs + '><option value=""></option>' +
+              cats.map(function (c) {
+                return '<option value="' + esc(c) + '"' + (c === v ? ' selected' : '') + '>' +
+                       esc(c) + '</option>';
+              }).join('') + '</select>'
+            : '<input type="text" inputmode="decimal"' + attrs + ' value="' + esc(v) + '">') +
+            '</td>';
         }
         body += '</tr>';
       });
@@ -371,6 +485,7 @@
     body += '</tbody>';
 
     $('dataTable').innerHTML = thead + body;
+    if (isAttribute()) buildStandardTable();
     $('captureSection').hidden = false;
     $('captureCount').textContent = ops.length + ' operadores x ' + partsPerOperator() + ' ' +
       activeMethod().countLabel + ' x ' + state.replicates + ' replicas = ' +
@@ -396,7 +511,11 @@
     });
   }
 
-  function inputs() { return [].slice.call($('dataTable').querySelectorAll('input')); }
+  /* Las celdas de captura. En atributos son desplegables y no cajas de texto,
+     pero comparten lo que el resto del codigo usa de ellas: value, dataset y
+     classList, asi que leer, reubicar por posicion y validar siguen
+     funcionando sin saber cual de los dos es. */
+  function inputs() { return [].slice.call($('dataTable').querySelectorAll('input, select')); }
 
   function readValues() {
     var map = {};
@@ -433,6 +552,10 @@
   /** Pegar un bloque desde Excel: rellena hacia abajo y a la derecha. */
   function wirePaste() {
     inputs().forEach(function (inp) {
+      /* Pegar un bloque solo aplica a las cajas de texto. En atributos la
+         celda es un desplegable: no hay donde pegar, y el navegador ya
+         resuelve escribir la inicial para elegir. */
+      if (inp.tagName !== 'INPUT') return;
       inp.addEventListener('paste', function (ev) {
         var text = (ev.clipboardData || window.clipboardData).getData('text');
         if (!text || !/[\t\n\r]/.test(text)) return;   // valor simple: comportamiento normal
@@ -449,19 +572,33 @@
         validateLive();
       });
     });
-    inputs().forEach(function (i) { i.addEventListener('input', validateLive); });
+    inputs().forEach(function (i) {
+      i.addEventListener('input', validateLive);
+      if (i.tagName === 'SELECT') i.addEventListener('change', validateLive);
+    });
   }
 
   function collectRows() {
+    /* En atributos el valor es una categoria: no se toca. En los metodos de
+       variables se admite coma decimal y se normaliza a punto. */
+    var attr = isAttribute(), std = attr ? readStandard() : null;
     return inputs().map(function (i) {
-      return { operator: i.dataset.op, part: i.dataset.part,
-               replicate: Number(i.dataset.rep) + 1, value: i.value.trim().replace(',', '.') };
+      var row = { operator: i.dataset.op, part: i.dataset.part,
+                  replicate: Number(i.dataset.rep) + 1,
+                  value: attr ? i.value.trim() : i.value.trim().replace(',', '.') };
+      if (attr && std[row.part]) row.standard = std[row.part];
+      return row;
     });
   }
 
   function validateLive() {
+    /* En atributos no hay nada que validar como numero: la celda solo puede
+       tener una de las categorias, porque es un desplegable. Lo unico que se
+       comprueba es que este contestada. */
+    var attr = isAttribute();
     var bad = 0;
     inputs().forEach(function (i) {
+      if (attr) { i.classList.remove('invalid'); return; }
       var v = i.value.trim().replace(',', '.');
       var ok = v === '' || isFinite(Number(v));
       i.classList.toggle('invalid', !ok);
@@ -469,9 +606,20 @@
     });
     var empty = inputs().filter(function (i) { return i.value.trim() === ''; }).length;
     $('calcBtn').disabled = bad > 0 || empty > 0;
-    $('captureStatus').textContent = bad > 0
-      ? bad + ' valor(es) no numerico(s)'
-      : empty > 0 ? empty + ' celda(s) por capturar' : 'Datos completos';
+
+    var msg;
+    if (bad > 0) msg = bad + ' valor(es) no numerico(s)';
+    else if (empty > 0) msg = empty + (attr ? ' clasificacion(es) por capturar' : ' celda(s) por capturar');
+    else msg = 'Datos completos';
+    /* El estandar es opcional, asi que no bloquea el calculo; pero a medias no
+       sirve, y conviene decirlo mientras se captura y no al final. */
+    if (attr && !empty && !bad) {
+      var std = readStandard(), n = Object.keys(std).length;
+      if (n > 0 && n < state.parts.length) {
+        msg = 'Datos completos, estandar a medias (' + n + ' de ' + state.parts.length + ')';
+      }
+    }
+    $('captureStatus').textContent = msg;
     $('captureStatus').style.color = (bad || empty) ? 'var(--warn)' : 'var(--ok)';
   }
 
@@ -528,16 +676,23 @@
       state.result = null;
       return;
     }
-    var opts = {
-      studyVarMultiplier: Number($('svMultiplier').value),
-      lsl: specs.values.lsl, usl: specs.values.usl,
-      tolerance: specs.values.tolerance,
-      processMean: specs.values.processMean,
-      historicalSigma: specs.values.historicalSigma
-    };
+    var opts;
+    if (isAttribute()) {
+      /* Atributos no usa nada de la caja de especificaciones: no hay
+         tolerancia contra la cual comparar una dispersion que no existe. */
+      opts = { categories: parseCategories(), rejectCategory: $('rejectCategory').value };
+    } else {
+      opts = {
+        studyVarMultiplier: Number($('svMultiplier').value),
+        lsl: specs.values.lsl, usl: specs.values.usl,
+        tolerance: specs.values.tolerance,
+        processMean: specs.values.processMean,
+        historicalSigma: specs.values.historicalSigma
+      };
+    }
     // Alfa, interaccion y denominador de F solo existen en el cruzado: sin
     // interaccion estimable no hay nada que probar, agrupar ni elegir.
-    if (!isNested()) {
+    if (!isNested() && !isAttribute()) {
       opts.alpha = Number($('alpha').value);
       opts.interaction = $('interactionMode').value;
       opts.fDenominator = $('fDenominator').value;
@@ -557,9 +712,19 @@
     $('resultsSection').hidden = false;
     $('resultBody').hidden = false;
     showMessages($('resultMsg'), [], result.warnings);
-    renderVerdict(result);
-    renderEvalBars(result);
-    renderTables(result);
+    /* Cada familia de metodos trae su propia vista de resultados, porque no
+       publican la misma forma de respuesta: variables dan componentes de
+       varianza, atributos da concordancias. El resto de la pantalla -pasos,
+       tarjetas, pestanas, impresion- es el mismo para los dos. */
+    if (result.model === 'attribute') {
+      renderAttributeVerdict(result);
+      renderAttributeBars(result);
+      renderAttributeTables(result);
+    } else {
+      renderVerdict(result);
+      renderEvalBars(result);
+      renderTables(result);
+    }
     MSACharts.render(result);
   }
 
@@ -761,6 +926,224 @@
       (r.anovaFull.decompositionError < 1e-9 ? ' (correcto).' : ' (REVISAR).');
   }
 
+
+  /* ------------------------------------------------------------------ *
+   * Resultados del metodo de atributos
+   *
+   * Es la mitad de la pantalla que NO se comparte con los otros dos metodos,
+   * y es asi porque no publican la misma forma de respuesta: alla componentes
+   * de varianza, aqui concordancias. El marco -pasos, tarjetas, pestanas,
+   * reporte impreso- si es el mismo.
+   * ------------------------------------------------------------------ */
+  function pc(v) { return v === null || v === undefined || !isFinite(v) ? '-' : v.toFixed(2) + ' %'; }
+  function kfmt(v) { return v === null || v === undefined || !isFinite(v) ? '-' : v.toFixed(4); }
+  function ci(a) { return '[' + a.ciLow.toFixed(1) + ', ' + a.ciHigh.toFixed(1) + ']'; }
+
+  var ATTR_HELP = {
+    within: 'Que porcentaje de las piezas clasifico igual el evaluador en TODAS sus replicas. Es la ' +
+        'repetibilidad del atributo: mide si se contradice a si mismo, no si acierta. Se reporta el ' +
+        'peor evaluador, no el promedio.',
+    between: 'Que porcentaje de las piezas recibio la MISMA clasificacion de todos los evaluadores en ' +
+        'todas sus replicas. Es la reproducibilidad. Sin estandar, es lo maximo que el estudio alcanza ' +
+        'a decir.',
+    vsStd: 'Que porcentaje de las piezas clasificaron todos los evaluadores, en todas sus replicas, ' +
+        'igual que el estandar. Coincidir no es acertar: este numero es el que de verdad importa.',
+    kappa: 'Acuerdo descontando el que se explica por azar. Delata el lote desbalanceado: contestar ' +
+        'siempre "pasa" en un lote 90 % bueno acierta el 90 % sin mirar, y kappa lo baja a cero. ' +
+        'Referencia: mas de 0.75 buen acuerdo, menos de 0.40 pobre.',
+    effective: 'Porcentaje de piezas que el evaluador clasifico correctamente en todas sus replicas. ' +
+        'AIAG: 90 % o mas aceptable, menos de 80 % inaceptable. Se reporta el peor evaluador.',
+    miss: 'De todas las decisiones tomadas sobre piezas NO conformes, que porcentaje las dejo pasar. ' +
+        'Es el error que llega al cliente, por eso su umbral es el mas estricto: 2 %.',
+    falseAlarm: 'De todas las decisiones tomadas sobre piezas conformes, que porcentaje las rechazo. ' +
+        'Cuesta scrap y retrabajo, pero no sale de la planta: umbral 5 %.'
+  };
+
+  function renderAttributeVerdict(r) {
+    var m = r.metrics, a = r.assessment, cards = [];
+
+    if (m.worstWithin !== null) {
+      cards.push(card('Dentro del evaluador (peor)', pc(m.worstWithin), a.within, ATTR_HELP.within));
+    }
+    if (m.allVsStandard !== null) {
+      cards.push(card('Todos vs estandar', pc(m.allVsStandard), a.allVsStandard, ATTR_HELP.vsStd));
+    }
+    cards.push(card('Entre evaluadores', pc(m.between), a.between, ATTR_HELP.between));
+    cards.push(card('Kappa (' + m.kappaSource + ')', kfmt(m.kappa), a.kappa, ATTR_HELP.kappa));
+
+    if (m.worstEffectiveness !== null) {
+      cards.push(card('Efectividad (peor)', pc(m.worstEffectiveness), a.effectiveness, ATTR_HELP.effective));
+    }
+    if (m.worstMiss !== null) {
+      cards.push(card('Error de fuga (peor)', pc(m.worstMiss), a.missRate, ATTR_HELP.miss));
+      cards.push(card('Falsa alarma (peor)', pc(m.worstFalseAlarm), a.falseAlarmRate, ATTR_HELP.falseAlarm));
+    }
+    $('verdicts').innerHTML = cards.join('');
+  }
+
+  /* Barras por evaluador. Cada una lleva su intervalo de confianza dibujado
+     encima, porque con 20 o 30 piezas el porcentaje solo enganaria: un 95 %
+     que va de 75 a 99 no es un 95 % firme. */
+  function renderAttributeBars(r) {
+    var rows = [];
+    r.withinAppraiser.forEach(function (a) {
+      rows.push({ label: a.operator + ' - consigo mismo', a: a, help: ATTR_HELP.within });
+    });
+    r.vsStandard.forEach(function (a) {
+      rows.push({ label: a.operator + ' - contra el estandar', a: a, help: ATTR_HELP.vsStd });
+    });
+    if (!rows.length) { $('attrBars').innerHTML = ''; return; }
+
+    $('attrBars').innerHTML = rows.map(function (row) {
+      var v = row.a.pct;
+      var lvl = v >= 90 ? 'ok' : v >= 80 ? 'warn' : 'bad';
+      var tip = row.label + ': ' + v.toFixed(2) + ' % (' + row.a.matched + ' de ' + row.a.inspected +
+                ' piezas), intervalo de confianza al 95 % ' + ci(row.a) + '. ' + row.help;
+      return '<div class="eval-row" title="' + esc(tip) + '">' +
+        '<div class="eval-label">' + esc(row.label) + '</div>' +
+        '<div class="eval-track">' +
+          '<div class="eval-fill ' + lvl + '" style="width:' + Math.min(100, v).toFixed(2) + '%"></div>' +
+          evalTick(80, 'warn') + evalTick(90, 'ok') +
+        '</div>' +
+        '<div class="eval-val">' + v.toFixed(1) + ' %</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function renderAttributeTables(r) {
+    var rowHtml = function (a, name) {
+      return '<tr><td>' + esc(name) + '</td>' +
+        '<td class="num">' + a.inspected + '</td>' +
+        '<td class="num">' + a.matched + '</td>' +
+        '<td class="num">' + pc(a.pct) + '</td>' +
+        '<td class="num">' + ci(a) + '</td>' +
+        '<td>' + (a.assessment ? '<span class="t ' + a.assessment.level + '">' +
+                  esc(a.assessment.label) + '</span>' : '') + '</td></tr>';
+    };
+    var head = function (cap, first) {
+      return '<caption>' + cap + '</caption><thead><tr><th>' + first + '</th>' +
+        '<th class="num">Piezas</th><th class="num">Concordantes</th><th class="num">%</th>' +
+        '<th class="num">IC 95 %</th><th>Criterio</th></tr></thead><tbody>';
+    };
+
+    /* Tabla 1. Dentro del evaluador */
+    if (r.withinAppraiser.length) {
+      var t1 = head('Tabla 1. Concordancia dentro del evaluador (se repite a si mismo)', 'Evaluador');
+      r.withinAppraiser.forEach(function (a) { t1 += rowHtml(a, a.operator); });
+      $('agreeWithinTable').innerHTML = t1 + '</tbody>';
+    } else {
+      $('agreeWithinTable').innerHTML = '<caption>Tabla 1. Concordancia dentro del evaluador</caption>' +
+        '<tbody><tr><td>Con una sola replica no se puede medir.</td></tr></tbody>';
+    }
+
+    /* Tabla 2. Contra el estandar */
+    if (r.vsStandard.length) {
+      var t2 = head('Tabla 2. Cada evaluador contra el estandar (se repite y ademas acierta)', 'Evaluador');
+      r.vsStandard.forEach(function (a) { t2 += rowHtml(a, a.operator); });
+      $('agreeStdTable').innerHTML = t2 + '</tbody>';
+    } else {
+      $('agreeStdTable').innerHTML = '<caption>Tabla 2. Contra el estandar</caption><tbody><tr><td>' +
+        'El estudio no trae estandar: no se puede saber si aciertan, solo si coinciden.' +
+        '</td></tr></tbody>';
+    }
+
+    /* Tabla 3. Global */
+    var t3 = head('Tabla 3. Concordancia global', 'Concordancia');
+    t3 += rowHtml(r.betweenAppraisers, 'Entre evaluadores');
+    if (r.allVsStandard) t3 += rowHtml(r.allVsStandard, 'Todos contra el estandar');
+    $('agreeAllTable').innerHTML = t3 + '</tbody>';
+
+    /* Tabla 4. Los dos errores */
+    if (r.effectiveness.length) {
+      var t4 = '<caption>Tabla 4. Efectividad y los dos errores de inspeccion</caption><thead><tr>' +
+        '<th>Evaluador</th><th class="num">Efectividad</th><th class="num">Error de fuga</th>' +
+        '<th class="num">Falsa alarma</th></tr></thead><tbody>';
+      r.effectiveness.forEach(function (e) {
+        var cellOf = function (v, t, extra) {
+          return '<td class="num">' + pc(v) +
+            (t ? ' <span class="t ' + t.level + '">' + esc(t.level === 'ok' ? 'ok' :
+                 t.level === 'warn' ? 'marginal' : 'malo') + '</span>' : '') +
+            (extra ? '<br><span style="font-size:11px;font-weight:400">' + esc(extra) + '</span>' : '') +
+            '</td>';
+        };
+        t4 += '<tr><td>' + esc(e.operator) + '</td>' +
+          cellOf(e.effectiveness, e.assessment.effectiveness, e.correct + ' de ' + e.inspected + ' piezas') +
+          cellOf(e.missRate, e.assessment.missRate, e.missed + ' de ' + e.rejectDecisions + ' decisiones') +
+          cellOf(e.falseAlarmRate, e.assessment.falseAlarmRate,
+                 e.falseAlarms + ' de ' + e.acceptDecisions + ' decisiones') +
+          '</tr>';
+      });
+      $('errorRateTable').innerHTML = t4 + '</tbody>';
+      $('agreeNote').innerHTML = 'Nota. Una pieza cuenta como concordante solo si TODAS las ' +
+        'clasificaciones coinciden: dos aciertos y un fallo valen cero, no dos tercios. ' +
+        'Rechazo = "' + esc(r.meta.rejectCategory) + '", conforme = "' + esc(r.meta.acceptCategory) +
+        '". Los umbrales de fuga (2 %) y falsa alarma (5 %) son distintos a proposito: dejar pasar ' +
+        'una pieza mala le llega al cliente, rechazar una buena se queda en la planta.';
+    } else {
+      $('errorRateTable').innerHTML = '';
+      $('agreeNote').innerHTML = 'Nota. Una pieza cuenta como concordante solo si TODAS las ' +
+        'clasificaciones coinciden. La efectividad, el error de fuga y la falsa alarma necesitan ' +
+        'estandar y escala binaria; por eso no aparecen aqui.';
+    }
+
+    renderKappaTables(r);
+  }
+
+  function kappaRow(name, e) {
+    if (!e || e.kappa === null || e.kappa === undefined) {
+      return '<tr><td>' + esc(name) + '</td><td class="num">-</td><td class="num">-</td>' +
+             '<td class="num">-</td><td class="num">-</td><td></td></tr>';
+    }
+    return '<tr><td>' + esc(name) + '</td>' +
+      '<td class="num">' + kfmt(e.kappa) + '</td>' +
+      '<td class="num">' + kfmt(e.se) + '</td>' +
+      '<td class="num">' + (e.z === null ? '-' : e.z.toFixed(3)) + '</td>' +
+      '<td class="num">' + pval(e.p) + '</td>' +
+      '<td>' + (e.level ? '<span class="t ' + e.level + '">' +
+        esc(e.level === 'ok' ? 'buen acuerdo' : e.level === 'warn' ? 'marginal' : 'pobre') +
+        '</span>' : '') + '</td></tr>';
+  }
+
+  function renderKappaTables(r) {
+    var head = function (cap, first) {
+      return '<caption>' + cap + '</caption><thead><tr><th>' + first + '</th>' +
+        '<th class="num">Kappa</th><th class="num">Error estandar</th><th class="num">z</th>' +
+        '<th class="num">p</th><th>Criterio</th></tr></thead><tbody>';
+    };
+
+    if (r.kappaVsStandard.length) {
+      var t1 = head('Tabla 5. Kappa de Cohen contra el estandar', 'Evaluador');
+      r.kappaVsStandard.forEach(function (k) {
+        t1 += kappaRow(k.operator, k.overall);
+        k.byCategory.forEach(function (c) {
+          t1 += kappaRow('    ' + k.operator + ' - ' + c.category, c);
+        });
+      });
+      if (r.kappaAllVsStandard) t1 += kappaRow('Todos los evaluadores', r.kappaAllVsStandard.overall);
+      $('kappaStdTable').innerHTML = t1 + '</tbody>';
+    } else {
+      $('kappaStdTable').innerHTML = '<caption>Tabla 5. Kappa contra el estandar</caption><tbody>' +
+        '<tr><td>El estudio no trae estandar.</td></tr></tbody>';
+    }
+
+    if (r.kappaBetween) {
+      var t2 = head('Tabla 6. Kappa de Fleiss entre evaluadores', 'Categoria');
+      t2 += kappaRow('Global', r.kappaBetween.overall);
+      r.kappaBetween.byCategory.forEach(function (c) { t2 += kappaRow(c.category, c); });
+      $('kappaBetweenTable').innerHTML = t2 + '</tbody>';
+    } else {
+      $('kappaBetweenTable').innerHTML = '<caption>Tabla 6. Kappa entre evaluadores</caption><tbody>' +
+        '<tr><td>Con un solo evaluador no hay acuerdo entre evaluadores que medir.</td></tr></tbody>';
+    }
+
+    $('kappaNote').innerHTML = 'Nota. Kappa mide el acuerdo que queda despues de descontar el que se ' +
+      'explica por azar: 1 es acuerdo perfecto, 0 es el que daria contestar al aventon, y negativo es ' +
+      'peor que el azar. El error estandar y el valor p son los de la hipotesis nula kappa = 0, es ' +
+      'decir "no hay mas acuerdo del que da la casualidad". Contra el estandar se usa kappa de Cohen ' +
+      '(dos juicios por decision: el del evaluador y la verdad); entre evaluadores, kappa de Fleiss, ' +
+      'que admite varios jueces por pieza.';
+  }
+
   /* ------------------------------------------------------------------ *
    * Mensajes
    * ------------------------------------------------------------------ */
@@ -787,12 +1170,21 @@
      pagina lo vuelve a importar. */
   function exportCSV() {
     var vals = readValues();
-    var lines = ['operador,pieza,replica,medicion'];
+    /* La columna de estandar solo aparece en atributos, y solo si el estudio
+       lo trae: una columna vacia en todos los renglones es una columna que
+       alguien va a tener que explicar. El resto del formato no cambia, asi
+       que un archivo de variables se sigue leyendo igual que siempre. */
+    var std = isAttribute() ? readStandard() : {};
+    var withStd = Object.keys(std).length > 0;
+    var lines = ['operador,pieza,replica,' + (isAttribute() ? 'clasificacion' : 'medicion') +
+                 (withStd ? ',estandar' : '')];
     state.operators.forEach(function (op, oi) {
       partsOfOperator(oi).forEach(function (pt) {
         for (var k = 0; k < state.replicates; k++) {
-          lines.push([csvCell(op), csvCell(pt), k + 1,
-                      (vals[op + '\u0000' + pt + '\u0000' + k] || '').trim()].join(','));
+          var cells = [csvCell(op), csvCell(pt), k + 1,
+                       csvCell((vals[op + '\u0000' + pt + '\u0000' + k] || '').trim())];
+          if (withStd) cells.push(csvCell(std[pt] || ''));
+          lines.push(cells.join(','));
         }
       });
     });
@@ -841,10 +1233,13 @@
     var head = splitCSV(lines[0], sep).map(function (s) { return s.trim().toLowerCase(); });
     var iOp = idxOf(head, ['operador', 'operator']);
     var iPt = idxOf(head, ['pieza', 'parte', 'part']);
-    var iVal = idxOf(head, ['medicion', 'medición', 'valor', 'value', 'measurement']);
+    var iVal = idxOf(head, ['medicion', 'medición', 'valor', 'value', 'measurement',
+                            'clasificacion', 'clasificación', 'categoria', 'categoría', 'rating']);
+    var iStd = idxOf(head, ['estandar', 'estándar', 'standard', 'referencia', 'reference', 'verdad']);
     var iRep = idxOf(head, ['replica', 'réplica', 'replicate', 'repeticion', 'repetición']);
     if (iOp < 0 || iPt < 0 || iVal < 0) {
-      throw new Error('se esperan columnas operador, pieza y medicion (encabezado leido: ' + head.join(', ') + ')');
+      throw new Error('se esperan columnas operador, pieza y medicion o clasificacion ' +
+                      '(encabezado leido: ' + head.join(', ') + ')');
     }
     var rows = lines.slice(1).map(function (l) {
       var c = splitCSV(l, sep);
@@ -855,6 +1250,7 @@
         var rep = parseInt((c[iRep] || '').trim(), 10);
         if (isFinite(rep) && rep > 0) row.replicate = rep;
       }
+      if (iStd >= 0 && (c[iStd] || '').trim()) row.standard = (c[iStd] || '').trim();
       return row;
     }).filter(function (r) { return r.operator && r.part; });
     loadPayload({ data: rows });
@@ -889,6 +1285,21 @@
      pieza se repite entre operadores es anidado. Cualquier otra cosa (unas
      compartidas y otras no) no es ninguno de los dos y se deja como esta para
      que el motor lo diga con su propio mensaje. */
+  /* Antes de mirar el diseno hay que mirar el TIPO de dato: si las mediciones
+     no son numeros, no es un estudio de variables por mucho que las piezas se
+     repartan como cruzado. Se pide mayoria clara para no confundir un archivo
+     numerico con dos celdas mal escritas. */
+  function looksCategorical(rows) {
+    var n = 0, text = 0;
+    rows.forEach(function (r) {
+      var v = String(r.value === undefined || r.value === null ? '' : r.value).trim();
+      if (!v) return;
+      n++;
+      if (!isFinite(Number(v.replace(',', '.')))) text++;
+    });
+    return n > 0 && text / n > 0.8;
+  }
+
   function detectDesign(partsByOp) {
     if (partsByOp.length < 2) return null;
     var owner = {}, shared = 0, own = 0;
@@ -927,7 +1338,39 @@
        estando en cruzado daria un error de piezas incompletas que no dice nada
        del problema real, asi que se cambia el metodo y se avisa. */
     var notes = [];
-    var design = detectDesign(partsByOp);
+
+    /* El tipo de dato manda sobre el metodo activo, igual que el diseno: un
+       archivo de categorias importado estando en cruzado daria "no es un
+       numero valido" en cada celda, que no dice nada del problema real. */
+    var categorical = looksCategorical(rows);
+    if (categorical && !isAttribute()) {
+      applyMethod('atributos', false);
+      notes.push('El archivo trae clasificaciones y no mediciones numericas, asi que se cambio al ' +
+                 'metodo de atributos.');
+    } else if (!categorical && isAttribute()) {
+      applyMethod('cruzado', false);
+      notes.push('El archivo trae mediciones numericas, asi que se salio del metodo de atributos.');
+    }
+
+    /* Las categorias y el estandar salen del propio archivo. El estandar es
+       una propiedad de la pieza, asi que basta la primera fila que lo traiga. */
+    if (isAttribute()) {
+      var cats = [], std = {};
+      rows.forEach(function (r) {
+        var v = String(r.value || '').trim();
+        if (v && cats.indexOf(v) < 0) cats.push(v);
+        var t = String(r.part).trim(), sv = String(r.standard || '').trim();
+        if (sv) {
+          if (cats.indexOf(sv) < 0) cats.push(sv);
+          if (std[t] === undefined) std[t] = sv;
+        }
+      });
+      if (cats.length) $('categories').value = cats.join(', ');
+      renderRejectOptions();
+      state.standard = std;
+    }
+
+    var design = categorical ? null : detectDesign(partsByOp);
     if (design && design !== state.method && methodById(design).available) {
       applyMethod(design, false);
       notes.push('El archivo trae un diseno ' + design + ' (' + (design === 'anidado'
@@ -973,8 +1416,10 @@
       var key = o + '\u0000' + t;
       var rep = r.replicate > 0 ? r.replicate - 1 : (seen[key] === undefined ? 0 : seen[key]);
       seen[key] = rep + 1;
+      /* En atributos la celda es un <select>, no un <input>: el selector va
+         por los atributos de datos y no por el nombre de la etiqueta. */
       var inp = $('dataTable').querySelector(
-        'input[data-op="' + cssEsc(o) + '"][data-part="' + cssEsc(t) + '"][data-rep="' + rep + '"]');
+        '[data-op="' + cssEsc(o) + '"][data-part="' + cssEsc(t) + '"][data-rep="' + rep + '"]');
       if (inp) inp.value = String(r.value).trim();
     });
     validateLive();
@@ -983,6 +1428,27 @@
   }
 
   function cssEsc(s) { return String(s).replace(/["\\]/g, '\\$&'); }
+
+  /* Ejemplo del metodo de atributos. NO es un dataset publicado: es un caso
+     construido a mano para que se vea el metodo funcionando, con 30 piezas,
+     3 evaluadores y 3 replicas. El estandar alterna buena/mala (15 y 15), que
+     es la mezcla que pide AIAG, y los errores se concentran en seis piezas de
+     la zona limite. Cada evaluador falla de una manera distinta a proposito:
+     Ana rechaza de mas una pieza buena, Beto deja pasar dos malas sin
+     contradecirse nunca, y Cruz se contradice en tres. Asi se ve que las
+     cifras separan tres problemas que no se arreglan igual.
+     P = Pasa, N = No pasa; cada evaluador trae 30 piezas x 3 replicas. */
+  var ATTR_DEMO = {
+    standard: 'PNPNPNPNPNPNPNPNPNPNPNPNPNPNPN',
+    ratings: {
+      'Ana': 'PPPNNNPPPNNNPPPNNNNNNNPNPPPNNNPPPNNNPPPNNNPPP' +
+              'NNNPPPNNNPPPNNNPPPNNNPPPNNNPPPNNNPPPNNNPPPNNN',
+      'Beto': 'PPPNNNPPPNNNPPPNNNPPPNNNPPPNNNPPPNNNPPPNNNPPP' +
+              'NNNPPPNNNPPPNNNPPPPPPPPPPPPPPPNNNPPPNNNPPPNNN',
+      'Cruz': 'PPPNNNPPPNNNPPPNNNPPPPPPNPPNNNPPPNNNPPPNNNPPP' +
+              'NNNPPPNNNPPPNNNPPPNPNPPNNNNPPPNNNPPPNNNPPPNNN'
+    }
+  };
 
   /* Dataset de demostracion: apendice del manual AIAG MSA 4a ed. */
   var AIAG = [
@@ -1003,6 +1469,7 @@
      el motor anidado (ver tests/tests-nested.js). No es un estudio destructivo
      real, y por eso se dice en el aviso. */
   function loadDemo() {
+    if (isAttribute()) return loadAttributeDemo();
     var rows = [], ops = ['Operador A', 'Operador B', 'Operador C'], nested = isNested();
     AIAG.forEach(function (vals, i) {
       ops.forEach(function (op, oi) {
@@ -1020,6 +1487,32 @@
     }
   }
 
+  function loadAttributeDemo() {
+    var CAT = { P: 'Pasa', N: 'No pasa' }, rows = [];
+    $('categories').value = 'Pasa, No pasa';
+    renderRejectOptions();
+    $('rejectCategory').value = 'No pasa';
+
+    state.standard = {};
+    for (var i = 0; i < ATTR_DEMO.standard.length; i++) {
+      state.standard['Pieza ' + (i + 1)] = CAT[ATTR_DEMO.standard.charAt(i)];
+    }
+    Object.keys(ATTR_DEMO.ratings).forEach(function (op) {
+      var sig = ATTR_DEMO.ratings[op];
+      for (var k = 0; k < sig.length; k++) {
+        var part = 'Pieza ' + (Math.floor(k / 3) + 1);
+        rows.push({ operator: op, part: part, replicate: (k % 3) + 1,
+                    value: CAT[sig.charAt(k)], standard: state.standard[part] });
+      }
+    });
+    loadPayload({ data: rows });
+    showMessages($('configMsg'), [], ['Ejemplo cargado. NO es un dataset publicado: es un caso ' +
+      'construido a mano -30 piezas, 3 evaluadores, 3 replicas- para ver el metodo funcionando. ' +
+      'Cada evaluador falla distinto a proposito: Ana rechaza de mas una pieza buena, Beto deja ' +
+      'pasar dos malas sin contradecirse nunca, y Cruz se contradice en tres. Fijate en que las ' +
+      'cifras separan los tres problemas.']);
+  }
+
   function clearData() {
     if (!confirm('Se borraran todas las mediciones capturadas. Continuar?')) return;
     inputs().forEach(function (i) { i.value = ''; });
@@ -1032,13 +1525,14 @@
   function resetAll() {
     if (!confirm('Se reiniciara el estudio completo (configuracion y datos). Continuar?')) return;
     state = { method: state.method, operators: [], parts: [], partsByOperator: [],
-              replicates: 2, result: null };
+              replicates: 2, result: null, standard: {} };
     $('numOperators').value = 3; $('numParts').value = 10; $('numReplicates').value = 3;
     $('studyName').value = ''; renderStudyName();
     $('lsl').value = ''; $('usl').value = '';
     $('tolerance').value = ''; $('processMean').value = ''; $('historicalSigma').value = '';
     $('alpha').value = '0.25'; $('interactionMode').value = 'auto';
     $('svMultiplier').value = '6'; $('fDenominator').value = 'interaction';
+    $('categories').value = 'Pasa, No pasa'; renderRejectOptions();
     renderNameInputs();
     validateConfig();
     $('captureSection').hidden = true;
@@ -1120,14 +1614,19 @@
 
   function buildPrintAnnex() {
     var vals = readValues(), k = state.replicates;
-    var h = '<h2>Anexo. Mediciones capturadas</h2><table><thead><tr>' +
-      '<th class="txt">Operador</th><th class="txt">Pieza</th>';
+    var attr = isAttribute(), std = attr ? readStandard() : {};
+    var withStd = Object.keys(std).length > 0;
+    var h = '<h2>Anexo. ' + (attr ? 'Clasificaciones capturadas' : 'Mediciones capturadas') +
+      '</h2><table><thead><tr>' +
+      '<th class="txt">' + (attr ? 'Evaluador' : 'Operador') + '</th><th class="txt">Pieza</th>' +
+      (withStd ? '<th class="txt">Estandar</th>' : '');
     for (var i = 1; i <= k; i++) h += '<th>Replica ' + i + '</th>';
     h += '</tr></thead><tbody>';
     var n = 0;
     state.operators.forEach(function (op, oi) {
       partsOfOperator(oi).forEach(function (pt) {
-        h += '<tr><td class="txt">' + esc(op) + '</td><td class="txt">' + esc(pt) + '</td>';
+        h += '<tr><td class="txt">' + esc(op) + '</td><td class="txt">' + esc(pt) + '</td>' +
+             (withStd ? '<td class="txt">' + esc(std[pt] || '-') + '</td>' : '');
         for (var j = 0; j < k; j++) {
           var v = (vals[op + '\u0000' + pt + '\u0000' + j] || '').trim();
           if (v !== '') n++;
@@ -1136,7 +1635,8 @@
         h += '</tr>';
       });
     });
-    h += '</tbody></table><p class="annex-note">' + n + ' mediciones capturadas. ' +
+    h += '</tbody></table><p class="annex-note">' + n +
+      (attr ? ' clasificaciones capturadas. ' : ' mediciones capturadas. ') +
       'Los calculos de este reporte salen exactamente de estos datos.</p>';
     $('printAnnex').innerHTML = h;
   }
@@ -1154,6 +1654,19 @@
     CONFIG_FIELDS.forEach(function (f) {
       $(f.id).addEventListener('input', validateConfig);
     });
+    /* Cambiar las categorias rehace el desplegable de rechazo, la tabla de
+       estandar y las celdas de captura: las tres muestran la misma lista. */
+    if ($('categories')) {
+      renderRejectOptions();
+      $('categories').addEventListener('input', function () {
+        renderRejectOptions();
+        if (isAttribute() && !$('captureSection').hidden) {
+          buildDataTable(true);
+          wirePaste();
+          validateLive();
+        }
+      });
+    }
     ['numOperators', 'numParts'].forEach(function (id) {
       $(id).addEventListener('change', function () {
         if (validateConfig()) renderNameInputs();

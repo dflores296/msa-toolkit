@@ -1,0 +1,1927 @@
+{
+ "format": "msa-toolkit-study",
+ "version": 1,
+ "name": "Ejemplo de concordancia por atributos",
+ "description": "Caso construido a mano para el metodo de atributos: 30 piezas, 3 evaluadores, 3 replicas, escala Pasa / No pasa, con estandar. NO es un dataset publicado ni proviene de ninguna fuente oficial; sirve para ver el metodo funcionando y para ensenar a leer sus cifras.",
+ "provenance": "Construido para este repositorio. El estandar alterna buena y mala (15 y 15), la mezcla que recomienda AIAG. Los errores se concentran en seis piezas de la zona limite y cada evaluador falla distinto a proposito: Ana rechaza de mas una pieza buena (falsa alarma), Beto deja pasar dos malas sin contradecirse nunca (fuga), y Cruz se contradice en tres piezas (repetibilidad).",
+ "expected": {
+  "withinAppraiser": {
+   "Ana": 96.66666666666667,
+   "Beto": 100.0,
+   "Cruz": 90.0
+  },
+  "appraiserVsStandard": {
+   "Ana": 93.33333333333333,
+   "Beto": 93.33333333333333,
+   "Cruz": 86.66666666666667
+  },
+  "betweenAppraisers": 80.0,
+  "allVsStandard": 80.0
+ },
+ "config": {
+  "operators": [
+   "Ana",
+   "Beto",
+   "Cruz"
+  ],
+  "parts": 30,
+  "replicates": 3,
+  "categories": [
+   "Pasa",
+   "No pasa"
+  ],
+  "rejectCategory": "No pasa"
+ },
+ "data": [
+  {
+   "operator": "Ana",
+   "part": "Pieza 1",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 1",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 1",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 2",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 2",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 2",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 3",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 3",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 3",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 4",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 4",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 4",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 5",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 5",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 5",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 6",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 6",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 6",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 7",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 7",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 7",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 8",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 8",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 8",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 9",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 9",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 9",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 10",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 10",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 10",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 11",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 11",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 11",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 12",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 12",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 12",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 13",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 13",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 13",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 14",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 14",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 14",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 15",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 15",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 15",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 16",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 16",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 16",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 17",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 17",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 17",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 18",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 18",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 18",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 19",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 19",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 19",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 20",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 20",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 20",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 21",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 21",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 21",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 22",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 22",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 22",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 23",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 23",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 23",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 24",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 24",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 24",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 25",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 25",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 25",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 26",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 26",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 26",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 27",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 27",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 27",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 28",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 28",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 28",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 29",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 29",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 29",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 30",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 30",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Ana",
+   "part": "Pieza 30",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 1",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 1",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 1",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 2",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 2",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 2",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 3",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 3",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 3",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 4",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 4",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 4",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 5",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 5",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 5",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 6",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 6",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 6",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 7",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 7",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 7",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 8",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 8",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 8",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 9",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 9",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 9",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 10",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 10",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 10",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 11",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 11",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 11",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 12",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 12",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 12",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 13",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 13",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 13",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 14",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 14",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 14",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 15",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 15",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 15",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 16",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 16",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 16",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 17",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 17",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 17",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 18",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 18",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 18",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 19",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 19",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 19",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 20",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 20",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 20",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 21",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 21",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 21",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 22",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 22",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 22",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 23",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 23",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 23",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 24",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 24",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 24",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 25",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 25",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 25",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 26",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 26",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 26",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 27",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 27",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 27",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 28",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 28",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 28",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 29",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 29",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 29",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 30",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 30",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Beto",
+   "part": "Pieza 30",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 1",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 1",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 1",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 2",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 2",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 2",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 3",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 3",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 3",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 4",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 4",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 4",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 5",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 5",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 5",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 6",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 6",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 6",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 7",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 7",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 7",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 8",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 8",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 8",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 9",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 9",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 9",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 10",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 10",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 10",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 11",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 11",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 11",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 12",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 12",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 12",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 13",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 13",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 13",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 14",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 14",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 14",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 15",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 15",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 15",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 16",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 16",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 16",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 17",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 17",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 17",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 18",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 18",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 18",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 19",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 19",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 19",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 20",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 20",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 20",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 21",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 21",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 21",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 22",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 22",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 22",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 23",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 23",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 23",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 24",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 24",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 24",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 25",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 25",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 25",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 26",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 26",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 26",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 27",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 27",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 27",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 28",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 28",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 28",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 29",
+   "replicate": 1,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 29",
+   "replicate": 2,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 29",
+   "replicate": 3,
+   "value": "Pasa",
+   "standard": "Pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 30",
+   "replicate": 1,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 30",
+   "replicate": 2,
+   "value": "No pasa",
+   "standard": "No pasa"
+  },
+  {
+   "operator": "Cruz",
+   "part": "Pieza 30",
+   "replicate": 3,
+   "value": "No pasa",
+   "standard": "No pasa"
+  }
+ ]
+}

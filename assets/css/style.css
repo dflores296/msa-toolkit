@@ -21,6 +21,8 @@
   --bad: #b3261e;
   --bad-soft: #fbe6e4;
   --bad-border: #f0c9c5;
+  --bad-solid: #b3261e;
+  --bad-solid-hover: #971f19;
   --warn-border: #f0dcb4;
   --info-border: #c9dcf1;
   --toggle-track-bg: #f2f4f6;
@@ -65,6 +67,8 @@
   --bad: #f28b82;
   --bad-soft: #3a1512;
   --bad-border: #5e2b26;
+  --bad-solid: #c5372c;
+  --bad-solid-hover: #d64a3d;
   --warn-border: #4a3a12;
   --info-border: #2a4f70;
   --toggle-track-bg: #1a212b;
@@ -304,8 +308,15 @@ button:hover { background: var(--toggle-track-bg); }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 button.primary:hover { background: var(--accent-hover); }
 button.ghost { color: var(--accent-ink); border-color: var(--border-strong); }
-button.danger { color: var(--bad); border-color: var(--bad-border); }
-button.danger:hover { background: var(--bad-soft); }
+/* Solido, como el boton primario. Borrar mediciones o reiniciar el estudio no
+   se deshace, asi que el boton se ve igual de decidido que el que calcula: en
+   contorno pesaba menos que su consecuencia. El rojo de relleno es un token
+   aparte del rojo de texto -en oscuro, el que se lee bien sobre el fondo es
+   demasiado claro para llevar texto blanco encima-. */
+button.danger {
+  background: var(--bad-solid); border-color: var(--bad-solid); color: #fff;
+}
+button.danger:hover { background: var(--bad-solid-hover); border-color: var(--bad-solid-hover); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
 .actions .spacer { flex: 1 1 auto; }

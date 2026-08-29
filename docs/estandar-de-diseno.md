@@ -214,6 +214,26 @@ Dos temas, claro y oscuro, con tokens en `:root` y `:root[data-theme="dark"]`.
 Todo color de interfaz sale de un token; ninguno se escribe literal en el CSS de
 componentes.
 
+### Un boton pesa lo que pesa su consecuencia
+
+`.primary` (Calcular) y `.danger` (Limpiar mediciones, Reiniciar estudio) van
+**solidos**, con texto blanco. En contorno, los destructivos pesaban menos que
+lo que hacen: borrar la captura o reiniciar el estudio no se deshace, y el
+boton tiene que verse tan decidido como el que calcula. El contorno queda para
+lo reversible (`.ghost`, Recalcular).
+
+El rojo de relleno es un token aparte del rojo de texto:
+
+| Token | Para | Claro | Oscuro |
+|---|---|---|---|
+| `--bad` | texto y bordes de error | `#b3261e` | `#f28b82` |
+| `--bad-solid` | fondo de boton destructivo | `#b3261e` | `#c5372c` |
+
+No son el mismo color porque no hacen el mismo trabajo: en tema oscuro el rojo
+que se lee bien **sobre** el fondo es demasiado claro para llevar texto blanco
+**encima**. Con texto blanco, el relleno da 6.5:1 en claro y 5.3:1 en oscuro,
+por arriba del que ya tiene el boton primario.
+
 ### El semaforo no cambia con el tema
 
 Excepcion deliberada, y la mas importante: `--sem-ok`, `--sem-warn` y

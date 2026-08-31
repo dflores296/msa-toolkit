@@ -469,11 +469,39 @@
       kappaAllVsStandard = cohen(allPairs, cats);
     }
 
-    /* --- Efectividad, fuga y falsa alarma (binario con estandar) --------- */
+    /* --- Efectividad, fuga y falsa alarma (binario con estandar) ---------
+     *
+     * CUAL CATEGORIA ES EL RECHAZO NO SE ADIVINA.
+     *
+     * Antes, si no se indicaba, se tomaba cats[1]: la SEGUNDA categoria en
+     * orden de aparicion en los datos. Con eso, los mismos datos capturados
+     * en otro orden de filas intercambiaban el error de fuga con la falsa
+     * alarma -y son dos errores con umbrales distintos (2 % y 5 %) y
+     * consecuencias distintas: la fuga le llega al cliente, la falsa alarma
+     * se queda en la planta-. Un estudio decia "fuga 33 %, malo" donde el
+     * otro decia "falsa alarma 33 %, malo", sobre las mismas mediciones.
+     *
+     * Asi que ahora: sin categoria de rechazo explicita y valida, las tres
+     * cifras binarias NO se publican, y se dice por que. Es preferible una
+     * tabla que falta a una tabla que apunta al lado equivocado del proceso.
+     * El acuerdo y kappa no dependen de esta eleccion y se publican igual. */
     var effectiveness = [], reject = null, accept = null;
-    if (meta.hasStandard && cats.length === 2) {
-      reject = o.rejectCategory && cats.indexOf(String(o.rejectCategory).trim()) >= 0
-             ? String(o.rejectCategory).trim() : cats[1];
+    var wanted = (o.rejectCategory === undefined || o.rejectCategory === null)
+               ? '' : String(o.rejectCategory).trim();
+    if (meta.hasStandard && cats.length === 2 && !wanted) {
+      warnings.push('No se indico cual de las dos categorias significa pieza NO CONFORME, asi que ' +
+        'no se calculan la efectividad, el error de fuga ni la falsa alarma. No se elige por ti: ' +
+        'la fuga (dejar pasar una pieza mala) y la falsa alarma (rechazar una buena) tienen ' +
+        'umbrales distintos -2 % y 5 %- y consecuencias distintas, asi que confundirlas invierte ' +
+        'el diagnostico. Elige la categoria de rechazo y vuelve a calcular. El acuerdo y kappa ' +
+        'no dependen de esa eleccion y si estan abajo.');
+    } else if (meta.hasStandard && cats.length === 2 && cats.indexOf(wanted) < 0) {
+      warnings.push('La categoria de rechazo indicada ("' + wanted + '") no aparece en el estudio, ' +
+        'cuyas categorias son "' + cats.join('" y "') + '". No se calculan la efectividad, el ' +
+        'error de fuga ni la falsa alarma: sin saber cual lado es el no conforme, los dos errores ' +
+        'saldrian intercambiados.');
+    } else if (meta.hasStandard && cats.length === 2) {
+      reject = wanted;
       accept = cats[0] === reject ? cats[1] : cats[0];
 
       effectiveness = ops.map(function (op) {

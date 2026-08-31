@@ -367,7 +367,11 @@ td.num, th.num { font-variant-numeric: tabular-nums; font-family: var(--mono); f
 .indent-2 { padding-left: 40px !important; }
 p.note { font-style: italic; color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 0; }
 
-input.invalid { border-color: var(--bad); background: var(--bad-soft); }
+/* La categoria de rechazo se marca igual que un campo numerico invalido
+   cuando falta elegirla y el estudio la necesita (dos categorias y
+   estandar capturado): de ella dependen la efectividad, el error de fuga
+   y la falsa alarma. */
+input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-soft); }
 
 /* Tabla de captura de datos: ocupa todo el ancho de su tarjeta. Operador y
    Pieza miden lo que necesitan; las columnas de replica se reparten el resto. */

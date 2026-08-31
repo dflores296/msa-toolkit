@@ -408,19 +408,41 @@
 
   /* El desplegable de "categoria de rechazo" se rearma cuando cambian las
      categorias, conservando la eleccion si sigue existiendo. Solo tiene
-     sentido con dos: con tres o mas no hay una decision binaria que juzgar. */
+     sentido con dos: con tres o mas no hay una decision binaria que juzgar.
+
+     La primera opcion va VACIA y es la que queda mientras nadie elija. Antes
+     se preseleccionaba cats[1] -la segunda categoria de la lista-, asi que un
+     archivo importado, cuyas categorias salen en orden de aparicion en los
+     datos, podia dejar elegido el lado equivocado sin decir nada: la fuga y
+     la falsa alarma salian intercambiadas. No se adivina. */
   function renderRejectOptions() {
     var sel = $('rejectCategory');
     if (!sel) return;
     var cats = parseCategories(), prev = sel.value;
-    sel.innerHTML = cats.map(function (c) {
-      return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
-    }).join('');
-    sel.value = cats.indexOf(prev) >= 0 ? prev : (cats[1] || cats[0] || '');
+    sel.innerHTML = '<option value="">(elige cual es no conforme)</option>' +
+      cats.map(function (c) {
+        return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
+      }).join('');
+    sel.value = cats.indexOf(prev) >= 0 ? prev : '';
     sel.disabled = cats.length !== 2;
     sel.title = cats.length === 2
-      ? 'Cual de las dos categorias significa pieza no conforme.'
+      ? 'Cual de las dos categorias significa pieza no conforme. Define que error es una fuga ' +
+        '(dejarla pasar) y cual una falsa alarma (rechazar una buena). Sin esta eleccion no se ' +
+        'calculan efectividad, fuga ni falsa alarma.'
       : 'Solo aplica con dos categorias: con mas no hay decision binaria que juzgar.';
+    markRejectNeeded();
+  }
+
+  /* Marca el desplegable solo cuando la eleccion de verdad hace falta: metodo
+     de atributos, dos categorias y estandar capturado. Sin estandar no hay
+     efectividad ni errores que calcular, asi que pedirla seria ruido. */
+  function markRejectNeeded() {
+    var sel = $('rejectCategory');
+    if (!sel) return;
+    var need = isAttribute() && parseCategories().length === 2 && !sel.value &&
+               Object.keys(readStandard()).length > 0;
+    sel.classList.toggle('invalid', need);
+    sel.setAttribute('aria-invalid', need ? 'true' : 'false');
   }
 
   /* El estandar es una propiedad de la pieza, asi que se captura una vez por
@@ -635,8 +657,11 @@
       var std = readStandard(), n = Object.keys(std).length;
       if (n > 0 && n < state.parts.length) {
         msg = 'Datos completos, estandar a medias (' + n + ' de ' + state.parts.length + ')';
+      } else if (n > 0 && parseCategories().length === 2 && !$('rejectCategory').value) {
+        msg = 'Datos completos, falta elegir la categoria de rechazo';
       }
     }
+    if (attr) markRejectNeeded();
     $('captureStatus').textContent = msg;
     $('captureStatus').style.color = (bad || empty) ? 'var(--warn)' : 'var(--ok)';
   }
@@ -972,9 +997,13 @@
     effective: 'Porcentaje de piezas que el evaluador clasifico correctamente en todas sus replicas. ' +
         'AIAG: 90 % o mas aceptable, menos de 80 % inaceptable. Se reporta el peor evaluador.',
     miss: 'De todas las decisiones tomadas sobre piezas NO conformes, que porcentaje las dejo pasar. ' +
-        'Es el error que llega al cliente, por eso su umbral es el mas estricto: 2 %.',
+        'Es el error que llega al cliente, por eso su umbral es el mas estricto: 2 %. Se reporta el ' +
+        'peor evaluador. Cual categoria es el rechazo lo eliges tu en la configuracion: de esa ' +
+        'eleccion depende cual de los dos errores es cual.',
     falseAlarm: 'De todas las decisiones tomadas sobre piezas conformes, que porcentaje las rechazo. ' +
-        'Cuesta scrap y retrabajo, pero no sale de la planta: umbral 5 %.'
+        'Cuesta scrap y retrabajo, pero no sale de la planta: umbral 5 %. Se reporta el peor ' +
+        'evaluador. Cual categoria es el rechazo lo eliges tu en la configuracion: de esa eleccion ' +
+        'depende cual de los dos errores es cual.'
   };
 
   function renderAttributeVerdict(r) {
@@ -992,9 +1021,15 @@
     if (m.worstEffectiveness !== null) {
       cards.push(card('Efectividad (peor)', pc(m.worstEffectiveness), a.effectiveness, ATTR_HELP.effective));
     }
+    /* Las dos tarjetas de error llevan en el titulo LA CATEGORIA, no solo el
+       nombre del error. Un "Error de fuga: 6.7 %" a secas obliga a bajar hasta
+       la nota de la Tabla 4 para saber que lado del proceso es cual, y esas
+       dos tarjetas son justamente las que se leen para decidir. */
     if (m.worstMiss !== null) {
-      cards.push(card('Error de fuga (peor)', pc(m.worstMiss), a.missRate, ATTR_HELP.miss));
-      cards.push(card('Falsa alarma (peor)', pc(m.worstFalseAlarm), a.falseAlarmRate, ATTR_HELP.falseAlarm));
+      cards.push(card('Fuga: dejar pasar "' + r.meta.rejectCategory + '"',
+                      pc(m.worstMiss), a.missRate, ATTR_HELP.miss));
+      cards.push(card('Falsa alarma: rechazar "' + r.meta.acceptCategory + '"',
+                      pc(m.worstFalseAlarm), a.falseAlarmRate, ATTR_HELP.falseAlarm));
     }
     $('verdicts').innerHTML = cards.join('');
   }
@@ -1384,8 +1419,17 @@
         }
       });
       if (cats.length) $('categories').value = cats.join(', ');
-      renderRejectOptions();
       state.standard = std;
+      renderRejectOptions();
+      /* Las categorias del archivo salen en orden de aparicion, que no dice
+         nada de cual es el no conforme. Antes se preseleccionaba la segunda y
+         se calculaba con ella; ahora se pide, porque de esa eleccion depende
+         cual error es la fuga y cual la falsa alarma. */
+      if (cats.length === 2 && Object.keys(std).length && !$('rejectCategory').value) {
+        notes.push('El archivo trae estandar y dos categorias ("' + cats.join('" y "') + '"). ' +
+          'Elige arriba cual significa pieza NO CONFORME: de esa eleccion dependen la efectividad, ' +
+          'el error de fuga y la falsa alarma, y el orden de las filas del archivo no lo dice.');
+      }
     }
 
     var design = categorical ? null : detectDesign(partsByOp);

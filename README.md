@@ -48,6 +48,16 @@ componentes de varianza. Sin estándar solo se puede saber si los evaluadores
 coinciden; pueden estar todos de acuerdo y todos equivocados, y la página lo
 dice.
 
+**La categoría de rechazo se elige, no se adivina.** Con dos categorías y
+estándar, hay que decir cuál significa *pieza no conforme*: de esa elección
+depende cuál error es una **fuga** (dejar pasar una mala, le llega al cliente,
+umbral 2 %) y cuál una **falsa alarma** (rechazar una buena, se queda en la
+planta, umbral 5 %). Mientras no se elija, la efectividad y los dos errores no
+se calculan y la página dice por qué; el acuerdo y kappa no dependen de esa
+elección y se publican igual. Antes se tomaba por defecto la segunda categoría
+en orden de aparición, así que los mismos datos capturados en otro orden de
+filas intercambiaban los dos errores.
+
 Los datos se pueden exportar e importar como CSV o JSON, y la vista de
 resultados está preparada para imprimir a PDF.
 

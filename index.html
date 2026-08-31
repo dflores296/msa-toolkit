@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260830h">
+<link rel="stylesheet" href="assets/css/style.css?v=20260831a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -105,7 +105,7 @@
       <div class="grid cols-4" data-methods="atributos" style="margin-bottom:14px">
         <label class="field" title="Las categorias en que se clasifica cada pieza, separadas por coma. Con dos (lo normal: pasa / no pasa) se calculan ademas efectividad, fuga y falsa alarma; con tres o mas solo concordancia y kappa."><span>Categorias</span>
           <input type="text" id="categories" value="Pasa, No pasa" placeholder="Pasa, No pasa"></label>
-        <label class="field" title="Cual de las dos categorias significa pieza no conforme. Define que error es una fuga (dejarla pasar) y cual una falsa alarma (rechazar una buena). Solo aplica con dos categorias."><span>Categoria de rechazo</span>
+        <label class="field" title="Cual de las dos categorias significa pieza no conforme. Define que error es una fuga (dejarla pasar) y cual una falsa alarma (rechazar una buena), que tienen umbrales distintos (2 % y 5 %) porque uno le llega al cliente y el otro se queda en la planta. No se elige por ti: sin esta eleccion no se calculan efectividad, fuga ni falsa alarma. Solo aplica con dos categorias."><span>Categoria de rechazo</span>
           <select id="rejectCategory"></select></label>
       </div>
 
@@ -423,12 +423,12 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260830h"></script>
-<script src="assets/js/stats.js?v=20260830h"></script>
-<script src="assets/js/anova.js?v=20260830h"></script>
-<script src="assets/js/anova-nested.js?v=20260830h"></script>
-<script src="assets/js/attribute.js?v=20260830h"></script>
-<script src="assets/js/charts.js?v=20260830h"></script>
-<script src="assets/js/app.js?v=20260830h"></script>
+<script src="assets/vendor/chart.umd.js?v=20260831a"></script>
+<script src="assets/js/stats.js?v=20260831a"></script>
+<script src="assets/js/anova.js?v=20260831a"></script>
+<script src="assets/js/anova-nested.js?v=20260831a"></script>
+<script src="assets/js/attribute.js?v=20260831a"></script>
+<script src="assets/js/charts.js?v=20260831a"></script>
+<script src="assets/js/app.js?v=20260831a"></script>
 </body>
 </html>

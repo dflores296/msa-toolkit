@@ -422,5 +422,85 @@
     });
   });
 
+  /* ------------------------------------------------------------------------
+   * La categoria de rechazo no se adivina (F-04 de la auditoria).
+   *
+   * El motor tomaba cats[1] -la SEGUNDA categoria en orden de aparicion en los
+   * datos- cuando no se le indicaba ninguna. Con eso, los mismos datos
+   * capturados en otro orden de filas intercambiaban el error de fuga con la
+   * falsa alarma, que tienen umbrales distintos (2 % y 5 %) y consecuencias
+   * distintas. La prueba de invariancia de orden que ya existia no lo veia
+   * porque siempre pasa CATS con la categoria explicita, que es justo la
+   * condicion bajo la cual la propiedad si se cumple.
+   * ----------------------------------------------------------------------*/
+
+  /* El mismo estudio, con la primera fila cambiada de sitio. Ana comete
+     UNA FALSA ALARMA (rechaza P1, que es buena) y ninguna fuga. */
+  function fugaVsFalsaAlarmaRows(malaPrimero) {
+    var truth = { P1: PASA, P2: PASA, P3: PASA, P4: NOPASA };
+    var calls = { P1: NOPASA, P2: PASA, P3: PASA, P4: NOPASA };
+    var order = malaPrimero ? ['P4', 'P1', 'P2', 'P3'] : ['P2', 'P1', 'P3', 'P4'];
+    var rows = [];
+    order.forEach(function (pt) {
+      for (var k = 0; k < 2; k++) {
+        rows.push({ operator: 'Ana', part: pt, replicate: k + 1, value: calls[pt], standard: truth[pt] });
+      }
+    });
+    return rows;
+  }
+
+  test('F-04: sin categoria de rechazo no se inventan efectividad, fuga ni falsa alarma', function () {
+    var r = A.compute(handRows(), { categories: [PASA, NOPASA] });   // sin rejectCategory
+    assert(r.effectiveness.length === 0, 'no publica efectividad por evaluador');
+    assert(r.meta.rejectCategory === null, 'no elige una categoria de rechazo');
+    assert(r.meta.acceptCategory === null, 'no elige una categoria conforme');
+    assert(r.metrics.worstMiss === null && r.metrics.worstFalseAlarm === null,
+           'no hay cifras de fuga ni de falsa alarma en el resumen');
+    var dijo = r.warnings.some(function (w) { return w.indexOf('NO CONFORME') >= 0; });
+    assert(dijo, 'avisa por que faltan las tres cifras');
+    /* Lo que NO depende de esa eleccion se sigue publicando. */
+    near(r.betweenAppraisers.pct, 50, 1e-9, 'entre evaluadores se calcula igual');
+    assert(r.kappaAllVsStandard && r.kappaAllVsStandard.overall, 'kappa se calcula igual');
+  });
+
+  test('F-04: una categoria de rechazo que no existe en el estudio se rechaza, no se sustituye', function () {
+    var r = A.compute(handRows(), { categories: [PASA, NOPASA], rejectCategory: 'Rechazo' });
+    assert(r.effectiveness.length === 0, 'no publica efectividad');
+    assert(r.meta.rejectCategory === null, 'no cae en un default posicional');
+    var dijo = r.warnings.some(function (w) { return w.indexOf('"Rechazo"') >= 0; });
+    assert(dijo, 'nombra la categoria que no encontro');
+  });
+
+  test('F-04: el orden de las filas ya no intercambia la fuga con la falsa alarma', function () {
+    /* Antes: con la pieza mala primero, cats salia ["No pasa","Pasa"], el
+       default cats[1] elegia "Pasa" como rechazo y las dos cifras se
+       intercambiaban. Verdad del caso: Ana rechaza P1 en sus dos replicas, o
+       sea 2 falsas alarmas de 6 decisiones sobre piezas conformes (33.33 %),
+       y 0 fugas de 2 decisiones sobre la unica pieza no conforme. */
+    var opts = { rejectCategory: NOPASA };
+    var a = A.compute(fugaVsFalsaAlarmaRows(false), opts);
+    var b = A.compute(fugaVsFalsaAlarmaRows(true), opts);
+    near(a.effectiveness[0].missRate, 0, 1e-9, 'fuga con la buena primero');
+    near(a.effectiveness[0].falseAlarmRate, 100 / 3, 1e-9, 'falsa alarma con la buena primero');
+    near(b.effectiveness[0].missRate, a.effectiveness[0].missRate, 1e-12, 'la fuga no cambia con el orden');
+    near(b.effectiveness[0].falseAlarmRate, a.effectiveness[0].falseAlarmRate, 1e-12,
+         'la falsa alarma no cambia con el orden');
+    /* Y la deteccion de categorias si depende del orden, como siempre: es
+       exactamente por eso que no se puede usar para elegir el rechazo. */
+    assert(a.meta.categories[0] === PASA && b.meta.categories[0] === NOPASA,
+           'el orden de aparicion de las categorias si cambia; por eso no sirve de default');
+  });
+
+  test('F-04: elegir el otro lado da el resultado espejo, y es una eleccion, no un accidente', function () {
+    var rows = fugaVsFalsaAlarmaRows(false);
+    var normal = A.compute(rows, { rejectCategory: NOPASA }).effectiveness[0];
+    var invertido = A.compute(rows, { rejectCategory: PASA }).effectiveness[0];
+    near(invertido.missRate, normal.falseAlarmRate, 1e-12, 'la fuga invertida es la falsa alarma');
+    near(invertido.falseAlarmRate, normal.missRate, 1e-12, 'y al reves');
+    /* El punto de F-04: los dos resultados son igual de "validos" para el
+       motor y opuestos para la planta. Por eso la eleccion tiene que venir de
+       quien conoce el proceso, y no del orden en que se tecleo el estudio. */
+  });
+
   global.ATTRIBUTE_HAND_CASE = HAND;
 })(typeof window !== 'undefined' ? window : globalThis);

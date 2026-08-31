@@ -24,7 +24,7 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
 | F-05 · Reporte con datos nuevos y tablas viejas | P1 | **Cerrado** | este commit |
 | F-06 · Atributos 0/1 → ANOVA de variables | P1 | **Cerrado** | este commit |
-| F-07 · %GRR sin intervalo de confianza | P1 | **CERRADO en el cruzado — abierto en el anidado** | `0105a08` |
+| F-07 · %GRR sin intervalo de confianza | P1 | **CERRADO** (pendiente cotejo con Minitab) | `0105a08` |
 | F-14 · Inyección de fórmulas en el CSV exportado | P1 | Pendiente | — |
 | F-15 · «Validado contra AIAG» afirmado para los tres métodos | P1 | Pendiente | — |
 | F-08 · `__proto__` como nombre → NaN silencioso | P2 | Pendiente | — |
@@ -193,23 +193,33 @@ veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
 
-### F-07 — Un punto sin intervalo decidía la aceptación · `0105a08` → `55c921f` · **CERRADO EN EL CRUZADO**
+### F-07 — Un punto sin intervalo decidía la aceptación · `0105a08` → `55c921f` · **CERRADO**
 
-> **ACTUALIZACIÓN. El bloqueo de fuente se levantó y el MLS está implementado
-> para el modelo cruzado.** Las fórmulas se transcribieron desde capturas de las
-> páginas de Minitab aportadas por el usuario, no desde la red. El registro
-> completo —qué se leyó verbatim, las **nueve erratas** encontradas en la fuente,
-> los tres puntos donde la implementación se aparta de lo impreso y con qué
-> álgebra, y la constante `H*` que Minitab usa sin definir— está en
+> **ACTUALIZACIÓN. El bloqueo de fuente se levantó y el MLS está implementado en
+> los tres modelos**: cruzado con interacción, cruzado sin ella y anidado. Las
+> fórmulas se transcribieron desde capturas de las páginas de Minitab aportadas
+> por el usuario, no desde la red. El registro completo —qué se leyó verbatim,
+> las **diez erratas** encontradas en la fuente, los puntos donde la
+> implementación se aparta de lo impreso y con qué álgebra, y la constante `H*`
+> que Minitab usa sin definir— está en
 > [`docs/mls-transcripcion.md`](mls-transcripcion.md). El módulo es
 > `assets/js/mls.js`; las pruebas, `tests/tests-mls.js`; la evidencia
-> regenerable, `tests/mls-cobertura.js`.
+> regenerable, `tests/mls-cobertura.js`. Ningún modelo se rotula ya como
+> experimental. El GPQ se conserva como segunda opinión independiente y es lo
+> que las pruebas usan de juez.
 >
-> **Lo que sigue abierto:** el MLS del modelo **anidado**, que necesita
-> transcribir las páginas propias de Minitab para ese diseño y donde vive la
-> sub-cobertura del 86-88 % registrada como limitación 3. El anidado sigue
-> usando GPQ y sigue rotulado como experimental. También sigue abierta la
-> constante `H*`, resuelta empíricamente por cobertura y no por fuente.
+> **Lo que sigue pendiente, y por qué no bloquea el cierre:**
+>
+> - **El cotejo contra una corrida real de Minitab.** Es la validación que
+>   falta: las comprobaciones hechas son internas o contra el GPQ. Está
+>   planificada.
+> - **`H*_qr`**, que Minitab usa sin definir en ninguna de las tres páginas.
+>   Resuelto por cobertura medida y rotulado como elección empírica. Sólo afecta
+>   al límite inferior del %GRR.
+> - **La limitación 3 (sub-cobertura del anidado) mejora pero no desaparece:**
+>   el 10×3×3 pasa de 89.5 % a 90.0 % y el 5×3×2 de 87.3 % a 88.3 %, contra un
+>   90 % nominal. Cambiar de método no era la causa entera. Queda registrada
+>   como limitación, no como hallazgo abierto.
 >
 > **Lo que NO cambió:** el intervalo sigue sin dictaminar. Los dos motivos por
 > los que se retiró esa política son geométricos y ajenos al método —la banda

@@ -9,10 +9,17 @@
  * razones de varianza, transcrito de sus paginas de metodos y formulas. Vive
  * en mls.js; aqui solo se le da de comer la tabla ANOVA. NO es experimental.
  *
- * Anidado: GPQ (generalized pivotal quantity), inferencia generalizada de
- * Weerahandi. SIGUE SIENDO EXPERIMENTAL. Minitab documenta el anidado en
- * paginas propias que no se han transcrito, asi que ese caso no esta validado
- * contra referencia publicada y se rotula como tal en pantalla y en el reporte.
+ * Anidado: tambien MLS, transcrito de las paginas propias que Minitab dedica
+ * al estudio anidado. Cambia el reparto de indices -el pivote es el cuadrado
+ * medio de pieza dentro de operador- y los coeficientes; la maquinaria es la
+ * misma. Tampoco es experimental.
+ *
+ * El GPQ (generalized pivotal quantity, inferencia generalizada de Weerahandi)
+ * sigue implementado y accesible con `options.method = 'GPQ'`. Ya no es el
+ * metodo de ningun modelo: se conserva como SEGUNDA OPINION INDEPENDIENTE, que
+ * es lo que le da valor -es la comparacion contra el GPQ la que caza los
+ * errores de transcripcion del MLS, porque su matematica no comparte nada con
+ * la de las cuadraticas-. Las pruebas lo usan de juez.
  *
  * Una version anterior de esta cabecera afirmaba que el GPQ era el metodo de
  * Minitab. Era falso y esta retirado. Ver docs/f07-validacion-gpq.md.
@@ -231,7 +238,12 @@
    * --------------------------------------------------------------------- */
   var MLS_SOURCES = {
     'with-interaction':    [1, 'Parte', 2, 'Operador', 3, 'Operador * Parte', 4, 'Repetibilidad'],
-    'without-interaction': [1, 'Parte', 2, 'Operador', 3, 'Repetibilidad']
+    'without-interaction': [1, 'Parte', 2, 'Operador', 3, 'Repetibilidad'],
+    /* En el anidado el orden de Minitab es otro: el operador es S1 y la pieza
+       dentro del operador es S2, que ademas pasa a ser el pivote de la
+       cuadratica. No es una reetiquetacion cosmetica; mls.js lo trata con su
+       propio reparto de papeles. */
+    'nested':              [1, 'Operador', 2, 'Pieza (Operador)', 3, 'Repetibilidad']
   };
 
   function mlsRatio(result, sources, d, conf) {
@@ -248,8 +260,11 @@
       df[map[i]] = row.df;
     }
     /* I son las piezas, J los operadores, K las replicas: la notacion de
-       Minitab. En el cruzado `d.p` ya son las piezas compartidas. */
-    return mls.gageTotal(ms, df, { I: d.p, J: d.o, K: d.r }, { conf: conf });
+       Minitab. `d.p` ya trae las piezas que corresponden a cada modelo -las
+       compartidas en el cruzado, las de cada operador en el anidado-, que es
+       justo lo que la formula del anidado llama I. */
+    return mls.gageTotal(ms, df, { I: d.p, J: d.o, K: d.r },
+                         { conf: conf, model: result.model === 'nested' ? 'nested' : 'crossed' });
   }
 
   function forResult(result, options) {

@@ -217,18 +217,22 @@ El %GRR es una estimación, no un número exacto: doce estudios del **mismo**
 sistema dan entre 20 % y 45 %. La aplicación publica su intervalo con 95 % de
 confianza por omisión (seleccionable entre 90, 95 y 99).
 
-**Qué método se usa, y cuándo.** En el modelo **cruzado** —con o sin término de
-interacción— el intervalo sale de **MLS** (*Modified Large Sample*), con la
-**aproximación de Satterthwaite** cuando la cuadrática del MLS no tiene solución
-real. Es el método publicado por Minitab para los intervalos de razones de
-varianza, procedente de Burdick & Graybill (1992); vive en `assets/js/mls.js`.
-En el modelo **anidado** el intervalo sigue saliendo del **GPQ**, que es una
-implementación **experimental de esta aplicación** y se rotula como tal: Minitab
-documenta el anidado en páginas propias que no se han transcrito.
+**Qué método se usa.** Los **tres modelos** —cruzado con interacción, cruzado
+sin ella y anidado— sacan el intervalo de **MLS** (*Modified Large Sample*), con
+la **aproximación de Satterthwaite** cuando la cuadrática del MLS no tiene
+solución real. Es el método publicado por Minitab para los intervalos de razones
+de varianza, procedente de Burdick & Graybill (1992); vive en
+`assets/js/mls.js`. Ninguno es ya experimental.
 
-De dónde salió cada fórmula, las nueve erratas encontradas en la fuente y los
-tres puntos donde esta implementación se aparta de lo impreso —con el álgebra
-que lo justifica— están en **`docs/mls-transcripcion.md`**.
+El **GPQ** sigue implementado y accesible con `options.method = 'GPQ'`, pero ya
+no es el método de ningún modelo: se conserva como **segunda opinión
+independiente**, y es lo que las pruebas usan de juez. Su matemática no comparte
+nada con la de las cuadráticas, y por eso caza errores de transcripción que la
+cobertura sola no detecta.
+
+De dónde salió cada fórmula, las diez erratas encontradas en la fuente y los
+puntos donde esta implementación se aparta de lo impreso —con el álgebra que lo
+justifica— están en **`docs/mls-transcripcion.md`**.
 
 **El intervalo no dictamina**, y tener ya el método publicado no reabre esa
 política. Quien dictamina es la **estimación puntual** con las bandas AIAG.
@@ -242,9 +246,10 @@ Se valida por **cobertura** y por concordancia con un segundo método
 independiente, no contra una tabla copiada: `tests/tests-mls.js` comprueba que el
 intervalo colapsa sobre el estimador puntual cuando no hay incertidumbre, que
 concuerda con el GPQ donde los dos son de fiar y que cubre a la tasa nominal.
-`tests/mls-cobertura.js` regenera la evidencia. El GPQ del anidado es además
-**determinista**: la semilla sale de los propios cuadrados medios, así que el
-mismo estudio da siempre el mismo intervalo.
+`tests/mls-cobertura.js` regenera la evidencia. El MLS es determinista por
+construcción —no simula nada—, y el GPQ también lo es: su semilla sale de los
+propios cuadrados medios, así que el mismo estudio da siempre el mismo
+intervalo.
 
 Consecuencia que conviene saber de antemano: un estudio 10×3×3 **no alcanza** a
 clasificar un gage cuyo %GRR ronda el umbral, porque con 3 operadores la
@@ -370,8 +375,8 @@ assets/js/anova-nested.js motor anidado (pruebas destructivas)
 assets/js/attribute.js   motor de concordancia por atributos
 assets/js/design.js      identidad de la pieza y enrutado de método — sin DOM
 assets/js/report.js      encabezado del reporte impreso — sin DOM
-assets/js/mls.js         intervalo MLS/Satterthwaite de la razon (cruzado) — sin DOM
-assets/js/interval.js    intervalo de la razon V_GRR/V_Total: MLS en cruzado, GPQ en anidado
+assets/js/mls.js         intervalo MLS/Satterthwaite de la razon, cruzado y anidado — sin DOM
+assets/js/interval.js    intervalo de la razon V_GRR/V_Total: MLS, con el GPQ de segunda opinion
                          (design.js va ANTES que anova-nested.js: lo usa al cargar)
 assets/js/charts.js      las ocho gráficas (Chart.js)
 assets/js/app.js         interfaz y flujo

@@ -22,26 +22,49 @@
  *   Var_Pieza             = (CM_Pieza(Op) - CM_Rep) / r
  *   Var_Reproducibilidad  = (CM_Op - CM_Pieza(Op)) / (n r)
  *
+ * IDENTIDAD DE LA PIEZA (F-02). En este diseno la identidad estadistica de
+ * una pieza es el PAR (operador, pieza), no el nombre suelto: la pieza "1" de
+ * "Ana" es "Ana|1" y la pieza "1" de "Beto" es "Beto|1", dos objetos fisicos
+ * distintos. Numerar las piezas de cada operador 1..n es la convencion mas
+ * natural para una prueba destructiva, y antes esta funcion la rechazaba
+ * mandando al metodo cruzado -- el metodo que asume justo lo contrario de lo
+ * que ocurrio fisicamente. El nombre local se conserva intacto (meta.parts,
+ * design.partsByOperator, las etiquetas de las graficas) y solo la identidad
+ * interna se califica (meta.partIds, design.partIds).
+ *
+ * Que dos operadores usen el mismo numero no demuestra que midieran la misma
+ * pieza: no hay dato en un estudio destructivo que pueda demostrarlo. Por eso
+ * la coincidencia produce un AVISO, no un error ni un cambio de metodo.
+ *
  * Sin dependencias. Sin DOM. Determinista. Reutilizable desde los tests.
  * Reutiliza de anova.js las constantes de carta, la clasificacion AIAG
  * (assess) y la resolucion de tolerancia: no dependen del diseno.
+ * Reutiliza de design.js la identidad calificada y los textos de aviso.
  * ==========================================================================*/
 (function (global) {
   'use strict';
 
   var mean = function (a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return s / a.length; };
   var sqrt0 = function (v) { return Math.sqrt(Math.max(0, v)); };
-  var SEP = '\u0000';
+  /* La clave interna de celda la fija design.js, para que la pantalla, el
+     motor y las pruebas partan la misma cadena por el mismo sitio. */
+  var SEP = global.MSADesign.KEY_SEP;
 
   /* ------------------------------------------------------------------------
    * validate(rows) - rows: [{operator, part, value}, ...]
    * Devuelve { ok, errors[], warnings[], meta{operators, partsByOperator,
-   *            parts, partsPerOperator, replicates, n} }
+   *            parts, partIds, repeatedLabels, partsPerOperator, replicates, n} }
    *
    * La regla que separa este diseno del cruzado: cada pieza pertenece a UN
-   * solo operador. Una pieza que aparece bajo dos operadores no es un nombre
-   * repetido por descuido, es un estudio cruzado capturado en el metodo
-   * equivocado, y por eso el mensaje manda al otro metodo.
+   * solo operador. Eso es una propiedad del EXPERIMENTO, y los nombres no la
+   * pueden contradecir. Que Ana y Beto etiqueten los suyos "1" no convierte
+   * dos objetos rotos en uno: son "Ana|1" y "Beto|1", y asi se agrupan.
+   *
+   * Antes de F-02 esta funcion rechazaba esa captura y mandaba al metodo
+   * cruzado, que asume justo lo contrario de lo que ocurrio fisicamente.
+   * Ahora la acepta y avisa, porque el aviso es lo unico que los datos
+   * sostienen: no hay forma de saber desde aqui si los nombres coinciden por
+   * convencion o porque de verdad se midieron las mismas piezas.
    * ----------------------------------------------------------------------*/
   function validate(rows) {
     var errors = [], warnings = [];
@@ -49,8 +72,11 @@
       return { ok: false, errors: ['No hay datos que analizar.'], warnings: warnings, meta: null };
     }
 
-    var operators = [], partsOf = Object.create(null), ownerOf = Object.create(null);
-    var shared = [], cells = Object.create(null);
+    /* seenOf va POR OPERADOR, no global: es el cambio de F-02. Un nombre
+       repetido dentro del mismo operador si es la misma pieza (son replicas
+       de mas); repetido entre operadores, no. */
+    var operators = [], partsOf = Object.create(null), seenOf = Object.create(null);
+    var cells = Object.create(null);
 
     for (var i = 0; i < rows.length; i++) {
       var r = rows[i], line = i + 1;
@@ -66,9 +92,10 @@
       }
       if (!op || !pt) continue;
 
-      if (operators.indexOf(op) < 0) { operators.push(op); partsOf[op] = []; }
-      if (ownerOf[pt] === undefined) { ownerOf[pt] = op; partsOf[op].push(pt); }
-      else if (ownerOf[pt] !== op && shared.indexOf(pt) < 0) shared.push(pt);
+      if (operators.indexOf(op) < 0) {
+        operators.push(op); partsOf[op] = []; seenOf[op] = Object.create(null);
+      }
+      if (!seenOf[op][pt]) { seenOf[op][pt] = true; partsOf[op].push(pt); }
 
       var key = op + SEP + pt;
       (cells[key] || (cells[key] = [])).push(Number(v));
@@ -77,13 +104,32 @@
 
     var o = operators.length;
     if (o < 2) errors.push('Se requieren al menos 2 operadores para estimar reproducibilidad (hay ' + o + ').');
-    if (shared.length) {
-      errors.push('En un estudio anidado cada pieza pertenece a un solo operador, y ' +
-        shared.length + ' pieza(s) aparecen bajo varios (' + shared.slice(0, 5).join('; ') +
-        (shared.length > 5 ? '; ...' : '') + '). Si los operadores midieron las mismas piezas, ' +
-        'el estudio es cruzado: usa el metodo Cruzado.');
-    }
     if (errors.length) return { ok: false, errors: errors, warnings: warnings, meta: null };
+
+    /* Nombres que se repiten entre operadores. NO es un error: es informacion
+       sobre como se va a leer la captura, mas la salida por si la realidad
+       fue la otra. Los dos textos viven en design.js, en un solo sitio. */
+    var observed = global.MSADesign.observe(operators.map(function (op) { return partsOf[op]; }));
+    global.MSADesign.repeatedLabelNotes(observed).forEach(function (w) { warnings.push(w); });
+    if (observed.repeatedLabels.length) {
+      /* Cuantas piezas hay de verdad, contadas por identidad y no por nombre.
+         Se cuenta, no se estima: no todos los nombres repetidos aparecen bajo
+         todos los operadores, y decir un numero de mas seria el mismo error
+         de leer los nombres como si dijeran algo que no dicen. */
+      var totalPieces = 0, distinctLabels = Object.create(null), labelCount = 0;
+      operators.forEach(function (op) {
+        partsOf[op].forEach(function (pt) {
+          totalPieces++;
+          if (!distinctLabels[pt]) { distinctLabels[pt] = true; labelCount++; }
+        });
+      });
+      warnings.push('Identificadores de pieza repetidos entre operadores (' +
+        observed.repeatedLabels.slice(0, 5).join('; ') +
+        (observed.repeatedLabels.length > 5 ? '; ...' : '') + '): el estudio analiza ' +
+        totalPieces + ' piezas con ' + labelCount + ' nombres distintos, calificando cada ' +
+        'nombre con su operador (por ejemplo "' +
+        global.MSADesign.partIdOf(operators[0], observed.repeatedLabels[0]) + '").');
+    }
 
     // Diseno balanceado: mismo numero de piezas por operador y mismas replicas
     // en toda celda. El motor implementa el caso balanceado, como el cruzado.
@@ -135,8 +181,19 @@
         'AIAG sugiere 3.');
     }
 
-    var flat = [];
-    operators.forEach(function (op) { flat = flat.concat(partsOf[op]); });
+    /* Dos listas planas, y la distincion importa (punto 2 de F-02):
+       `parts`   son los nombres TAL CUAL se capturaron. Es lo que se muestra
+                 en tablas, graficas, exportaciones y reportes, y puede traer
+                 repetidos entre operadores sin que eso signifique nada.
+       `partIds` son las identidades estadisticas ("Ana|1"), siempre unicas.
+                 Es lo que hay que usar para contar o cruzar piezas. */
+    var flat = [], ids = [];
+    operators.forEach(function (op) {
+      partsOf[op].forEach(function (pt) {
+        flat.push(pt);
+        ids.push(global.MSADesign.partIdOf(op, pt));
+      });
+    });
 
     return {
       ok: true, errors: [], warnings: warnings,
@@ -144,6 +201,8 @@
         operators: operators,
         partsByOperator: operators.map(function (op) { return partsOf[op].slice(); }),
         parts: flat,
+        partIds: ids,
+        repeatedLabels: observed.repeatedLabels.slice(),
         partsPerOperator: n,
         replicates: rep,
         n: N
@@ -299,7 +358,13 @@
     var result = {
       method: 'anidado',
       design: {
-        operators: operators, parts: val.meta.parts, partsByOperator: partsByOp,
+        operators: operators,
+        /* parts    = etiquetas capturadas (se muestran; pueden repetirse).
+           partIds  = identidades estadisticas "operador|pieza" (unicas). */
+        parts: val.meta.parts,
+        partIds: val.meta.partIds,
+        repeatedPartLabels: val.meta.repeatedLabels,
+        partsByOperator: partsByOp,
         partsPerOperator: n, replicates: r, n: N, grandMean: grand
       },
       model: 'nested',

@@ -14,7 +14,10 @@ estudios Gage R&R.
   medir la pieza la destruye, así que cada operador mide sus propias piezas de
   un lote que se supone homogéneo. El diseño no puede separar la interacción
   operador × pieza —la reproducibilidad sale como efecto de operador— y la
-  aplicación lo dice en pantalla en vez de esconderlo.
+  aplicación lo dice en pantalla en vez de esconderlo. La identidad de una
+  pieza es aquí el par **operador + pieza**: numerar 1..n las piezas de cada
+  operador es válido, y la «1» de uno y la «1» de otro se analizan como dos
+  objetos físicos distintos.
 - **Attribute Agreement Analysis** (concordancia por atributos), para inspección
   **pasa / no pasa**: la medición es una categoría, no un número. Aquí no hay
   varianza que descomponer, así que no salen %GRR ni NDC; sale **acuerdo**:
@@ -196,8 +199,20 @@ El ejemplo que carga el botón es un caso **construido a mano** para enseñar a
 leer las cifras —cada evaluador falla de una manera distinta a propósito—, no un
 dataset de validación, y lo dice al cargarlo.
 
-106 pruebas de regresión entre los tres motores —todas sobre el cálculo: corren
-en Node, sin navegador, y no tocan la pantalla. Para correrlas:
+### Diseño e identidad de la pieza
+
+`assets/js/design.js` decide, **sin DOM**, dos cosas que antes vivían pegadas a
+la pantalla: qué identidad tiene una pieza en cada método (en el anidado, el par
+`operador|pieza`) y a qué método pertenece un archivo que se importa. Ningún
+cambio de método se deduce ya de cómo se llamen las piezas: manda el que el
+archivo **declara**, y lo que solo se sospecha se pregunta. `tests/tests-design.js`
+cubre los seis escenarios de la auditoría —numeración local y global, cruzado
+compartido, importación que conserva el método, reordenar filas y renombrar
+piezas— y `tests/prueba-diseno.js` comprueba en un navegador de verdad que la
+aplicación cablea ese modelo.
+
+155 pruebas de regresión entre los cuatro modelos puros —todas sobre el cálculo:
+corren en Node, sin navegador, y no tocan la pantalla. Para correrlas:
 
 ```bash
 node tests/run-node.js      # en terminal
@@ -235,15 +250,28 @@ ajeno, que la interfaz se restaura **aunque la preparación falle**, y que
 imprimir no altera los cálculos ni el estado capturado. Necesita Playwright,
 que **no es dependencia del proyecto**, igual que `regresion-visual.js`.
 
-**Lo que esto todavía no cubre.** La herramienta compara *dos revisiones del
-repo*, así que sirve para no mover lo que ya estaba bien, no para encontrar lo
-que nunca estuvo bien: un defecto presente en las dos coincide y pasa por bueno.
-Su recorrido carga además el dataset de ejemplo, cuyos nombres de pieza son los
-que el programa pone solo, y eso deja fuera los fallos que solo aparecen con
-nombres escritos por el usuario. Entre eso y que ninguna suite toca el DOM, un
-cambio en `assets/js/app.js` puede dejar las 80 pruebas en verde y romper la
-pantalla: se comprueba a mano, en el navegador. Está anotado como deuda en
+**Diseño y enrutado.** `node tests/prueba-diseno.js` hace lo mismo con el camino
+de F-02: captura manual con las piezas numeradas 1..n en cada operador, importar
+ese estudio en CSV (que no declara método) y en JSON (que sí lo declara),
+reordenar las filas del archivo, y las reglas de nombres repetidos en los dos
+métodos. Es el trozo que solo existe en la pantalla: un `route()` impecable no
+sirve de nada si `app.js` no lo llama.
+
+**Lo que esto todavía no cubre.** `regresion-visual.js` compara *dos revisiones
+del repo*, así que sirve para no mover lo que ya estaba bien, no para encontrar
+lo que nunca estuvo bien: un defecto presente en las dos coincide y pasa por
+bueno. Su recorrido carga además el dataset de ejemplo, cuyos nombres de pieza
+son los que el programa pone solo — y F-02 fue exactamente un fallo que solo
+aparecía con nombres escritos por el usuario, por eso `prueba-diseno.js` los
+escribe a mano. Sigue habiendo mucha pantalla sin cubrir: fuera del camino de
+impresión y del de diseño, un cambio en `assets/js/app.js` puede dejar la suite
+de motor entera en verde y romper lo que se ve, y eso se comprueba a mano en el
+navegador. Está anotado como deuda en
 [`docs/plan-siguientes-metodos.md`](docs/plan-siguientes-metodos.md).
+
+Las tres herramientas de navegador (`regresion-visual.js`, `prueba-impresion.js`
+y `prueba-diseno.js`) **no corren en CI**: necesitan Playwright, que no es
+dependencia del proyecto. CI corre `node tests/run-node.js`.
 
 ## Auditoría
 
@@ -277,6 +305,10 @@ El análisis completo, con la evidencia numérica de cada uno, está en
 index.html               aplicación (una sola página)
 assets/js/stats.js       distribución F (beta incompleta)
 assets/js/anova.js       motor de cálculo — puro, sin DOM, reutilizable
+assets/js/anova-nested.js motor anidado (pruebas destructivas)
+assets/js/attribute.js   motor de concordancia por atributos
+assets/js/design.js      identidad de la pieza y enrutado de método — sin DOM
+assets/js/report.js      encabezado del reporte impreso — sin DOM
 assets/js/charts.js      las ocho gráficas (Chart.js)
 assets/js/app.js         interfaz y flujo
 tests/                   suite de regresión + reimplementación del VBA original

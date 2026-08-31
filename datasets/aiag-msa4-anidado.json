@@ -1,5 +1,6 @@
 {
   "format": "msa-toolkit/gage-rr-anova-nested",
+  "method": "anidado",
   "version": 1,
   "name": "AIAG MSA 4a ed. - apendice, reetiquetado como anidado",
   "description": "3 operadores x 10 piezas por operador x 3 replicas = 90 mediciones. Son las mismas mediciones del dataset cruzado AIAG (= gageaiag.mtw de Minitab) con las piezas renumeradas 1 a 30, de modo que ninguna pieza la miden dos operadores. NO es un estudio destructivo real: es el vehiculo de validacion numerica del motor anidado.",

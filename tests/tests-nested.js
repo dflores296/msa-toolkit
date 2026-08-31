@@ -459,4 +459,74 @@
       seen[p] = true;
     });
   });
+
+  /* --- F-01 en el anidado: misma funcion, mismo trato ---------------------
+   * El anidado reutiliza discrimination() del cruzado. Estas pruebas fijan que
+   * de verdad la use y que sus tres estados salgan igual, para que un dia no
+   * queden los dos metodos clasificando distinto el mismo instrumento. */
+
+  function anidadoPlano(valor) {
+    var rows = [];
+    ['A', 'B', 'C'].forEach(function (op, oi) {
+      for (var p = 1; p <= 5; p++) for (var k = 0; k < 3; k++) {
+        rows.push({ operator: op, part: 'Pieza ' + (oi * 5 + p), value: valor });
+      }
+    });
+    return rows;
+  }
+
+  /* Cada operador destruye SUS piezas; el instrumento lee de paso en paso. */
+  function anidadoResolucion(lo, hi, sigmaMs, delta) {
+    var seed = 20260831;
+    var rnd = function () { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    var nrm = function (m, sd) {
+      return m + sd * Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
+    };
+    /* Cada operador cubre el MISMO rango: sus piezas salen de un lote
+       homogeneo, que es el supuesto del anidado. Repartir las 15 piezas de
+       corrido dejaria a cada operador en un tramo distinto y eso es un efecto
+       de operador enorme por construccion, no un problema de resolucion. */
+    var rows = [];
+    ['A', 'B', 'C'].forEach(function (op, oi) {
+      for (var p = 0; p < 5; p++) {
+        var pv = lo + (hi - lo) * p / 4;
+        for (var k = 0; k < 3; k++) {
+          rows.push({ operator: op, part: 'Pieza ' + (oi * 5 + p + 1),
+                      value: Math.round(nrm(pv, sigmaMs) / delta) * delta });
+        }
+      }
+    });
+    return rows;
+  }
+
+  test('F-01 anidado: datos degenerados dan no concluyente y retiran el veredicto', function () {
+    var r = MSANested.compute(anidadoPlano(7), {});
+    assert(r.discrimination.state === 'degenerado', 'estado degenerado, se obtuvo ' + r.discrimination.state);
+    assert(r.inconclusive === true, 'se marca como no concluyente');
+    assert(r.ndcLabel === 'No evaluable', 'NDC no evaluable, se obtuvo "' + r.ndcLabel + '"');
+    assert(r.assessment.studyVar === null, 'no se califica sobre cero informacion');
+    var dice = r.warnings.some(function (w) { return w.indexOf('Estudio no concluyente') === 0; });
+    assert(dice, 'reporta el caso degenerado');
+  });
+
+  test('F-01 anidado: instrumento muy preciso queda censurado, no degradado', function () {
+    var r = MSANested.compute(anidadoResolucion(9, 11, 0.00002, 0.001), { tolerance: 2.0 });
+    assert(r.discrimination.state === 'censurado', 'estado censurado, se obtuvo ' + r.discrimination.state);
+    assert(r.inconclusive === false, 'no es no concluyente');
+    assert(r.assessment.studyVar && r.assessment.studyVar.level === 'ok', 'conserva el veredicto');
+    assert(!r.warnings.some(function (w) { return w.indexOf('falta de resolucion') >= 0; }),
+           'no acusa de falta de resolucion');
+  });
+
+  test('F-01 anidado: el ejemplo de referencia no cambia ni gana avisos', function () {
+    var r = MSANested.compute(nestedRows(), { lsl: -5, usl: 5 });
+    assert(r.discrimination.state === 'ok', 'discriminacion ok, se obtuvo ' + r.discrimination.state);
+    assert(r.ndcLabel === String(r.ndc), 'la etiqueta del NDC es su numero');
+    assert(!/inf/i.test(r.ndcLabel) && !/\d{4,}/.test(r.ndcLabel), 'NDC legible: "' + r.ndcLabel + '"');
+    var nuevos = r.warnings.filter(function (w) {
+      return /no concluyente|no es medible|falta de resolucion/.test(w);
+    });
+    assert(nuevos.length === 0, 'sin avisos nuevos: ' + nuevos.join(' | '));
+  });
+
 })(typeof window !== 'undefined' ? window : globalThis);

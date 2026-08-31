@@ -279,8 +279,21 @@
     });
 
     var sdPart = sqrt0(V_part), sdGrr = sqrt0(V_grr);
-    var ndcRaw = sdGrr > 0 ? 1.41 * sdPart / sdGrr : Infinity;
+    /* Mismo trato del NDC que en el cruzado: con Var_GRR en cero o en el ruido
+       del punto flotante el cociente no significa nada, y "inf" o un entero de
+       quince cifras se leen como lo contrario de lo que pasa. */
+    var grrIsZero = !(V_grr > V_total * 1e-12);
+    var ndcRaw = grrIsZero ? Infinity : 1.41 * sdPart / sdGrr;
     var ndc = isFinite(ndcRaw) ? Math.floor(ndcRaw) : null;
+    var ndcLabel = ndc === null ? 'No evaluable' : (ndc > 100 ? '> 100' : String(ndc));
+
+    /* Discriminacion: las celdas del anidado son operador x SU pieza, pero la
+       pregunta es la misma y la funcion es la misma del cruzado. */
+    var cellList = [];
+    operators.forEach(function (op, oi) {
+      partsByOp[oi].forEach(function (pt) { cellList.push(cell[op + SEP + pt]); });
+    });
+    var disc = global.MSAAnova.discrimination(cellList, all, V_grr, V_total, tol, k);
 
     var pctSV = sdTotal > 0 ? 100 * sdGrr / sdTotal : 0;
     var pctPT = tol ? 100 * (k * sdGrr * (tol.oneSided ? 0.5 : 1)) / tol.width : null;
@@ -316,10 +329,14 @@
       tolerance: tol ? tol.width : null,
       toleranceInfo: tol,
       historicalSigma: histSigma,
-      ndc: ndc, ndcRaw: ndcRaw,
+      ndc: ndc, ndcRaw: ndcRaw, ndcLabel: ndcLabel,
+      discrimination: disc,
+      inconclusive: disc.inconclusive,
       icc: icc,
       metrics: { pctStudyVar: pctSV, pctTolerance: pctPT, pctContribution: pctContrib },
-      assessment: global.MSAAnova.assess(pctSV, pctPT, pctContrib, ndc, icc),
+      assessment: disc.inconclusive
+        ? { studyVar: null, tolerance: null, contribution: null, ndc: null, emp: null }
+        : global.MSAAnova.assess(pctSV, pctPT, pctContrib, ndc, icc),
       charts: buildChartData(operators, partsByOp, cell, cellMean, cellRange, r),
       warnings: val.warnings.slice(),
       negativeComponents: negatives
@@ -336,6 +353,8 @@
     result.warnings.push('El diseno anidado no separa la interaccion operador x pieza: ninguna pieza ' +
       'la miden dos operadores. La reproducibilidad que se reporta es el efecto de operador. Es una ' +
       'limitacion del diseno, no del calculo.');
+
+    global.MSAAnova.discriminationWarnings(disc).forEach(function (w) { result.warnings.push(w); });
 
     if (negatives.length) {
       result.warnings.push('Componente(s) de varianza negativo(s) truncado(s) a cero: ' + negatives.join(', ') +

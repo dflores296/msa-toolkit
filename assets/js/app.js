@@ -785,7 +785,9 @@
         'si diste LSL y USL o la tolerancia directa.',
     ndc: 'Cuantos grupos distintos de piezas alcanza a separar el sistema de medicion. AIAG pide 5 o mas. ' +
         'Si sale bajo con piezas representativas, el problema es el instrumento; si las piezas eran casi ' +
-        'identicas, el problema es la muestra.',
+        'identicas, el problema es la muestra. "No evaluable" significa que la varianza del sistema de ' +
+        'medicion salio cero o indistinguible de cero: el cociente no se puede calcular, y eso NO quiere ' +
+        'decir que separe infinitas categorias.',
     icc: 'Fraccion de la varianza total que aporta el producto y no la medicion. Wheeler: 0.80 o mas es ' +
         'un monitor de primera clase, 0.50 a 0.80 de segunda, 0.20 a 0.50 de tercera. Lectura ' +
         'complementaria al criterio AIAG, no sustituto.'
@@ -799,7 +801,7 @@
       r.metrics.pctTolerance === null
         ? card('% Tolerance (P/T)', 'sin LSL/USL', null, VERDICT_HELP.tol)
         : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %', a.tolerance, VERDICT_HELP.tol),
-      card('Categorias distintas', r.ndc === null ? 'inf' : String(r.ndc), a.ndc, VERDICT_HELP.ndc),
+      card('Categorias distintas', r.ndcLabel, a.ndc, VERDICT_HELP.ndc),
       card('ICC (EMP, Wheeler)', r.icc.toFixed(3), a.emp, VERDICT_HELP.icc)
     ];
     $('verdicts').innerHTML = cards.join('');
@@ -817,6 +819,16 @@
      marcas de 10 % y 30 % del criterio AIAG en vez del canvas heredado
      del Excel. Es un cambio de presentacion, no de datos. */
   function renderEvalBars(r) {
+    /* Sobre datos degenerados no se pintan barras. Un 0.00 % en verde con la
+       leyenda "bueno" es la lectura mas enganosa que puede dar la pantalla
+       cuando lo que hay detras es un estudio sin informacion. */
+    if (r.inconclusive) {
+      $('evalBars').innerHTML = '<div class="msg warn" style="margin:0">' +
+        '<strong>Estudio no concluyente.</strong> Los datos no contienen informacion suficiente ' +
+        'para estimar la repetibilidad: las ' + r.design.n + ' mediciones son el mismo valor. ' +
+        'No se emite veredicto porque no hay nada que juzgar; revisa las notas.</div>';
+      return;
+    }
     var rows = [];
     if (r.metrics.pctTolerance !== null) {
       rows.push({
@@ -933,10 +945,30 @@
       'El % Contribucion se calcula sobre la varianza y suma 100 %.',
       'El % Study Variation se calcula sobre la desviacion estandar y NO suma 100 %.',
       'La variacion del estudio es la desviacion estandar multiplicada por ' + k + '.',
-      'NDC = parte entera de 1.41 x (sigma_pieza / sigma_GageR&R) = ' +
-        (isFinite(r.ndcRaw) ? r.ndcRaw.toFixed(3) : 'infinito') +
-        ' -> ' + (r.ndc === null ? 'infinito' : r.ndc) + '.'
+      r.ndc === null
+        ? 'NDC = parte entera de 1.41 x (sigma_pieza / sigma_GageR&R). No evaluable: la varianza ' +
+          'del sistema de medicion salio cero o indistinguible de cero, y ese cociente no significa ' +
+          'nada. No es que el sistema separe infinitas categorias.'
+        : 'NDC = parte entera de 1.41 x (sigma_pieza / sigma_GageR&R) = ' +
+          r.ndcRaw.toFixed(3) + ' -> ' + r.ndcLabel + '.'
     ];
+    /* Resolucion aparente. Es un dato del estudio, no un aviso: se publica
+       siempre que se pueda medir, y el aviso solo aparece si pasa del 10 %. */
+    var d = r.discrimination;
+    if (d) {
+      if (d.step !== null) {
+        notes.push('Resolucion aparente = ' + num(d.step, 8) + ' (' + d.stepSource + '), que es ' +
+          (d.overStudyVar === null ? '-' : (100 * d.overStudyVar).toFixed(2) + ' % de la variacion del estudio') +
+          (d.overTolerance === null ? '' : ' y ' + (100 * d.overTolerance).toFixed(2) + ' % de la tolerancia') +
+          '. La regla de discriminacion AIAG pide que no pase del 10 %. Valores distintos en el ' +
+          'estudio: ' + d.distinctValues + ' de ' + d.measurements + '.');
+      } else {
+        notes.push('Resolucion aparente: ' + d.stepSource + '. En ' + d.zeroRangeCells + ' de las ' +
+          d.cells + ' celdas operador-pieza todas las replicas dieron la misma lectura, asi que el ' +
+          'escalon del instrumento no se puede deducir de estos datos. Valores distintos en el ' +
+          'estudio: ' + d.distinctValues + ' de ' + d.measurements + '.');
+      }
+    }
     if (showTol) {
       var ti = r.toleranceInfo;
       if (ti.oneSided) {
@@ -1657,7 +1689,8 @@
       ['Modelo', r ? (r.model === 'nested' ? 'Anidado (sin interaccion estimable)'
                     : r.model === 'with-interaction' ? 'Con interaccion' : 'Sin interaccion (agrupada)') : '-'],
       ['% Study Variation (GRR)', r ? r.metrics.pctStudyVar.toFixed(2) + ' %' : '-'],
-      ['Categorias distintas', r ? (r.ndc === null ? 'inf' : String(r.ndc)) : '-']
+      ['Categorias distintas', r ? r.ndcLabel : '-'],
+      ['Discriminacion', r && r.discrimination ? r.discrimination.label : '-']
     ];
     $('printHeader').innerHTML =
       '<h1 class="rep-title">' + esc(name) + '</h1>' +

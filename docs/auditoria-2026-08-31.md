@@ -18,7 +18,8 @@ commit, y lo que queda pendiente con su razonamiento.
 > **Dónde vive esto.** Todas las correcciones de la tabla están en la rama
 > `develop`. La rama `main` sigue en `52b6b1e`, intacta y sin ninguna de ellas.
 > El mapa de commits de F-07 y los puntos a los que volver si hay que deshacer
-> algo están en [`f07-commits.md`](f07-commits.md).
+> algo están en [`f07-commits.md`](f07-commits.md); lo que a F-07 le falta por
+> rematar en escritorio, en [`f07-cabos-sueltos.md`](f07-cabos-sueltos.md).
 
 | Hallazgo | Prioridad | Estado | Commit |
 |---|---|---|---|

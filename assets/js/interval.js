@@ -187,20 +187,22 @@
    * Vive aqui, y no en cada vista, porque el rotulo es una afirmacion sobre el
    * metodo: si la pantalla dice una cosa y el reporte impreso otra, una de las
    * dos miente. Fue exactamente el fallo que abrio F-07.
+   *
+   * Corto a proposito. El estandar de diseno dice que no se le explica al
+   * lector lo que ya sabe, y a un ingeniero de calidad no hay que desarrollarle
+   * las siglas en pantalla: nombra el metodo, cita la fuente y dice lo unico
+   * que el lector necesita saber para no equivocarse -que no dictamina-. La
+   * atribucion completa y la transcripcion estan en docs/mls-transcripcion.md.
    * ----------------------------------------------------------------------*/
   function statusLabel(iv) {
     if (!iv) return '';
     if (iv.method === 'MLS') {
-      return 'Intervalo MLS (metodo modificado para muestras grandes), formulas ' +
-             'publicadas por Minitab a partir de Burdick-Graybill. No utilizado ' +
-             'para el dictamen.';
+      return 'Intervalo MLS (Minitab / Burdick-Graybill). No utilizado para el dictamen.';
     }
     if (iv.method === 'Satterthwaite') {
-      return 'Intervalo por la aproximacion de Satterthwaite, la alternativa que ' +
-             'las mismas formulas prescriben cuando la cuadratica del MLS no tiene ' +
-             'solucion. No utilizado para el dictamen.';
+      return 'Intervalo Satterthwaite, la alternativa del MLS. No utilizado para el dictamen.';
     }
-    return 'Intervalo GPQ experimental, en validacion. No utilizado para el dictamen.';
+    return 'Intervalo GPQ experimental. No utilizado para el dictamen.';
   }
 
   /** Une la razon con sus dos escalas derivadas. Un solo sitio donde se pasa

@@ -376,15 +376,16 @@ function screenState(page) {
         confirms.join(' ').indexOf('2 valores distintos') >= 0, confirms.join(' // '));
   check('F-06: cancelar conserva el metodo elegido',
         codCru.metodo === 'cruzado', 'metodo = ' + codCru.metodo);
-  check('F-06: y deja dicho el supuesto con el que se sigue',
-        codCru.configMsg.indexOf('no significa nada') >= 0, codCru.configMsg);
+  check('F-06: y deja constancia de la decision',
+        codCru.configMsg.indexOf('Confirmaste que son mediciones reales') >= 0, codCru.configMsg);
 
-  /* Y al calcular, el aviso vuelve a estar junto al resultado. */
+  /* Contestada la pregunta, no se insiste: al calcular NO se repite. Un aviso
+     que no se puede resolver deja de leerse, incluido el dia que si importa. */
   await page.click('#calcBtn');
   await page.waitForTimeout(400);
   var codCalc = await screenState(page);
-  check('F-06: el aviso acompana al resultado, no solo a la importacion',
-        codCalc.resultMsg.indexOf('pasa / no pasa codificado') >= 0,
+  check('F-06: contestada la pregunta, el calculo ya no repite el aviso',
+        codCalc.resultMsg.indexOf('COMPATIBLE con un pasa') < 0,
         codCalc.resultMsg.slice(0, 400));
 
   /* Aceptar la propuesta lleva a atributos. */
@@ -415,11 +416,93 @@ function screenState(page) {
   await page.click('#calcBtn');
   await page.waitForTimeout(400);
   var manual = await screenState(page);
-  check('F-06: escribir 0/1 a mano tambien avisa',
-        manual.resultMsg.indexOf('pasa / no pasa codificado') >= 0,
+  check('F-06: escribir 0/1 a mano tambien avisa (no paso por la importacion, nadie pregunto)',
+        manual.resultMsg.indexOf('COMPATIBLE con un pasa') >= 0,
         manual.resultMsg.slice(0, 400));
   check('F-06: y el aviso nombra el metodo que si corresponde',
         manual.resultMsg.indexOf('Atributos') >= 0, manual.resultMsg.slice(0, 400));
+  check('F-06: sin afirmar que lo sean: nombra la alternativa legitima',
+        manual.resultMsg.indexOf('medicion real de escala corta') >= 0,
+        manual.resultMsg.slice(0, 500));
+
+  /* ---------------------------------------------------------------------- *
+   * F-06: 10/11/12 SON mediciones reales, y el usuario lo dice
+   *
+   * Un durometro de escala corta y unidad entera produce el mismo patron que
+   * un pasa/dudoso/no-pasa codificado. La app tiene que preguntar -- no puede
+   * saberlo -- pero una vez contestado no puede insistir: un aviso que no se
+   * puede resolver deja de leerse, incluido el dia que si importa.
+   * ---------------------------------------------------------------------- */
+  console.log('\n===== F-06: 10/11/12 COMO MEDICIONES REALES =====');
+
+  function csvDurometro() {
+    var out = 'operador,pieza,replica,medicion\n';
+    for (var p = 1; p <= 10; p++) {
+      var base = 10 + (p % 3);                      // 10, 11 o 12 segun la pieza
+      ['Ana', 'Beto', 'Cruz'].forEach(function (op, oi) {
+        for (var k = 1; k <= 3; k++) {
+          var v = base + ((p + oi + k) % 5 === 0 ? 1 : 0);   // algo de ruido de medicion
+          out += [op, 'Pieza ' + p, k, Math.min(12, v)].join(',') + '\n';
+        }
+      });
+    }
+    return out;
+  }
+
+  await open(page, base + '#cruzado');
+  confirms = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', function (d) { confirms.push(d.message()); d.dismiss(); });  // "son mediciones"
+  await importText(page, 'durometro.csv', csvDurometro());
+  await page.waitForFunction(function () {
+    return document.querySelectorAll('#dataTable tbody tr').length > 0;
+  });
+  var dur = await screenState(page);
+  check('F-06 10/11/12: pregunta, porque no puede saberlo', confirms.length === 1,
+        'dialogos: ' + confirms.length);
+  check('F-06 10/11/12: la pregunta dice "compatible", no afirma que sean atributos',
+        confirms.join(' ').indexOf('COMPATIBLE con') >= 0, confirms.join(' // '));
+  check('F-06 10/11/12: y nombra la alternativa legitima',
+        confirms.join(' ').indexOf('medicion real de escala corta') >= 0, confirms.join(' // '));
+  check('F-06 10/11/12: contestar "son mediciones" conserva el metodo variables',
+        dur.metodo === 'cruzado', 'metodo = ' + dur.metodo);
+  check('F-06 10/11/12: y queda constancia de la decision',
+        dur.configMsg.indexOf('Confirmaste que son mediciones reales') >= 0, dur.configMsg);
+
+  /* Y ahora lo que pide el hallazgo: SIN advertencias posteriores. */
+  await page.click('#calcBtn');
+  await page.waitForTimeout(400);
+  var durCalc = await screenState(page);
+  check('F-06 10/11/12: al calcular ya NO se repite el aviso de codificacion',
+        durCalc.resultMsg.indexOf('compatible con un pasa') < 0 &&
+        durCalc.resultMsg.indexOf('COMPATIBLE con un pasa') < 0,
+        durCalc.resultMsg.slice(0, 400));
+  check('F-06 10/11/12: y el estudio se analiza como variables, con su ANOVA',
+        durCalc.anova.indexOf('Repetibilidad') >= 0, durCalc.anova.slice(0, 200));
+
+  /* Recalcular tampoco insiste. */
+  await page.click('#recalcBtn');
+  await page.waitForTimeout(400);
+  var durRe = await screenState(page);
+  check('F-06 10/11/12: recalcular tampoco insiste',
+        durRe.resultMsg.indexOf('COMPATIBLE con un pasa') < 0, durRe.resultMsg.slice(0, 300));
+
+  /* Pero si los datos CAMBIAN, la sospecha vuelve: recordar es seguro solo
+     porque la firma incluye los valores. */
+  await page.evaluate(function () {
+    [].slice.call(document.querySelectorAll('#dataTable input')).forEach(function (inp) {
+      inp.value = String(Number(inp.value) >= 11 ? 1 : 0);
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
+  await page.click('#calcBtn');
+  await page.waitForTimeout(400);
+  var durOtro = await screenState(page);
+  check('F-06 10/11/12: cambiar los datos a 0/1 vuelve a levantar el aviso',
+        durOtro.resultMsg.indexOf('COMPATIBLE con un pasa') >= 0, durOtro.resultMsg.slice(0, 400));
+
+  page.removeAllListeners('dialog');
+  page.on('dialog', function (d) { confirms.push(d.message()); d.accept(); });
 
   /* Un estudio de mediciones de verdad no debe recibir ninguno de estos avisos. */
   await open(page, base + '#cruzado');

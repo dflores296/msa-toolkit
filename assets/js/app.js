@@ -13,8 +13,14 @@
      estandar, el metodo y los campos de opciones. Se compara con la huella de
      lo que hay ahora en pantalla para saber si el resultado sigue siendo de
      estos datos (F-05). null = no hay resultado del que dudar. */
+  /* `codedOk` guarda la firma de unos datos que el usuario YA confirmo como
+     mediciones reales (F-06). Sin esto, quien tiene un durometro que reporta
+     10, 11 y 12 recibiria el mismo aviso en cada calculo, para siempre; y un
+     aviso que no se puede resolver deja de leerse, incluido el dia que si
+     importa. Se guarda la FIRMA de los datos, no un "ya avise": si los datos
+     cambian, se vuelve a preguntar. */
   var state = { method: 'cruzado', operators: [], parts: [], partsByOperator: [],
-                replicates: 2, result: null, stamp: null, standard: {} };
+                replicates: 2, result: null, stamp: null, standard: {}, codedOk: '' };
 
   /* ------------------------------------------------------------------ *
    * Tema claro / oscuro - manual, se recuerda en localStorage.
@@ -176,6 +182,7 @@
          Tirarlos era ademas la unica parte del cambio de metodo que ocurria
          en silencio, sin decir que se perdia. */
       state.standard = {};
+      state.codedOk = '';             // otro metodo, otra pregunta
       renderNameInputs();
       if (!$('captureSection').hidden) {
         buildDataTable(false);          // sin preservar: la tabla nace vacia
@@ -851,13 +858,19 @@
        avisa junto al resultado, que es donde alguien lo va a leer. */
     if (!isAttribute()) {
       var coded = MSADesign.looksCoded(rows);
+      /* Si el usuario ya confirmo que ESTOS datos son mediciones reales, no se
+         insiste. La firma incluye los valores, asi que un archivo distinto
+         -o los mismos datos editados- vuelve a avisar. */
+      if (coded && MSADesign.codedSignature(coded) === state.codedOk) coded = null;
       if (coded) {
         result.warnings = result.warnings.concat([
           'Los datos traen solo ' + coded.levels + ' valores distintos, todos enteros (' +
-          coded.values.join(', ') + '). Si son un pasa / no pasa codificado, este %GRR no ' +
-          'significa nada: la varianza de una variable binaria no mide dispersion de medicion. ' +
-          'Para ese caso el metodo es Atributos (concordancia). Si de verdad son mediciones de ' +
-          'escala corta, revisa ademas la resolucion del instrumento.']);
+          coded.values.join(', ') + '), lo que es COMPATIBLE con un pasa / no pasa capturado ' +
+          'como numero. No quiere decir que lo sea: una medicion real de escala corta y unidad ' +
+          'entera da el mismo patron, y los datos no distinguen los dos casos. Si fuera una ' +
+          'codificacion, este %GRR no significaria nada y el metodo seria Atributos ' +
+          '(concordancia); si son mediciones reales, el aviso sobra y conviene revisar la ' +
+          'resolucion del instrumento frente a la variacion de las piezas.']);
       }
     }
 
@@ -1603,11 +1616,16 @@
       notes.push('Metodo cambiado a ' + routed.proposal + ' porque lo confirmaste al importar. ' +
                  'El archivo no declaraba metodo.');
     } else if (routed.question) {
-      /* Cancelar es una respuesta, no un silencio: queda dicho con que
-         supuesto se sigue y que pasa si el supuesto es el equivocado. */
-      notes.push(routed.codedNote ||
-                 'Se conservo el metodo ' + state.method + ': el archivo no declara metodo y los ' +
-                 'nombres de las piezas no bastan para deducirlo.');
+      /* Cancelar es una respuesta, no un silencio: queda constancia de la
+         decision. Y si la pregunta era la de F-06, la respuesta se recuerda:
+         "son mediciones reales" no hay que contestarlo dos veces. */
+      if (routed.codedNote) {
+        state.codedOk = MSADesign.codedSignature(routed.coded);
+        notes.push(routed.codedNote);
+      } else {
+        notes.push('Se conservo el metodo ' + state.method + ': el archivo no declara metodo y los ' +
+                   'nombres de las piezas no bastan para deducirlo.');
+      }
     }
 
     /* Las categorias y el estandar salen del propio archivo. El estandar es
@@ -1786,7 +1804,7 @@
   function resetAll() {
     if (!confirm('Se reiniciara el estudio completo (configuracion y datos). Continuar?')) return;
     state = { method: state.method, operators: [], parts: [], partsByOperator: [],
-              replicates: 2, result: null, stamp: null, standard: {} };
+              replicates: 2, result: null, stamp: null, standard: {}, codedOk: '' };
     $('numOperators').value = 3; $('numParts').value = 10; $('numReplicates').value = 3;
     $('studyName').value = ''; renderStudyName();
     $('lsl').value = ''; $('usl').value = '';

@@ -861,13 +861,37 @@
       }
     }
 
+    /* F-07: el intervalo del %GRR. Se calcula fuera de los motores, leyendo su
+       tabla ANOVA, asi que ningun motor cambia por esto. Es determinista: la
+       semilla sale de los propios cuadrados medios. */
+    if (result.model !== 'attribute') {
+      result.interval = MSAInterval.forResult(result);
+      result.intervalVerdict = result.interval && !result.inconclusive
+        ? MSAInterval.classify(result.interval.studyVar, null, result.design.n) : null;
+      result.intervalVerdictTol = result.interval && result.interval.tolerance && !result.inconclusive
+        ? MSAInterval.classify(result.interval.tolerance, null, result.design.n) : null;
+      /* La contribucion tiene sus propios umbrales (1 % y 9 %, los de Minitab),
+         no los del %Study Variation. Si se dejara dictaminando por el punto,
+         la pantalla diria "no concluyente" en una tarjeta y "Aceptable" en la
+         de al lado sobre el mismo sistema de medicion. */
+      result.intervalVerdictContrib = result.interval && !result.inconclusive
+        ? MSAInterval.classify(result.interval.contribution, CONTRIB_THRESHOLDS, result.design.n)
+        : null;
+    }
+
     state.result = result;
     /* El sello se toma DESPUES de calcular y de las mismas fuentes que
        alimentaron el calculo: a partir de aqui, cualquier edicion lo rompe. */
     state.stamp = captureStamp();
     $('resultsSection').hidden = false;
     $('resultBody').hidden = false;
-    showMessages($('resultMsg'), [], result.warnings);
+    /* El aviso va con el resultado, que es donde alguien decide. No se
+       sustituye a los avisos del motor: se suma a ellos. */
+    var avisos = result.warnings.slice();
+    if (result.intervalVerdict && !result.intervalVerdict.conclusive) {
+      avisos.unshift(result.intervalVerdict.label);
+    }
+    showMessages($('resultMsg'), [], avisos);
     /* Cada familia de metodos trae su propia vista de resultados, porque no
        publican la misma forma de respuesta: variables dan componentes de
        varianza, atributos da concordancias. El resto de la pantalla -pasos,
@@ -907,24 +931,57 @@
         'complementaria al criterio AIAG, no sustituto.'
   };
 
+  /* F-07. El veredicto lo decide el INTERVALO, no el punto: un %GRR de 26 %
+     con intervalo [15, 47] no es "marginal", es un estudio que no alcanza a
+     decidir, y decirlo cambia lo que hace quien lo lee -- repetir con mas
+     piezas, en vez de firmar.
+
+     El punto NO desaparece de la tarjeta. Es la estimacion, es lo que imprime
+     Minitab y es contra lo que la gente compara la convencion AIAG; lo que
+     cambia es que deja de ser el que dictamina. Cuando el intervalo concluye,
+     la etiqueta del punto se mantiene debajo como referencia. */
+  function intervalLine(iv) {
+    if (!iv || iv.lo === null || iv.hi === null) return '';
+    return '<div class="ci">IC ' + Math.round(100 * (state.result.interval.conf)) + ' %: ' +
+      iv.lo.toFixed(2) + ' - ' + iv.hi.toFixed(2) + ' %</div>';
+  }
+
+  /* Umbrales de %Contribucion: son varianzas, no desviaciones, asi que la
+     escala es otra. Minitab llama excelente a menos del 1 % y pobre a mas
+     del 9 %; son los mismos que ya usa `assess`. */
+  var CONTRIB_THRESHOLDS = { good: 1, bad: 9 };
+
   function renderVerdict(r) {
-    var a = r.assessment;
+    var a = r.assessment, iv = r.interval;
+    var sv = r.intervalVerdict, tolV = r.intervalVerdictTol;
     var cards = [
-      card('% Study Variation (GRR)', r.metrics.pctStudyVar.toFixed(2) + ' %', a.studyVar, VERDICT_HELP.sv),
-      card('% Contribucion (GRR)', r.metrics.pctContribution.toFixed(2) + ' %', a.contribution, VERDICT_HELP.contrib),
+      card('% Study Variation (GRR)', r.metrics.pctStudyVar.toFixed(2) + ' %',
+           sv || a.studyVar, VERDICT_HELP.sv, iv && intervalLine(iv.studyVar),
+           sv ? a.studyVar : null),
+      card('% Contribucion (GRR)', r.metrics.pctContribution.toFixed(2) + ' %',
+           r.intervalVerdictContrib || a.contribution, VERDICT_HELP.contrib,
+           iv && intervalLine(iv.contribution),
+           r.intervalVerdictContrib ? a.contribution : null),
       r.metrics.pctTolerance === null
         ? card('% Tolerance (P/T)', 'sin LSL/USL', null, VERDICT_HELP.tol)
-        : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %', a.tolerance, VERDICT_HELP.tol),
+        : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %',
+               tolV || a.tolerance, VERDICT_HELP.tol,
+               iv && iv.tolerance ? intervalLine(iv.tolerance) : '',
+               tolV ? a.tolerance : null),
       card('Categorias distintas', r.ndcLabel, a.ndc, VERDICT_HELP.ndc),
       card('ICC (EMP, Wheeler)', r.icc.toFixed(3), a.emp, VERDICT_HELP.icc)
     ];
     $('verdicts').innerHTML = cards.join('');
   }
 
-  function card(k, v, t, help) {
+  function card(k, v, t, help, extra, pointNote) {
     return '<div class="verdict"' + (help ? ' title="' + esc(k + ': ' + help) + '"' : '') + '>' +
       '<div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' +
-      (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') + '</div>';
+      (extra || '') +
+      (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') +
+      (pointNote ? '<div class="ci point">El punto solo, con el criterio AIAG: ' +
+                   esc(pointNote.label) + '</div>' : '') +
+      '</div>';
   }
 
   /* Barras de "Evaluacion de la variacion": mismos dos datos que mostraba

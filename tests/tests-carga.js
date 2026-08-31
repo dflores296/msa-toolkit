@@ -60,7 +60,8 @@
     { file: 'anova-nested.js', provides: 'MSANested',   needs: ['MSAStats', 'MSAAnova', 'MSADesign'],
       atLoad: ['MSADesign'] },
     { file: 'attribute.js',   provides: 'MSAAttribute', needs: ['MSAStats'],                atLoad: [] },
-    { file: 'report.js',      provides: 'MSAReport',    needs: [],                          atLoad: [] }
+    { file: 'report.js',      provides: 'MSAReport',    needs: [],                          atLoad: [] },
+    { file: 'interval.js',    provides: 'MSAInterval',  needs: [],                          atLoad: [] }
   ];
   var PROVIDER = {};
   MODULES.forEach(function (m) { PROVIDER[m.provides] = m.file; });

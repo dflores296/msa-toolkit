@@ -423,6 +423,16 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 #resultBody.stale canvas { opacity: .8; }
 .results-live.stale { color: var(--warn); font-weight: 600; }
 
+/* --- F-07: el intervalo debajo de la cifra --- */
+.verdict .ci {
+  font-size: 11px; color: var(--ink-faint); margin-top: -2px; line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+.verdict .ci.point { margin-top: 4px; font-style: italic; }
+.verdict .t.unknown {
+  background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border);
+}
+
 /* --- Veredicto --- */
 /* Tarjetas de veredicto. Las tres lineas (titulo, valor, etiqueta) se alinean
    ENTRE tarjetas, no solo dentro de cada una: cada tarjeta ocupa tres filas de

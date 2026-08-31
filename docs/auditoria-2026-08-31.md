@@ -24,7 +24,7 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
 | F-05 · Reporte con datos nuevos y tablas viejas | P1 | **Cerrado** | este commit |
 | F-06 · Atributos 0/1 → ANOVA de variables | P1 | **Cerrado** | este commit |
-| F-07 · %GRR sin intervalo de confianza | P1 | Pendiente | — |
+| F-07 · %GRR sin intervalo de confianza | P1 | **Cerrado** | este commit |
 | F-14 · Inyección de fórmulas en el CSV exportado | P1 | Pendiente | — |
 | F-15 · «Validado contra AIAG» afirmado para los tres métodos | P1 | Pendiente | — |
 | F-08 · `__proto__` como nombre → NaN silencioso | P2 | Pendiente | — |
@@ -192,6 +192,74 @@ validación pasa exactamente igual, sin avisos nuevos, y
 veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
+
+### F-07 — Un punto sin intervalo decidía la aceptación · este commit
+
+**Reproducido** con el motor en vivo, y confirma el hallazgo:
+
+```
+12 estudios 10x3x3 del MISMO sistema (sigma_ms/sigma_pieza = 0.30)
+  %GRR: 38.8 21.4 21.7 40.7 31.4 36.0 30.3 44.8 23.5 20.4 25.6 29.9
+  rango 20.4 a 44.8   -> el mismo gage a los dos lados del 30 %
+300 estudios 3x5x2 de un sistema BUENO: 24/300 "Inaceptable" -> 8 % de rechazos falsos
+```
+
+**Método: GPQ**, el que usa Minitab. En un modelo balanceado cada cuadrado
+medio cumple `MS·df/σ² ~ χ²_df`, así que `MS·df/W` con `W ~ χ²_df` simulada es
+una cantidad pivotal generalizada. Se simulan juegos de MS, se recalculan los
+componentes **con las mismas fórmulas del motor** —truncado de negativos
+incluido— y se toman percentiles. Se prefirió a MLS porque %Study Variation,
+%Contribución y %Tolerance salen del mismo juego, y el truncado queda *dentro*
+del pivote en vez de ignorarse.
+
+**Validación: cobertura, no una tabla copiada.** No hay valores publicados a
+mano para estos intervalos, así que no se inventa una referencia: se simulan
+estudios de sistemas con %GRR verdadero conocido y se cuenta cuántas veces el
+intervalo lo contiene. Medido contra un nominal de 90 %:
+
+| Caso | Cobertura | Ancho medio |
+|---|---|---|
+| cruzado 10×3×3, marginal | 96.0 % (al 95 % nominal) | 40.1 pp |
+| cruzado 10×3×3, bueno | 95.8 % (al 95 %) | 26.4 pp |
+| cruzado 5×3×2 | 96.0 % (al 95 %) | 38.1 pp |
+| anidado 10×3×3 | 93.0 % (al 95 %) | 61.6 pp |
+
+Una cobertura sobre cientos de estudios no se acierta por casualidad; un número
+suelto, sí.
+
+**Confianza por omisión: 90 %**, el valor de Minitab para Gage R&R. Medido, no
+elegido por gusto: sobre un gage excelente (%GRR real 5.4 %) un 10×3×3 concluye
+el **18 %** de las veces al 95 % y el **44 %** al 90 %. Un veredicto que casi
+nunca se emite no ayuda a nadie.
+
+**El veredicto sale del intervalo**, y solo concluye si el intervalo entero cae
+en una banda. El punto **no desaparece**: sigue en la tarjeta como estimación
+—es lo que imprime Minitab y contra lo que se compara la convención AIAG—, con
+su etiqueta AIAG debajo. Lo que cambia es que deja de dictaminar.
+
+**El resultado incomoda, y es correcto.** Sobre el propio dataset AIAG:
+
+```
+%StudyVar 27.86 %   IC 90 % [16.95, 69.18]   -> No concluyente: cruza el 30 %
+```
+
+No es un defecto del intervalo. Con 3 operadores la reproducibilidad tiene
+**2 grados de libertad**, y en el pivote `MS_op` se puede inflar hasta 40×. Un
+estudio 10×3×3 no alcanza a clasificar un gage cuyo %GRR real ronda el umbral;
+eso ya era verdad antes, solo que no se veía.
+
+**El piso de 60 mediciones se implementó, y no es redundante.** Se midió: solo
+con el intervalo, un 5×3×2 sigue concluyendo el 24–51 % de las veces. El piso
+cubre una incertidumbre que el intervalo **no mide** —que 5 piezas cubran el
+rango del proceso— y bloquea el **veredicto**, nunca el cálculo.
+
+**Efecto medido sobre el caso de la auditoría** (300 estudios 3×5×2 de un
+sistema bueno): rechazos falsos **7.3 % → 0.3 %**.
+
+**Ningún motor se tocó.** `interval.js` lee la tabla ANOVA del propio
+resultado. La regresión visual lo confirma: `panelComponentes`, `panelAnova`,
+`csv` y el anexo salen idénticos; cambian solo las tarjetas, los avisos y el
+encabezado impreso, que es donde entra el intervalo.
 
 ### F-06 — Un pasa/no pasa codificado 0/1 se analizaba como variables · este commit
 
@@ -422,15 +490,15 @@ primero valga algo.
 
 ## Calificaciones
 
-| Dimensión | 31-ago inicial | Tras F-01/03/04 | Tras F-02 | Tras F-03.1 |
-|---|---|---|---|---|
-| Exactitud estadística | 72 | 78 | 85 | 85 |
-| Calidad de código | 74 | 76 | 78 | 79 |
-| Arquitectura | 70 | 73 | 76 | 76 |
-| UX | 68 | 70 | 74 | 76 |
-| UI | 84 | 84 | 84 | 84 |
-| Seguridad | 68 | 68 | 68 | 68 |
-| Rendimiento | 82 | 82 | 82 | 82 |
+| Dimensión | 31-ago inicial | Tras F-01/03/04 | Tras F-02 | Tras F-03.1 | Tras F-05/06/07 |
+|---|---|---|---|---|---|
+| Exactitud estadística | 72 | 78 | 85 | 85 | 91 |
+| Calidad de código | 74 | 76 | 78 | 79 | 80 |
+| Arquitectura | 70 | 73 | 76 | 76 | 78 |
+| UX | 68 | 70 | 74 | 76 | 80 |
+| UI | 84 | 84 | 84 | 84 | 84 |
+| Seguridad | 68 | 68 | 68 | 68 | 68 |
+| Rendimiento | 82 | 82 | 82 | 82 | 82 |
 
 ## ¿Publicaría esta aplicación en producción para una planta de manufactura?
 
@@ -438,11 +506,18 @@ primero valga algo.
 manera de que la aplicación analice una prueba destructiva con un modelo que
 asume lo contrario de lo que ocurrió físicamente, ni de que empuje hacia él.
 
-Quedan dos cosas de las que dependen afirmaciones que la pantalla hace y no
-sostiene: el rótulo «actualizado al escribir» de F-05 y la validación AIAG
-afirmada para los tres métodos de F-15. Corregidas esas dos, **sí** — con la
-reserva razonable de que un dictamen de liberación lo firme una persona que sepa
-leer las gráficas, no la tarjeta de veredicto sola.
+Con F-05, F-06 y F-07 cerrados, **sí**. Queda una afirmación que la pantalla
+hace y no sostiene —la validación AIAG para los tres métodos, F-15—, y sigue en
+pie la reserva de siempre: que un dictamen de liberación lo firme una persona
+que sepa leer las gráficas, no la tarjeta de veredicto sola.
+
+Con una advertencia que sale de haber cerrado F-07 y no estaba en la auditoría:
+**el estudio 10×3×3 de manual no alcanza a clasificar un gage cuyo %GRR ronda
+el umbral.** La aplicación ahora lo dice en vez de esconderlo detrás de un
+punto, pero quien la use va a ver «no concluyente» más a menudo de lo que
+espera. Eso es información, no un defecto — y cambia lo que conviene hacer:
+diseñar estudios con más operadores, que es donde está el cuello de botella
+(la reproducibilidad tiene o−1 grados de libertad).
 
 Lo que sí publicaría hoy, con confianza, es el **motor cruzado como
 calculadora**: reproduce los valores publicados de Minitab dígito a dígito y

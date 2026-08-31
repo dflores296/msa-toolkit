@@ -22,7 +22,7 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-03 · El reporte de atributos lanza TypeError | P0 | **Cerrado** | `b1dffdf` |
 | F-03.1 · Impresión sin cálculo usa el encabezado de variables | P1 | **Cerrado** | este commit |
 | F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
-| F-05 · Reporte con datos nuevos y tablas viejas | P1 | Pendiente | — |
+| F-05 · Reporte con datos nuevos y tablas viejas | P1 | **Cerrado** | este commit |
 | F-06 · Atributos 0/1 → ANOVA de variables | P1 | Pendiente | — |
 | F-07 · %GRR sin intervalo de confianza | P1 | Pendiente | — |
 | F-14 · Inyección de fórmulas en el CSV exportado | P1 | Pendiente | — |
@@ -193,7 +193,52 @@ veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
 
-### F-03.1 — La impresión sin cálculo usaba el encabezado de variables · este commit
+### F-05 — El reporte podía mezclar resultados viejos con mediciones nuevas · este commit
+
+**Reproducido antes de tocar nada**, con el ejemplo AIAG en cruzado:
+
+```
+calcular            -> %SV publicado 27.86 %, primera celda 0.29
+poner 99 en la celda:
+  %SV en pantalla   27.86 %   <- no cambio, y nada dice que caduco
+  panel visible     si
+  Imprimir          habilitado
+  rotulo            "actualizado al escribir"
+imprimir:
+  encabezado %SV    27.86 %   <- del resultado VIEJO
+  el anexo trae 99  si        <- del DOM ACTUAL
+  y afirma "Los calculos de este reporte salen exactamente de estos datos"
+```
+
+**Causa raíz.** `validateLive()` solo movía el contador y el botón. Los campos
+de opciones (alfa, LSL/USL, multiplicador…) sí recalculan al cambiar; las
+celdas de medición no, y nada marcaba la diferencia.
+
+**Corregido con una huella, no con un `if` por campo.** `state.stamp` guarda,
+al calcular, la firma de **todo** lo que entró en el resultado: celdas,
+estándar, método y campos de opciones. `resultIsStale()` la compara con la
+pantalla. Así no hay una tercera cosa que se olvide mañana, y **deshacer** una
+edición quita la caducidad: se compara contenido, no «hubo un evento de
+teclado».
+
+Cuando caduca: banner con su botón de **Recalcular** dentro, panel **atenuado**
+—no escondido: ocultar unos números que alguien acaba de mirar confunde más—,
+rótulo cambiado, e **Imprimir / PDF bloqueado**.
+
+**Ctrl+P no pasa por el botón**, así que la regla vive también en el modelo:
+con `ctx.stale`, `report.js` trata el resultado como inexistente —ninguna cifra
+vieja llega al papel— y lo declara. El anexo cambia su frase por la contraria,
+en el mismo sitio donde el lector la buscaría.
+
+**El rótulo** «actualizado al escribir» pasa a «se recalcula al pulsar
+Calcular»: prometía algo que la aplicación no hacía.
+
+**Pruebas.** Tres en Node sobre el modelo puro y `tests/prueba-frescura.js`
+(35 comprobaciones en navegador): el escenario completo, Ctrl+P, deshacer,
+recalcular, que los campos de opciones **no** dejen el panel caduco porque esos
+sí recalculan solos, y los tres métodos.
+
+### F-03.1 — La impresión sin cálculo usaba el encabezado de variables · `4690438`
 
 **Encontrado revalidando F-03 sobre `develop` después de F-02**, no reportado en
 la auditoría original. **No es regresión de F-02:** el mismo recorrido da un

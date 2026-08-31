@@ -9,8 +9,12 @@
   /* parts        - metodo cruzado: la lista de piezas que miden todos.
      partsByOperator - metodo anidado: las piezas propias de cada operador.
      Los dos viven a la vez para no perder la captura al cambiar de metodo. */
+  /* `stamp` es la huella de TODO lo que entro en `result`: las celdas, el
+     estandar, el metodo y los campos de opciones. Se compara con la huella de
+     lo que hay ahora en pantalla para saber si el resultado sigue siendo de
+     estos datos (F-05). null = no hay resultado del que dudar. */
   var state = { method: 'cruzado', operators: [], parts: [], partsByOperator: [],
-                replicates: 2, result: null, standard: {} };
+                replicates: 2, result: null, stamp: null, standard: {} };
 
   /* ------------------------------------------------------------------ *
    * Tema claro / oscuro - manual, se recuerda en localStorage.
@@ -177,9 +181,10 @@
         buildDataTable(false);          // sin preservar: la tabla nace vacia
         validateLive();
         showMessages($('configMsg'), [], [methodSwitchNote(m)]);
-        state.result = null;
+        state.result = null; state.stamp = null;
         $('resultsSection').hidden = true;
         resetResultViz();
+        refreshStale();
       }
     }
     return m.id;
@@ -653,6 +658,72 @@
     });
   }
 
+  /* ------------------------------------------------------------------ *
+   * F-05 - Un resultado deja de valer en cuanto cambian sus datos
+   *
+   * Editar una celda disparaba validateLive(), que solo movia el contador y
+   * el boton. `state.result` seguia ahi, el panel seguia visible y el rotulo
+   * decia "actualizado al escribir". Al imprimir, el encabezado y las tablas
+   * salian del resultado VIEJO mientras el anexo se armaba leyendo el DOM
+   * ACTUAL, y el anexo cerraba afirmando que "los calculos de este reporte
+   * salen exactamente de estos datos". En ese escenario la frase es falsa, en
+   * un documento que sirve para liberar un instrumento.
+   *
+   * Los campos de opciones (alfa, LSL/USL, multiplicador...) si recalculaban
+   * al cambiar; las celdas de medicion no. La huella cubre los dos, para que
+   * no haya una tercera cosa que se olvide manana.
+   * ------------------------------------------------------------------ */
+  var STAMP_FIELDS = ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator',
+                      'lsl', 'usl', 'tolerance', 'processMean', 'historicalSigma',
+                      'categories', 'rejectCategory'];
+
+  /** Huella de lo que hay AHORA en pantalla. Barata: solo lee valores. */
+  function captureStamp() {
+    var parts = [state.method];
+    inputs().forEach(function (i) {
+      parts.push(i.dataset.op + '\u0001' + i.dataset.part + '\u0001' + i.dataset.rep +
+                 '\u0001' + i.value.trim());
+    });
+    if (isAttribute()) {
+      var std = readStandard();
+      Object.keys(std).sort().forEach(function (k) { parts.push('std:' + k + '\u0001' + std[k]); });
+    }
+    STAMP_FIELDS.forEach(function (id) {
+      var el = $(id);
+      if (el) parts.push(id + '\u0001' + el.value);
+    });
+    return parts.join('\u0002');
+  }
+
+  /** true si hay un resultado publicado y ya no corresponde a lo capturado. */
+  function resultIsStale() {
+    return !!(state.result && state.stamp !== null && captureStamp() !== state.stamp);
+  }
+
+  /* Se dice, se atenua y se bloquea la impresion. No se borra el resultado:
+     esconder unos numeros que alguien acaba de mirar confunde mas que
+     atenuarlos, y recalcular esta a un clic dentro del propio aviso. */
+  function refreshStale() {
+    var stale = resultIsStale();
+    var banner = $('resultStale'), body = $('resultBody'), live = $('resultsLive');
+    if (banner) banner.hidden = !stale;
+    if (body) body.classList.toggle('stale', stale);
+    if (live) {
+      live.classList.toggle('stale', stale);
+      live.textContent = stale ? 'resultados desactualizados - pulsa Recalcular'
+                               : 'se recalcula al pulsar Calcular';
+    }
+    var print = $('printBtn');
+    if (print) {
+      print.disabled = stale;
+      print.title = stale
+        ? 'Los datos cambiaron despues de calcular. Recalcula antes de imprimir: el reporte ' +
+          'mezclaria el resultado viejo con las mediciones nuevas.'
+        : '';
+    }
+    return stale;
+  }
+
   function validateLive() {
     /* En atributos no hay nada que validar como numero: la celda solo puede
        tener una de las categorias, porque es un desplegable. Lo unico que se
@@ -684,6 +755,7 @@
       }
     }
     if (attr) markRejectNeeded();
+    refreshStale();                 // F-05: el resultado publicado puede haber caducado
     $('captureStatus').textContent = msg;
     $('captureStatus').style.color = (bad || empty) ? 'var(--warn)' : 'var(--ok)';
   }
@@ -738,7 +810,7 @@
       showMessages($('resultMsg'), specs.errors, []);
       $('resultBody').hidden = true;
       resetResultViz();
-      state.result = null;
+      state.result = null; state.stamp = null; refreshStale();
       return;
     }
     var opts;
@@ -770,10 +842,13 @@
       showMessages($('resultMsg'), e.details || [e.message], []);
       resetResultViz();
       $('resultBody').hidden = true;
-      state.result = null;
+      state.result = null; state.stamp = null; refreshStale();
       return;
     }
     state.result = result;
+    /* El sello se toma DESPUES de calcular y de las mismas fuentes que
+       alimentaron el calculo: a partir de aqui, cualquier edicion lo rompe. */
+    state.stamp = captureStamp();
     $('resultsSection').hidden = false;
     $('resultBody').hidden = false;
     showMessages($('resultMsg'), [], result.warnings);
@@ -791,6 +866,7 @@
       renderTables(result);
     }
     MSACharts.render(result);
+    refreshStale();                 // deja el panel y el boton de imprimir en su sitio
   }
 
   /* Que significa cada tarjeta. Se muestra al pasar el cursor: el numero solo
@@ -1624,13 +1700,14 @@
     validateLive();
     $('resultsSection').hidden = true;
     resetResultViz();
-    state.result = null;
+    state.result = null; state.stamp = null;
+    refreshStale();
   }
 
   function resetAll() {
     if (!confirm('Se reiniciara el estudio completo (configuracion y datos). Continuar?')) return;
     state = { method: state.method, operators: [], parts: [], partsByOperator: [],
-              replicates: 2, result: null, standard: {} };
+              replicates: 2, result: null, stamp: null, standard: {} };
     $('numOperators').value = 3; $('numParts').value = 10; $('numReplicates').value = 3;
     $('studyName').value = ''; renderStudyName();
     $('lsl').value = ''; $('usl').value = '';
@@ -1727,6 +1804,11 @@
       spec: specLabel(),
       multiplier: $('svMultiplier').value,
       alpha: $('alpha').value,
+      /* F-05. El boton queda deshabilitado cuando el resultado caduco, pero
+         Ctrl+P dispara beforeprint igual, asi que la regla vive tambien aqui:
+         un resultado que ya no es de estos datos no se imprime como si lo
+         fuera. El modelo lo trata como "sin calcular" y lo dice. */
+      stale: resultIsStale(),
       /* F-03.1: antes de calcular no hay resultado del que sacar la categoria
          de rechazo, y el encabezado de un estudio de atributos sin calcular la
          necesita. Se lee de la pantalla, como el resto de este contexto. */
@@ -1778,7 +1860,12 @@
     });
     h += '</tbody></table><p class="annex-note">' + n +
       (attr ? ' clasificaciones capturadas. ' : ' mediciones capturadas. ') +
-      'Los calculos de este reporte salen exactamente de estos datos.</p>';
+      (resultIsStale()
+        /* F-05: la frase de siempre seria falsa aqui. Se dice lo contrario,
+           en el mismo sitio donde el lector la buscaria. */
+        ? 'ATENCION: los datos cambiaron despues del ultimo calculo, asi que los resultados de ' +
+          'este reporte NO salen de estas mediciones. Recalcula antes de usarlo.'
+        : 'Los calculos de este reporte salen exactamente de estos datos.') + '</p>';
     $('printAnnex').innerHTML = h;
   }
 
@@ -1815,6 +1902,7 @@
     $('generateBtn').addEventListener('click', function () { buildDataTable(true); });
     $('calcBtn').addEventListener('click', calculate);
     $('recalcBtn').addEventListener('click', calculate);
+    $('staleRecalcBtn').addEventListener('click', calculate);
     $('demoBtn').addEventListener('click', loadDemo);
     $('clearDataBtn').addEventListener('click', clearData);
     $('resetBtn').addEventListener('click', resetAll);

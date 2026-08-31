@@ -266,6 +266,11 @@ tres métodos, importar-calcular-imprimir en atributos, y la categoría de recha
 pendiente: ahí no hay resultado del que deducir la familia del estudio, y era
 donde un estudio de atributos se imprimía con el encabezado de variables (F-03.1).
 
+**Frescura del resultado.** `node tests/prueba-frescura.js` comprueba que un
+resultado deje de publicarse en cuanto cambian los datos de los que salió:
+banner, panel atenuado, *Imprimir / PDF* bloqueado, y —lo que un bloqueo de
+botón no cubre— que Ctrl+P tampoco imprima el resultado viejo (F-05).
+
 **Diseño y enrutado.** `node tests/prueba-diseno.js` hace lo mismo con el camino
 de F-02: captura manual con las piezas numeradas 1..n en cada operador, importar
 ese estudio en CSV (que no declara método) y en JSON (que sí lo declara),

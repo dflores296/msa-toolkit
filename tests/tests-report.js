@@ -376,4 +376,51 @@
     });
   });
 
+  /* ======================================================================== *
+   * F-05: un resultado caduco no se imprime como si fuera de estos datos
+   * ======================================================================== */
+
+  test('F-05: con ctx.stale, ninguna cifra del resultado viejo llega al papel', function () {
+    var r = crossedResult();
+    var vivo = R.headerRows(r, CTX_CRUZADO);
+    var caduco = R.headerRows(r, Object.assign({}, CTX_CRUZADO, { stale: true }));
+
+    assert(valueOf(vivo, '% Study Variation (GRR)') !== undefined, 'el vivo si publica el %SV');
+    ['% Study Variation (GRR)', 'Categorias distintas', 'Discriminacion', 'Modelo',
+     'Especificacion', 'Multiplicador', 'Alfa'].forEach(function (l) {
+      assert(labels(caduco).indexOf(l) < 0, 'caduco no debe traer "' + l + '"');
+    });
+    assert(valueOf(caduco, 'Estado') === R.STALE_TEXT, 'lo dice: ' + valueOf(caduco, 'Estado'));
+    /* Ni siquiera por accidente puede colarse el numero viejo. */
+    var texto = caduco.map(function (row) { return row.join(' '); }).join(' | ');
+    assert(texto.indexOf(r.metrics.pctStudyVar.toFixed(2)) < 0,
+           'el %SV viejo no aparece en ninguna fila: ' + texto);
+  });
+
+  test('F-05: caduco en atributos tampoco publica sus cifras', function () {
+    var a = attributeResult();
+    var caduco = R.headerRows(a, Object.assign({}, CTX_ATRIB, { stale: true }));
+    ['Kappa', 'Efectividad', 'Error de fuga', 'Falsa alarma', 'Entre evaluadores'].forEach(function (f) {
+      assert(!labels(caduco).some(function (l) { return l.indexOf(f) >= 0; }),
+             'caduco no debe traer "' + f + '": ' + labels(caduco).join(', '));
+    });
+    assert(valueOf(caduco, 'Estado') === R.STALE_TEXT, 'lo dice');
+    /* El tamano del estudio si se conserva, y con las palabras del metodo
+       activo: no depende del calculo, se lee de la pantalla. */
+    assert(valueOf(caduco, 'Estudio').indexOf('evaluadores') >= 0,
+           'sigue siendo un estudio de atributos: ' + valueOf(caduco, 'Estudio'));
+  });
+
+  test('F-05: sin resultado, ctx.stale no cambia nada', function () {
+    /* stale solo tiene sentido frente a un resultado publicado. Sin el, el
+       encabezado es el de "sin calcular" de F-03.1, no un tercer estado. */
+    ['cruzado', 'atributos'].forEach(function (m) {
+      var ctx = Object.assign({}, m === 'cruzado' ? CTX_CRUZADO : CTX_ATRIB, { stale: true });
+      var a = R.headerRows(null, ctx);
+      var b = R.headerRows(null, Object.assign({}, ctx, { stale: false }));
+      assert(JSON.stringify(a) === JSON.stringify(b), m + ': stale sin resultado no cambia nada');
+      assert(valueOf(a, 'Estado') !== R.STALE_TEXT, m + ': no anuncia caducidad de nada');
+    });
+  });
+
 })(typeof window !== 'undefined' ? window : globalThis);

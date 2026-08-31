@@ -278,17 +278,13 @@
       c.pctProcess = histSigma ? c.stdDev / histSigma : null;
     });
 
-    var sdPart = sqrt0(V_part), sdGrr = sqrt0(V_grr);
-    /* Mismo trato del NDC que en el cruzado: con Var_GRR en cero o en el ruido
-       del punto flotante el cociente no significa nada, y "inf" o un entero de
-       quince cifras se leen como lo contrario de lo que pasa. */
-    var grrIsZero = !(V_grr > V_total * 1e-12);
-    var ndcRaw = grrIsZero ? Infinity : 1.41 * sdPart / sdGrr;
-    var ndc = isFinite(ndcRaw) ? Math.floor(ndcRaw) : null;
-    var ndcLabel = ndc === null ? 'No evaluable' : (ndc > 100 ? '> 100' : String(ndc));
+    var sdGrr = sqrt0(V_grr);   // sdPart ya solo lo usa ndcOf, por dentro
+    /* NDC y discriminacion salen de las mismas funciones que el cruzado: las
+       celdas del anidado son operador x SU pieza, pero la pregunta es la
+       misma, y dos copias acabarian clasificando distinto el mismo equipo. */
+    var ndcInfo = global.MSAAnova.ndcOf(V_part, V_grr, V_total);
+    var ndcRaw = ndcInfo.raw, ndc = ndcInfo.ndc, ndcLabel = ndcInfo.label;
 
-    /* Discriminacion: las celdas del anidado son operador x SU pieza, pero la
-       pregunta es la misma y la funcion es la misma del cruzado. */
     var cellList = [];
     operators.forEach(function (op, oi) {
       partsByOp[oi].forEach(function (pt) { cellList.push(cell[op + SEP + pt]); });

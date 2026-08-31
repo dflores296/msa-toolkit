@@ -952,21 +952,30 @@
         : 'NDC = parte entera de 1.41 x (sigma_pieza / sigma_GageR&R) = ' +
           r.ndcRaw.toFixed(3) + ' -> ' + r.ndcLabel + '.'
     ];
-    /* Resolucion aparente. Es un dato del estudio, no un aviso: se publica
-       siempre que se pueda medir, y el aviso solo aparece si pasa del 10 %. */
+    /* Escalon observado en los datos. Es un dato del estudio, no un aviso: se
+       publica siempre que se pueda medir, y el aviso solo aparece si pasa del
+       criterio. Se le llama "observado" y no "resolucion del instrumento" a
+       proposito: los datos demuestran con que finura se ANOTARON las lecturas,
+       no cuanto resuelve el equipo. */
     var d = r.discrimination;
     if (d) {
+      var lim = (100 * d.limit).toFixed(0);
       if (d.step !== null) {
-        notes.push('Resolucion aparente = ' + num(d.step, 8) + ' (' + d.stepSource + '), que es ' +
+        notes.push('Escalon observado en los datos (resolucion aparente) = ' + num(d.step, 8) +
+          ', tomado como la ' + d.stepSource + '. Equivale a ' +
           (d.overStudyVar === null ? '-' : (100 * d.overStudyVar).toFixed(2) + ' % de la variacion del estudio') +
-          (d.overTolerance === null ? '' : ' y ' + (100 * d.overTolerance).toFixed(2) + ' % de la tolerancia') +
-          '. La regla de discriminacion AIAG pide que no pase del 10 %. Valores distintos en el ' +
-          'estudio: ' + d.distinctValues + ' de ' + d.measurements + '.');
+          (d.overTolerance === null
+            ? ' (sin tolerancia capturada, ese segundo criterio no se evalua)'
+            : ' y a ' + (100 * d.overTolerance).toFixed(2) + ' % de la tolerancia') +
+          '. La regla de discriminacion AIAG pide que no pase del ' + lim + ' % de ninguno de los ' +
+          'dos, y basta con rebasar uno para marcarlo. No es la resolucion nominal del instrumento: ' +
+          'es la finura con que se anotaron estas lecturas. Valores distintos en el estudio: ' +
+          d.distinctValues + ' de ' + d.measurements + '.');
       } else {
-        notes.push('Resolucion aparente: ' + d.stepSource + '. En ' + d.zeroRangeCells + ' de las ' +
-          d.cells + ' celdas operador-pieza todas las replicas dieron la misma lectura, asi que el ' +
-          'escalon del instrumento no se puede deducir de estos datos. Valores distintos en el ' +
-          'estudio: ' + d.distinctValues + ' de ' + d.measurements + '.');
+        notes.push('Escalon observado en los datos: ' + d.stepSource + '. En ' + d.zeroRangeCells +
+          ' de las ' + d.cells + ' celdas operador-pieza todas las replicas dieron la misma lectura, ' +
+          'asi que ningun escalon se puede deducir de estos datos. Valores distintos en el estudio: ' +
+          d.distinctValues + ' de ' + d.measurements + '.');
       }
     }
     if (showTol) {

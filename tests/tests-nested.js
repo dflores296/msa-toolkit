@@ -514,8 +514,8 @@
     assert(r.discrimination.state === 'censurado', 'estado censurado, se obtuvo ' + r.discrimination.state);
     assert(r.inconclusive === false, 'no es no concluyente');
     assert(r.assessment.studyVar && r.assessment.studyVar.level === 'ok', 'conserva el veredicto');
-    assert(!r.warnings.some(function (w) { return w.indexOf('falta de resolucion') >= 0; }),
-           'no acusa de falta de resolucion');
+    assert(!r.warnings.some(function (w) { return w.indexOf('resolucion insuficiente') >= 0; }),
+           'no levanta alarma de resolucion sobre un instrumento excelente');
   });
 
   test('F-01 anidado: el ejemplo de referencia no cambia ni gana avisos', function () {
@@ -524,7 +524,7 @@
     assert(r.ndcLabel === String(r.ndc), 'la etiqueta del NDC es su numero');
     assert(!/inf/i.test(r.ndcLabel) && !/\d{4,}/.test(r.ndcLabel), 'NDC legible: "' + r.ndcLabel + '"');
     var nuevos = r.warnings.filter(function (w) {
-      return /no concluyente|no es medible|falta de resolucion/.test(w);
+      return /no concluyente|no es medible|resolucion insuficiente/.test(w);
     });
     assert(nuevos.length === 0, 'sin avisos nuevos: ' + nuevos.join(' | '));
   });

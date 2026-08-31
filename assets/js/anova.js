@@ -295,21 +295,9 @@
     });
 
     // --- NDC, ICC y clasificacion ---
-    var sdPart = sqrt0(V_part), sdGrr = sqrt0(V_grr);
-    /* NDC = 1.41 x sigma_pieza / sigma_GRR. Con Var_GRR en cero o en el ruido
-       del punto flotante ese cociente no significa nada: antes salia null (y
-       la tarjeta imprimia "inf") o un entero de quince cifras. Las dos cosas
-       se leen como "infinitas categorias", que es justo lo contrario de lo que
-       pasa: no es que el sistema separe infinito, es que no se puede evaluar.
-       El umbral relativo -- y no > 0 -- es lo que atrapa el 2.1e-30 que deja
-       una cancelacion de sumas de cuadrados. */
-    var grrIsZero = !(V_grr > V_total * 1e-12);
-    var ndcRaw = grrIsZero ? Infinity : 1.41 * sdPart / sdGrr;
-    var ndc = isFinite(ndcRaw) ? Math.floor(ndcRaw) : null;
-    /* Por encima de 100 el numero exacto no aporta -- AIAG solo pide 5 -- y
-       sale de dividir entre una varianza practicamente nula, asi que se
-       publica como cota y no como cifra. */
-    var ndcLabel = ndc === null ? 'No evaluable' : (ndc > 100 ? '> 100' : String(ndc));
+    var sdGrr = sqrt0(V_grr);   // sdPart ya solo lo usa ndcOf, por dentro
+    var ndcInfo = ndcOf(V_part, V_grr, V_total);
+    var ndcRaw = ndcInfo.raw, ndc = ndcInfo.ndc, ndcLabel = ndcInfo.label;
 
     /* Discriminacion: de que tamano es el escalon de lectura frente a lo que
        se esta midiendo, y si la repetibilidad llego siquiera a ser medible. */
@@ -462,7 +450,7 @@
   }
 
   /* ==========================================================================
-   * discrimination(cells, values, V_grr, V_total, tol, k)
+   * DISCRIMINACION: que tan fino es el escalon que muestran los datos
    *
    * QUE PROBLEMA RESUELVE
    *
@@ -471,63 +459,130 @@
    * "%GRR = 0.00 %, Aceptable" -- y que exigen respuestas opuestas:
    *
    *   1. Instrumento extremadamente preciso. Su error real esta muy por debajo
-   *      de su propia resolucion, asi que ninguna replica se mueve. El
-   *      veredicto de aceptable es correcto.
-   *   2. Cuantizacion / falta de discriminacion. El instrumento es demasiado
-   *      grueso para las piezas: tampoco se mueve, pero por el motivo
-   *      contrario.
+   *      del escalon con que se registran las lecturas, asi que ninguna
+   *      replica se mueve. El veredicto de aceptable es correcto.
+   *   2. Cuantizacion gruesa: o el instrumento no resuelve mas fino, o los
+   *      datos se redondearon antes de llegar aqui. Tampoco se mueve, pero por
+   *      el motivo contrario.
    *   3. Datos degenerados. Todas las mediciones son el mismo numero. No hay
    *      informacion de ninguna clase.
    *
-   * En un instrumento digital NUNCA se puede observar una repetibilidad menor
-   * que un escalon de lectura. Cuando ninguna replica se mueve, el cero que
-   * sale no es una medicion: es una observacion CENSURADA. Publicarlo como
+   * Nunca se puede observar una repetibilidad menor que el escalon con que se
+   * anotaron las lecturas. Cuando ninguna replica se mueve, el cero que sale
+   * no es una medicion: es una observacion CENSURADA. Publicarlo como
    * "0.00 %, Aceptable" presenta un no-estimado con la cara de un estimado.
    *
-   * COMO SE DISTINGUEN, SIN PEDIRLE NADA AL USUARIO
+   * QUE ES -- Y QUE NO ES -- EL VALOR QUE SE INFIERE
    *
-   * La resolucion se infiere de los propios datos, pero hay que mirar donde
-   * significa algo. La minima diferencia no nula entre DOS REPLICAS DE LA
-   * MISMA CELDA es, con seguridad, un escalon del instrumento: mismo operador,
-   * misma pieza, mismo momento; lo unico que separa esas dos lecturas es el
-   * sistema de medicion.
+   * Es el ESCALON OBSERVADO EN LOS DATOS, tambien llamado aqui resolucion
+   * aparente. NO es la resolucion nominal del instrumento y este modulo no
+   * puede conocerla: los datos solo demuestran con que finura fueron
+   * ANOTADOS. Un micrometro de 0.001 mm cuyas lecturas se exportaron
+   * redondeadas a 0.01 mm produce un escalon observado de 0.01 mm, y eso es un
+   * hecho sobre el archivo, no sobre el instrumento. Por eso el aviso habla de
+   * "posible resolucion insuficiente O redondeo excesivo de los datos" y deja
+   * la conclusion a quien conoce el equipo.
    *
-   * La minima diferencia no nula entre mediciones CUALESQUIERA no sirve para
-   * esto. Si ninguna celda varia, esa diferencia es la que hay entre dos
-   * PIEZAS, que no dice nada del instrumento. Medido: en un estudio con
-   * micrometro de 0.001 mm sobre piezas repartidas en 2 mm, la minima
-   * diferencia global es 0.222 -- 222 veces la resolucion real -- y usarla
-   * levantaria una alarma de resolucion sobre un instrumento excelente.
+   * COMO SE INFIERE, SIN PEDIRLE NADA AL USUARIO
    *
-   * De ahi los cuatro estados:
+   * Es la minima diferencia no nula entre dos lecturas del MISMO OPERADOR
+   * sobre la MISMA PIEZA en REPLICAS DISTINTAS. Esas dos lecturas comparten
+   * todo salvo el acto de medir, asi que lo unico que puede separarlas es el
+   * sistema de medicion. (Las replicas se toman en momentos distintos, y a
+   * proposito: eso es justamente lo que la repetibilidad mide.)
    *
-   *   degenerado  un solo valor distinto en todo el estudio. Sin informacion.
-   *   censurado   ninguna celda varia, pero hay varios valores distintos. La
-   *               repetibilidad NO es medible con estos datos: el %GRR de 0 %
-   *               es una cota, no un estimado, y estos datos no pueden separar
-   *               el caso 1 del caso 2. No se acusa al instrumento ni se le
-   *               absuelve; se dice que el estudio no lo resuelve.
-   *   gruesa      el escalon SI se midio y ocupa mas del 10 % de la variacion
-   *               del estudio o de la tolerancia (regla de discriminacion
-   *               AIAG). Es la unica evidencia objetiva de falta de
-   *               resolucion, y la unica que levanta esa alarma.
-   *   ok          el escalon se midio y es chico. Sin avisos. Es el caso de
-   *               casi todos los estudios reales: esto no debe estorbar.
+   * La minima diferencia entre mediciones CUALESQUIERA no sirve para esto. Si
+   * ninguna celda varia, esa diferencia es la que hay entre dos PIEZAS, que no
+   * dice nada del sistema de medicion. Medido: en un estudio con micrometro de
+   * 0.001 mm sobre piezas repartidas en 2 mm, la minima diferencia global es
+   * 0.222 -- 222 veces el escalon real -- y usarla levantaria una alarma sobre
+   * un instrumento excelente. Cuando ninguna celda varia, el escalon
+   * simplemente NO ES MEDIBLE, y eso es lo que se reporta.
    *
-   * La cota del caso censurado sale de tratar la cuantizacion como uniforme
-   * sobre un escalon: sigma <= paso / raiz(12). Solo se publica cuando el paso
-   * es medible, que en el caso censurado no ocurre; por eso ahi la cota se
-   * omite en vez de inventarse.
+   * CONTRA QUE SE COMPARA EL 10 %
+   *
+   * Contra los DOS denominadores, cada uno cuando existe:
+   *
+   *   overStudyVar  = escalon / (k * sigma_total)   variacion del estudio,
+   *                                                 con el k activo (6 o 5.15).
+   *                                                 Siempre que sigma_total > 0.
+   *   overTolerance = escalon / tol.width           solo si el usuario dio
+   *                                                 LSL/USL o tolerancia
+   *                                                 directa; si no, es null.
+   *
+   * El estado final es el PEOR de los dos: basta con que UNO supere el 10 %
+   * para marcar 'gruesa' (un OR, no un AND). Un escalon que se come el 40 % de
+   * la tolerancia es un problema aunque las piezas del estudio esten muy
+   * dispersas y lo disimulen frente a la variacion del estudio, y al reves.
+   * El aviso nombra cual o cuales de los dos criterios se rebaso, para que se
+   * pueda comprobar. Sin tolerancia capturada solo se evalua el primero.
+   *
+   * UNIDADES
+   *
+   * V_grr y V_total son VARIANZAS (sigma cuadrada): salen de cuadrados medios
+   * y de sumas de componentes de varianza, no de desviaciones estandar. Aqui
+   * se convierten a sigma con una raiz antes de compararlas con el escalon,
+   * que esta en unidades de medicion.
    * ========================================================================*/
+
+  /* Criterio de discriminacion AIAG: el escalon de lectura no debe pasar del
+     10 % de aquello contra lo que se mide. Esto SI es un criterio del manual. */
+  var DISCRIMINATION_LIMIT = 0.10;
+
+  /* Las dos constantes de abajo son PROTECCION NUMERICA, no criterios AIAG.
+     No salen de ningun manual y no deben leerse como umbrales de calidad. */
+
+  /* Var_GRR se considera cero cuando es esta fraccion de Var_Total o menos.
+     No basta con "> 0": una cancelacion de sumas de cuadrados deja residuos
+     del orden de 1e-30 que son ruido del punto flotante, y dividir entre
+     ellos producia un NDC de quince cifras. */
+  var ZERO_VARIANCE_RATIO = 1e-12;
+
+  /* Dos lecturas se consideran iguales si difieren en menos que esta fraccion
+     de la mayor magnitud del estudio. Dos numeros tecleados iguales dan dobles
+     identicos, pero 10.3 - 10.2 no da 0.1 exacto, y sin esto una diferencia
+     fantasma de 1e-17 pasaria por un escalon real. */
+  var EQUALITY_EPS_RATIO = 1e-12;
+
+  /* --------------------------------------------------------------------------
+   * ndcOf(V_part, V_grr, V_total) - numero de categorias distintas.
+   *
+   * NDC = parte entera de 1.41 x sigma_pieza / sigma_GRR. Con Var_GRR en cero
+   * o en el ruido del punto flotante ese cociente no significa nada: antes
+   * salia null (y la tarjeta imprimia "inf") o un entero de quince cifras. Las
+   * dos cosas se leen como "separa infinitas categorias", que es justo lo
+   * contrario de lo que pasa: no es que separe infinito, es que no se puede
+   * evaluar. Por encima de 100 el numero exacto tampoco aporta -- AIAG solo
+   * pide 5 -- y sale de dividir entre una varianza practicamente nula, asi que
+   * se publica como cota.
+   *
+   * Los tres argumentos son VARIANZAS.
+   * ------------------------------------------------------------------------*/
+  function ndcOf(V_part, V_grr, V_total) {
+    var isZero = !(V_grr > V_total * ZERO_VARIANCE_RATIO);
+    var raw = isZero ? Infinity : 1.41 * Math.sqrt(Math.max(0, V_part)) / Math.sqrt(V_grr);
+    var ndc = isFinite(raw) ? Math.floor(raw) : null;
+    return {
+      raw: raw, ndc: ndc,
+      label: ndc === null ? 'No evaluable' : (ndc > 100 ? '> 100' : String(ndc))
+    };
+  }
+
+  /* --------------------------------------------------------------------------
+   * discrimination(cells, values, V_grr, V_total, tol, k)
+   *
+   *   cells    [[replicas de una celda], ...] - una entrada por celda del diseno
+   *   values   todas las mediciones del estudio, planas
+   *   V_grr    VARIANZA del sistema de medicion
+   *   V_total  VARIANZA total del estudio
+   *   tol      objeto de resolveTolerance, o null si no se capturo ninguna
+   *   k        multiplicador de la variacion del estudio (6 o 5.15)
+   * ------------------------------------------------------------------------*/
   function discrimination(cells, values, V_grr, V_total, tol, k) {
     var i;
-
-    /* Epsilon de igualdad. Dos lecturas tecleadas iguales dan dobles iguales,
-       pero 10.3 - 10.2 no da 0.1 exacto. Todo lo que caiga por debajo de esto
-       es la misma lectura, no una diferencia real. */
     var scale = 0;
     for (i = 0; i < values.length; i++) scale = Math.max(scale, Math.abs(values[i]));
-    var eps = (scale || 1) * 1e-12;
+    var eps = (scale || 1) * EQUALITY_EPS_RATIO;
 
     var sorted = values.slice().sort(function (a, b) { return a - b; });
     var distinct = sorted.length ? 1 : 0, last = sorted[0];
@@ -535,7 +590,7 @@
       if (sorted[i] - last > eps) { distinct++; last = sorted[i]; }
     }
 
-    /* El escalon: minima diferencia no nula DENTRO de una celda. */
+    /* El escalon: minima diferencia no nula entre replicas de una misma celda. */
     var step = Infinity, cellsWithSpread = 0;
     cells.forEach(function (v) {
       var s = v.slice().sort(function (a, b) { return a - b; }), moved = false;
@@ -553,18 +608,37 @@
       cells: cells.length,
       cellsWithSpread: cellsWithSpread,
       zeroRangeCells: cells.length - cellsWithSpread,
+      /* step: el escalon OBSERVADO EN LOS DATOS (resolucion aparente). No es
+         la resolucion nominal del instrumento; ver el bloque de arriba. */
       step: measured ? step : null,
-      stepSource: measured ? 'minima diferencia entre replicas de una misma celda'
-                           : 'no medible: ninguna replica difirio de otra',
-      overStudyVar: null, overTolerance: null, grrUpperBound: null,
+      stepSource: measured
+        ? 'minima diferencia entre replicas distintas del mismo operador sobre la misma pieza'
+        : 'no medible: ninguna replica difirio de otra',
+      limit: DISCRIMINATION_LIMIT,
+      overStudyVar: null, overTolerance: null,
+      exceeds: [],
+      /* Cuanto del % Study Variation explicaria por si sola la cuantizacion,
+         tomandola como uniforme sobre un escalon (sigma ~ escalon / raiz 12).
+         Es un orden de magnitud para leer el aviso, no una cota rigurosa: el
+         denominador es el sigma_total observado, que ya incluye lo que el
+         redondeo dejo pasar. */
+      quantizationShare: null,
       state: 'ok', label: '', inconclusive: false
     };
 
-    var sdTotal = Math.sqrt(Math.max(0, V_total));
+    var sdTotal = Math.sqrt(Math.max(0, V_total));   // V_total es varianza
     if (measured) {
-      if (sdTotal > 0) out.overStudyVar = step / (k * sdTotal);
+      if (sdTotal > 0) {
+        out.overStudyVar = step / (k * sdTotal);
+        out.quantizationShare = 100 * (step / Math.sqrt(12)) / sdTotal;
+      }
       if (tol && tol.width > 0) out.overTolerance = step / tol.width;
-      if (sdTotal > 0) out.grrUpperBound = 100 * (step / Math.sqrt(12)) / sdTotal;
+      if (out.overStudyVar !== null && out.overStudyVar > DISCRIMINATION_LIMIT) {
+        out.exceeds.push('variacion del estudio');
+      }
+      if (out.overTolerance !== null && out.overTolerance > DISCRIMINATION_LIMIT) {
+        out.exceeds.push('tolerancia');
+      }
     }
 
     if (distinct < 2) {
@@ -574,20 +648,20 @@
     } else if (!measured) {
       out.state = 'censurado';
       out.label = 'Repetibilidad no medible';
-    } else if ((out.overStudyVar !== null && out.overStudyVar > 0.10) ||
-               (out.overTolerance !== null && out.overTolerance > 0.10)) {
+    } else if (out.exceeds.length) {          // basta con que uno de los dos falle
       out.state = 'gruesa';
-      out.label = 'Posible falta de resolucion';
+      out.label = 'Posible resolucion insuficiente o redondeo';
     } else {
       out.state = 'ok';
-      out.label = 'Resolucion adecuada';
+      out.label = 'Escalon observado adecuado';
     }
     return out;
   }
 
   /* Avisos de discriminacion. Se emiten SOLO cuando hay evidencia objetiva:
      un estudio con el escalon medido y chico no dice nada, que es el caso de
-     casi todos. */
+     casi todos. Ninguno acusa al instrumento por su cuenta: los datos no
+     demuestran su resolucion nominal, solo con que finura se anotaron. */
   function discriminationWarnings(d) {
     var w = [], pc = function (x) { return (100 * x).toFixed(1) + ' %'; };
     if (d.state === 'degenerado') {
@@ -599,22 +673,27 @@
     } else if (d.state === 'censurado') {
       w.push('La repetibilidad no es medible con estos datos: en las ' + d.cells + ' celdas ' +
         'operador-pieza, ninguna replica difirio de otra. El %GRR de 0 % es una COTA, no un ' +
-        'estimado: el error del sistema de medicion es menor que un escalon de lectura, pero el ' +
-        'estudio no puede decir cuanto. Caben dos explicaciones y estos datos no las separan: un ' +
-        'instrumento mucho mas fino que su propia resolucion (bueno) o una resolucion demasiado ' +
-        'gruesa para estas piezas (malo). Para distinguirlas hace falta la resolucion del ' +
+        'estimado: el error del sistema de medicion es menor que el escalon con que se anotaron ' +
+        'las lecturas, pero el estudio no puede decir cuanto. Caben dos explicaciones y estos datos ' +
+        'no las separan: un sistema mucho mas fino que ese escalon (bueno) o un escalon demasiado ' +
+        'grueso para estas piezas (malo). Para distinguirlas hace falta la resolucion nominal del ' +
         'instrumento, o piezas que obliguen a la lectura a moverse.');
     } else if (d.state === 'gruesa') {
       var partes = [];
       if (d.overStudyVar !== null) partes.push(pc(d.overStudyVar) + ' de la variacion del estudio');
       if (d.overTolerance !== null) partes.push(pc(d.overTolerance) + ' de la tolerancia');
-      w.push('Posible falta de resolucion: el escalon de lectura mas fino que muestran los datos es ' +
-        d.step.toPrecision(4) + ', que es ' + partes.join(' y ') + '. La regla de discriminacion ' +
-        'AIAG pide que la resolucion no pase del 10 %. Con un instrumento tan grueso el %GRR sale ' +
-        'sesgado hacia abajo: parte del error de medicion se pierde en el redondeo de la lectura.');
+      w.push('Posible resolucion insuficiente o redondeo excesivo de los datos: el escalon mas fino ' +
+        'observado entre replicas es ' + d.step.toPrecision(4) + ', que es ' + partes.join(' y ') +
+        '. La regla de discriminacion AIAG pide que no pase del ' + (100 * d.limit).toFixed(0) +
+        ' %, y aqui se rebasa contra ' + d.exceeds.join(' y ') + '. Los datos no dicen cual de las ' +
+        'dos causas es: puede que el instrumento no resuelva mas fino, o que las lecturas se hayan ' +
+        'anotado o exportado redondeadas. Comprueba con que resolucion se registro antes de ' +
+        'concluir nada del equipo. En cualquiera de los dos casos el %GRR sale sesgado hacia abajo: ' +
+        'parte del error de medicion se pierde en el redondeo.');
     }
     return w;
   }
+
 
   /* --- Clasificacion AIAG + clase de monitor EMP (Wheeler) --- */
   function assess(pctSV, pctPT, pctContrib, ndc, icc) {
@@ -703,5 +782,8 @@
   global.MSAAnova = { compute: compute, validate: validate, CONTROL_CONSTANTS: CTRL,
                       assess: assess, resolveTolerance: resolveTolerance,
                       discrimination: discrimination,
-                      discriminationWarnings: discriminationWarnings };
+                      discriminationWarnings: discriminationWarnings,
+                      ndcOf: ndcOf,
+                      DISCRIMINATION_LIMIT: DISCRIMINATION_LIMIT,
+                      ZERO_VARIANCE_RATIO: ZERO_VARIANCE_RATIO };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -133,6 +133,60 @@
   }
 
   /* ------------------------------------------------------------------------
+   * looksCoded(rows) - ¿esto son categorias escritas como numeros? (F-06)
+   *
+   * Codificar pasa/no pasa como 1/0 o 1/2 es practica corriente en los
+   * registros de inspeccion. Para `looksCategorical`, que pide mas del 80 % de
+   * texto, un archivo asi da 0 % y pasa por mediciones: la aplicacion se
+   * cambiaba sola a cruzado y descomponia la varianza de una variable binaria.
+   * El resultado es un %GRR perfectamente plausible sobre datos donde la
+   * varianza no significa nada. No hay error, no hay aviso: hay un numero.
+   *
+   * Que se mira, y por que solo esto: pocos valores distintos, todos enteros.
+   * Es el patron que ninguna medicion continua produce -- un micrometro no
+   * devuelve exactamente dos valores en 90 lecturas -- y que toda escala
+   * ordinal corta produce siempre. No se mira si son "0 y 1" en concreto,
+   * porque 1/2, 1/3 y -1/1 son igual de comunes.
+   *
+   * Lo que esta funcion NO hace es decidir. Dos valores distintos tambien
+   * salen de un pasa/no pasa mal capturado, de un calibre de aguja con dos
+   * posiciones, o de un estudio real cuyas piezas resultaron casi identicas.
+   * Los datos no distinguen esos casos, asi que se pregunta.
+   * ----------------------------------------------------------------------*/
+  var CODED_MAX_LEVELS = 3;          // pasa/no pasa, o pasa/dudoso/no pasa
+
+  function looksCoded(rows) {
+    var seen = Object.create(null), levels = 0, n = 0;
+    for (var i = 0; i < (rows || []).length; i++) {
+      var raw = trim(rows[i] && rows[i].value);
+      if (!raw) continue;
+      var v = Number(raw.replace(',', '.'));
+      if (!isFinite(v)) return null;                 // hay texto: no es este caso
+      n++;
+      if (v !== Math.round(v)) return null;          // un decimal descarta la codificacion
+      if (!seen[v]) { seen[v] = true; levels++; }
+      if (levels > CODED_MAX_LEVELS) return null;    // demasiados niveles: es una medicion
+    }
+    if (n === 0 || levels < 2) return null;          // sin datos, o una sola constante
+    return { levels: levels, values: Object.keys(seen).map(Number).sort(function (a, b) {
+      return a - b; }), n: n };
+  }
+
+  /** La pregunta que F-06 pide hacer, con las cifras del propio archivo. */
+  function codedQuestion(coded, target) {
+    return 'El archivo trae ' + coded.n + ' mediciones y solo ' + coded.levels +
+      ' valores distintos, todos enteros (' + coded.values.join(', ') + ').\n\n' +
+      'Eso es lo que se ve cuando un pasa / no pasa se captura codificado como numero. ' +
+      'Analizado como variables, se descompone la varianza de una variable binaria y sale un ' +
+      '%GRR que parece razonable y no significa nada.\n\n' +
+      'Tambien puede ser una medicion real de escala muy corta, y los datos no distinguen los ' +
+      'dos casos.\n\n' +
+      (target === 'atributos'
+        ? 'Cambiar al metodo de atributos (concordancia)?'
+        : 'Son mediciones reales? Aceptar para analizarlas como variables.');
+  }
+
+  /* ------------------------------------------------------------------------
    * methodOfPayload(payload) - el metodo que el ARCHIVO declara, o null.
    *
    * Un archivo exportado por esta pagina declara su metodo dos veces: en
@@ -186,14 +240,43 @@
     }
 
     // 1. El tipo de dato manda, como antes: no es una ambiguedad de diseno.
+    //    Texto donde deberia haber numeros no se puede analizar con un ANOVA
+    //    de variables de ninguna manera, asi que ahi no hay nada que consultar.
     if (ctx.categorical && active !== 'atributos') {
       go('atributos', 'El archivo trae clasificaciones y no mediciones numericas, asi que se cambio ' +
                       'al metodo de atributos.');
       return out;
     }
+
+    /* F-06. Numeros, si -- pero puede que sean categorias codificadas. Aqui
+       SI hay ambiguedad, y la regla de F-02 aplica igual: un cambio de metodo
+       que altera el modelo estadistico nunca deberia ser silencioso. */
+    var coded = ctx.coded || null;
     if (!ctx.categorical && active === 'atributos' && !ctx.explicitMethod) {
+      if (coded) {
+        /* Estando en atributos, un archivo codificado 0/1 es exactamente lo
+           que se espera del metodo activo. Sacar de ahi era el defecto. */
+        out.notes.push('El archivo trae numeros, pero solo ' + coded.levels +
+          ' valores distintos y todos enteros (' + coded.values.join(', ') + '): tiene la forma de ' +
+          'un pasa / no pasa codificado. Se conserva el metodo de atributos. Si son mediciones ' +
+          'reales, cambia a Cruzado o Anidado desde el selector.');
+        return out;
+      }
       go('cruzado', 'El archivo trae mediciones numericas, asi que se salio del metodo de atributos.');
       active = out.method;
+    }
+
+    /* Estando en variables, un archivo codificado no cambia nada solo: se
+       pregunta, con las cifras del propio archivo delante. Aceptar lleva a
+       atributos; cancelar analiza como variables, que es lo que se pidio, y
+       queda dicho en los avisos. */
+    if (coded && !ctx.explicitMethod && (active === 'cruzado' || active === 'anidado') &&
+        available('atributos')) {
+      out.proposal = 'atributos';
+      out.question = codedQuestion(coded, 'atributos');
+      out.codedNote = 'El archivo trae solo ' + coded.levels + ' valores distintos, todos enteros (' +
+        coded.values.join(', ') + '). Se analiza como mediciones porque asi lo confirmaste: si en ' +
+        'realidad es un pasa / no pasa codificado, el %GRR no significa nada.';
     }
 
     // 2. Lo que el archivo DECLARA. Un cambio pedido por el archivo no es
@@ -236,6 +319,8 @@
     ID_SEP: ID_SEP, KEY_SEP: KEY_SEP,
     partIdOf: partIdOf, cellKey: cellKey,
     observe: observe, observeRows: observeRows,
+    looksCoded: looksCoded, codedQuestion: codedQuestion,
+    CODED_MAX_LEVELS: CODED_MAX_LEVELS,
     repeatedLabelNotes: repeatedLabelNotes,
     methodOfPayload: methodOfPayload,
     route: route,

@@ -113,16 +113,26 @@
       (attr ? 'clasificaciones' : 'mediciones')];
   }
 
+  /* F-05: un resultado que ya no corresponde a los datos capturados no es un
+     resultado, es un recuerdo. Se trata como "sin calcular" -- ninguna cifra
+     suya llega al papel -- y se dice por que, en vez de imprimir el
+     encabezado viejo junto a un anexo de mediciones nuevas. */
+  var STALE_TEXT = 'Resultados desactualizados: los datos cambiaron despues de calcular. ' +
+                   'Recalcula antes de usar este reporte.';
+
   function headerRows(result, ctx) {
     var c = ctx || {};
-    var kind = studyKind(result, c);
+    var stale = !!c.stale && !!result;
+    var effective = stale ? null : result;
+    var kind = studyKind(effective, c);
     var rows = [['Fecha', textOr(c.date)]];
     rows.push(sizeRow(c, kind));
+    if (stale) { rows.push(['Estado', STALE_TEXT]); return rows; }
 
     if (kind === 'atributos') {
-      return result ? attributeRows(rows, result) : attributePendingRows(rows, c);
+      return effective ? attributeRows(rows, effective) : attributePendingRows(rows, c);
     }
-    if (kind === 'variables') return variableRows(rows, result, c);
+    if (kind === 'variables') return variableRows(rows, effective, c);
     return neutralRows(rows);
   }
 
@@ -215,6 +225,7 @@
     return rows;
   }
 
-  global.MSAReport = { headerRows: headerRows, studyKind: studyKind, NO_EVAL: NO_EVAL,
+  global.MSAReport = { headerRows: headerRows, studyKind: studyKind,
+                       STALE_TEXT: STALE_TEXT, NO_EVAL: NO_EVAL,
                        numOr: numOr, textOr: textOr };
 })(typeof window !== 'undefined' ? window : globalThis);

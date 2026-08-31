@@ -218,10 +218,18 @@
         <span class="step">3</span>
         <div class="results-title">Resultados en vivo</div>
         <span class="spacer"></span>
-        <div class="results-live">actualizado al escribir</div>
+        <div class="results-live" id="resultsLive">se recalcula al pulsar Calcular</div>
       </div>
 
       <div id="resultsSection" hidden>
+      <!-- F-05: los datos cambiaron despues de calcular. El panel de abajo
+           sigue mostrando el resultado viejo, asi que se dice, se atenua y se
+           bloquea la impresion hasta recalcular. -->
+      <div id="resultStale" class="msg stale-banner" hidden>
+        <strong>Resultados desactualizados.</strong>
+        Los datos cambiaron despues de calcular: lo que se ve abajo salio de la captura anterior.
+        <button type="button" class="primary" id="staleRecalcBtn">Recalcular</button>
+      </div>
       <div id="resultMsg"></div>
 
       <div id="resultBody" hidden>

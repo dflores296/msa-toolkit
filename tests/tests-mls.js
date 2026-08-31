@@ -141,9 +141,10 @@
     var k = { G: { 1: 0, 2: 0, 3: 0, 4: 0 }, H: { 1: 0, 2: 0, 3: 0, 4: 0 },
               Gqr: function () { return 0; }, Hqr: function () { return 0; } };
     var s = { 1: 9.1, 2: 0.4, 3: 0.12, 4: 0.06 };
-    var co = { a: 10, b: 3, c: 17, d: 60 };
-    var W = co.a * s[1] + co.b * s[2] + co.c * s[3] + co.d * s[4], D = s[1] - s[3];
-    var q = M._quadLower(s, co, k);
+    var spec = M._spec('crossed', { I: 10, J: 3, K: 3 }, true);
+    var c = spec.c;
+    var W = c[1] * s[1] + c[2] * s[2] + c[3] * s[3] + c[4] * s[4], D = s[1] - s[3];
+    var q = M._quadratic(s, spec, k, true, function () { return 0; });
     near(q.A, W * W, 1e-6, 'A');
     near(q.B, -2 * D * W, 1e-6, 'B');
     near(q.C, D * D, 1e-9, 'C');
@@ -154,9 +155,9 @@
        interaccion a los seis que Minitab imprime para la variante sin ella. Si
        hubiera dos caminos de codigo, aqui se veria la diferencia. */
     var k = M._constants({ 1: 9, 2: 2, 3: 78 }, 0.025);
-    var s4 = { 1: 9.8, 2: 1.58, 3: 0.041, 4: 0 };
-    var co = { a: 10, b: 3, c: 77, d: 0 };
-    var q = M._quadLower(s4, co, k);
+    var s4 = { 1: 9.8, 2: 1.58, 3: 0.041 };
+    var spec = M._spec('crossed', { I: 10, J: 3, K: 3 }, false);
+    var q = M._quadratic(s4, spec, k, true, function () { return 0; });
     var esperadoC = (1 - k.G[1] * k.G[1]) * s4[1] * s4[1] +
                     (1 - k.H[3] * k.H[3]) * s4[3] * s4[3] -
                     (2 + k.Gqr(1, 3)) * s4[1] * s4[3];
@@ -354,28 +355,139 @@
    * 8. Que metodo se usa donde
    * ===================================================================== */
 
-  test('MLS: el cruzado sale por MLS y el anidado sigue en GPQ experimental', function () {
-    var cruz = global.MSAAnova.compute(AIAG_ROWS, { alpha: 0.25, interaction: 'auto' });
-    var ivc = global.MSAInterval.forResult(cruz, { conf: 0.95 });
-    assert(ivc.method === 'MLS' || ivc.method === 'Satterthwaite', 'cruzado: ' + ivc.method);
-    assert(ivc.experimental === false, 'el cruzado ya no es experimental');
+  /* --- El modelo anidado ------------------------------------------------ */
 
-    var rows = [], g = maker(9);
-    for (var j = 0; j < 3; j++) {
-      var ob = g.nrm() * 0.1;
-      for (var i = 0; i < 5; i++) {
-        var pv = g.nrm();
-        for (var k = 0; k < 3; k++) {
+  function nestedRows(g, I, J, K, sO, sP, sE) {
+    var rows = [];
+    for (var j = 0; j < J; j++) {
+      var ob = g.nrm() * sO;
+      for (var i = 0; i < I; i++) {
+        var pv = g.nrm() * sP;
+        for (var k = 0; k < K; k++) {
           rows.push({ operator: 'Op' + j, part: 'Op' + j + '-P' + i,
-                      value: 100 + pv + ob + g.nrm() * 0.25 });
+                      value: 100 + ob + pv + g.nrm() * sE });
         }
       }
     }
-    var anid = global.MSANested.compute(rows, {});
-    var iva = global.MSAInterval.forResult(anid, { conf: 0.95 });
-    assert(iva && iva.method === 'GPQ', 'el anidado no tiene MLS transcrito: ' +
-           (iva && iva.method));
-    assert(iva.experimental === true, 'y por eso sigue rotulado como experimental');
+    return rows;
+  }
+  /** Cuadrados medios esperados del anidado: S1 = operador,
+      S2 = pieza(operador), S3 = error. */
+  function esperadosAnid(I, K, sO, sP, sE) {
+    return { 1: sE + K * sP + I * K * sO, 2: sE + K * sP, 3: sE };
+  }
+
+  test('MLS anidado: con g.l. enormes el intervalo colapsa sobre la razon puntual', function () {
+    var I = 5, J = 3, K = 3, sO = 0.2, sP = 1, sE = 0.3;
+    var s = esperadosAnid(I, K, sO, sP, sE);
+    var BIG = 2e6;
+    var r = M.partTotal(s, { 1: BIG, 2: BIG, 3: BIG }, { I: I, J: J, K: K },
+                        { conf: 0.95, model: 'nested' });
+    assert(r && r.method === 'MLS', 'deberia resolver por MLS');
+    var real = sP / (sP + sO + sE);
+    near(r.lo, real, 0.005, 'limite inferior');
+    near(r.hi, real, 0.005, 'limite superior');
+  });
+
+  test('MLS anidado: el coeficiente de S3 es I(K-1), no (IK-1)', function () {
+    /* La pagina imprime gamma_3 = S1 + (I-1)S2 + (IK-1)S3. Con ese coeficiente
+       la combinacion NO vale I*K veces la varianza total, y el intervalo se
+       descoloca. Con I(K-1) si. Es la errata 10, y esta prueba es su demostracion:
+       se calcula la combinacion sobre los cuadrados medios ESPERADOS, donde la
+       igualdad tiene que ser exacta. */
+    var I = 6, K = 3, sO = 0.7, sP = 1.3, sE = 0.4;
+    var s = esperadosAnid(I, K, sO, sP, sE);
+    var total = sO + sP + sE;
+    var conImpreso = s[1] + (I - 1) * s[2] + (I * K - 1) * s[3];
+    var conCorrecto = s[1] + (I - 1) * s[2] + I * (K - 1) * s[3];
+    near(conCorrecto, I * K * total, 1e-9, 'I(K-1) da I*K veces la varianza total');
+    assert(Math.abs(conImpreso - I * K * total) > 1e-6,
+           '(IK-1) NO deberia darla, o la errata no existiria');
+    /* Y es el que usa el modulo. */
+    var spec = M._spec('nested', { I: I, J: 3, K: K }, false);
+    near(spec.c[3], I * (K - 1), 1e-12, 'coeficiente de S3 en el spec');
+    near(spec.c[2], I - 1, 1e-12, 'coeficiente de S2');
+    near(spec.c[1], 1, 1e-12, 'coeficiente de S1');
+  });
+
+  test('MLS anidado: el pivote es S2, no S1', function () {
+    /* En el anidado la varianza de pieza sale de S2 - S3, no de S1 - S3 como en
+       el cruzado. Si el pivote estuviera mal puesto, la C de la cuadratica se
+       construiria sobre otro par de cuadrados medios. */
+    var spec = M._spec('nested', { I: 5, J: 3, K: 3 }, false);
+    assert(spec.p === 2 && spec.m === 3, 'pivote 2 y sustraendo 3, dio ' +
+           spec.p + ' y ' + spec.m);
+    var k = { G: { 1: 0, 2: 0, 3: 0 }, H: { 1: 0, 2: 0, 3: 0 },
+              Gqr: function () { return 0; }, Hqr: function () { return 0; } };
+    var s = { 1: 3.2, 2: 1.1, 3: 0.4 };
+    var q = M._quadratic(s, spec, k, true, function () { return 0; });
+    var W = spec.c[1] * s[1] + spec.c[2] * s[2] + spec.c[3] * s[3];
+    var D = s[2] - s[3];
+    near(q.A, W * W, 1e-9, 'A');
+    near(q.B, -2 * D * W, 1e-9, 'B');
+    near(q.C, D * D, 1e-9, 'C');
+  });
+
+  test('MLS anidado: contiene al punto, y es mas ancho que el GPQ', function () {
+    /* En el anidado el MLS NO reproduce al GPQ como en el cruzado: sale
+       sistematicamente mas ancho -unos 15 pp de mediana- y su limite inferior
+       se va contra el cero a menudo. Es coherente con lo que la literatura dice
+       del MLS con pocos operadores, y la cobertura medida lo respalda: 95 % con
+       las dos colas repartidas. Asi que lo que se comprueba aqui NO es que
+       coincidan, sino lo que si tiene que cumplirse: que el MLS contenga al
+       estimador puntual y no sea el estrecho de los dos. Si algun dia saliera
+       mas estrecho que el GPQ, habria que sospechar de los coeficientes. */
+    var res = global.MSANested.compute(nestedRows(maker(6060), 10, 3, 3, 0.10, 1, 0.25), {});
+    var mls = global.MSAInterval.forResult(res, { conf: 0.95 });
+    var gpq = global.MSAInterval.forResult(res, { conf: 0.95, method: 'GPQ' });
+    assert(mls.method === 'MLS' || mls.method === 'Satterthwaite', 'metodo: ' + mls.method);
+    assert(mls.experimental === false, 'el anidado ya tiene metodo publicado');
+    var punto = res.metrics.pctStudyVar;
+    assert(mls.studyVar.lo <= punto && punto <= mls.studyVar.hi,
+           'el punto ' + punto.toFixed(2) + ' fuera de [' + mls.studyVar.lo.toFixed(2) +
+           ',' + mls.studyVar.hi.toFixed(2) + ']');
+    assert(mls.studyVar.hi - mls.studyVar.lo >= gpq.studyVar.hi - gpq.studyVar.lo,
+           'el MLS anidado no deberia ser mas estrecho que el GPQ');
+    assert(mls.studyVar.lo <= gpq.studyVar.hi && gpq.studyVar.lo <= mls.studyVar.hi,
+           'y los dos intervalos tienen que solaparse');
+  });
+
+  test('MLS anidado cobertura: al 95 % cubre alrededor del 95 %', function () {
+    var g = maker(808080), dentro = 0, n = 0;
+    var sO = 0.10, sP = 1, sE = 0.25;
+    var real = (sO * sO + sE * sE) / (sO * sO + sE * sE + sP * sP);
+    for (var t = 0; t < 300; t++) {
+      var res = global.MSANested.compute(nestedRows(g, 5, 3, 3, sO, sP, sE), {});
+      var iv = global.MSAInterval.forResult(res, { conf: 0.95 });
+      if (!iv) continue;
+      n++;
+      if (real >= iv.ratio.lo && real <= iv.ratio.hi) dentro++;
+    }
+    var cob = dentro / n;
+    assert(cob >= 0.92, 'cobertura ' + (100 * cob).toFixed(1) + ' %, demasiado baja');
+  });
+
+  test('MLS: los tres modelos salen por metodo publicado, ninguno experimental', function () {
+    var cruz = global.MSAAnova.compute(AIAG_ROWS, { alpha: 0.25, interaction: 'auto' });
+    var conInt = global.MSAAnova.compute(AIAG_ROWS, { interaction: 'include' });
+    var anid = global.MSANested.compute(nestedRows(maker(9), 5, 3, 3, 0.1, 1, 0.25), {});
+    [cruz, conInt, anid].forEach(function (res, i) {
+      var iv = global.MSAInterval.forResult(res, { conf: 0.95 });
+      assert(iv, 'modelo ' + i + ': deberia haber intervalo');
+      assert(iv.method === 'MLS' || iv.method === 'Satterthwaite',
+             'modelo ' + i + ': metodo ' + iv.method);
+      assert(iv.experimental === false, 'modelo ' + i + ': no deberia ser experimental');
+    });
+  });
+
+  test('GPQ: sigue disponible como segunda opinion independiente', function () {
+    /* Ya no es el metodo de ningun modelo, pero es el juez que caza los
+       errores de transcripcion del MLS. Si dejara de ser accesible, esa
+       validacion desapareceria sin hacer ruido. */
+    var res = global.MSAAnova.compute(AIAG_ROWS, { alpha: 0.25, interaction: 'auto' });
+    var gpq = global.MSAInterval.forResult(res, { conf: 0.95, method: 'GPQ' });
+    assert(gpq && gpq.method === 'GPQ', 'el GPQ tiene que seguir invocable');
+    assert(gpq.experimental === true, 'y seguir rotulado como experimental');
   });
 
   test('MLS: el rotulo viaja dentro del intervalo y nombra el metodo', function () {
@@ -398,8 +510,8 @@
     var I = 10, J = 3, K = 3, sP = 1, sO = 0.2, sPO = 0.1, sE = 0.3;
     var s = esperados(I, J, K, sP, sO, sPO, sE);
     var BIG = 2e6, df = { 1: BIG, 2: BIG, 3: BIG, 4: BIG };
-    var co = { a: I, b: J, c: I * J - I - J, d: I * J * (K - 1) };
-    var r = M._satterthwaite(s, co, df, 0.025);
+    var spec = M._spec('crossed', { I: I, J: J, K: K }, true);
+    var r = M._satterthwaite(s, spec, df, 0.025);
     var real = sP / (sP + sO + sPO + sE);
     near(r.lo, real, 0.01, 'limite inferior');
     near(r.hi, real, 0.01, 'limite superior');

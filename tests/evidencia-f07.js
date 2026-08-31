@@ -33,6 +33,7 @@ require(path.join(REPO, 'assets/js/design.js'));
 require(path.join(REPO, 'assets/js/stats.js'));
 require(path.join(REPO, 'assets/js/anova.js'));
 require(path.join(REPO, 'assets/js/anova-nested.js'));
+require(path.join(REPO, 'assets/js/mls.js'));
 require(path.join(REPO, 'assets/js/interval.js'));
 
 /* =========================================================================

@@ -29,6 +29,7 @@ var REPO = path.resolve(__dirname, '..');
 require(path.join(REPO, 'assets/js/design.js'));
 require(path.join(REPO, 'assets/js/stats.js'));
 require(path.join(REPO, 'assets/js/anova.js'));
+require(path.join(REPO, 'assets/js/anova-nested.js'));
 require(path.join(REPO, 'assets/js/mls.js'));
 require(path.join(REPO, 'assets/js/interval.js'));
 
@@ -130,4 +131,45 @@ console.log(['diseno', 'ancho MLS', 'ancho GPQ', 'LI=0', 'LS=100'].join('\t'));
   console.log([d[0] + 'x' + d[1] + 'x' + d[2] + (d[3] === 'include' ? ' int' : ' sin'),
                mediana(wM).toFixed(1) + ' pp', mediana(wG).toFixed(1) + ' pp',
                fx(z / n, 1), fx(h / n, 1)].join('\t'));
+});
+
+console.log('\n\nModelo ANIDADO: cobertura y contraste con el GPQ.');
+console.log('Aqui el MLS NO reproduce al GPQ -sale mas ancho-, asi que la validacion');
+console.log('la lleva entera la cobertura y el reparto de las dos colas.\n');
+function nestedRows(g, I, J, K, sO, sP, sE) {
+  var rows = [];
+  for (var j = 0; j < J; j++) {
+    var ob = g.nrm() * sO;
+    for (var i = 0; i < I; i++) {
+      var pv = g.nrm() * sP;
+      for (var k = 0; k < K; k++) {
+        rows.push({ operator: 'Op' + j, part: 'Op' + j + '-P' + i,
+                    value: 100 + ob + pv + g.nrm() * sE });
+      }
+    }
+  }
+  return rows;
+}
+console.log(['diseno', 'razon real', 'cobertura', 'fallo abajo', 'fallo arriba',
+             'ancho MLS', 'ancho GPQ'].join('\t'));
+[{ n: '5x3x3',  I: 5,  J: 3, K: 3, sO: 0.10, sE: 0.25 },
+ { n: '10x3x3', I: 10, J: 3, K: 3, sO: 0.10, sE: 0.25 },
+ { n: '5x3x2',  I: 5,  J: 3, K: 2, sO: 0.05, sE: 0.14 },
+ { n: '10x4x3', I: 10, J: 4, K: 3, sO: 0.20, sE: 0.40 },
+ { n: '8x3x3 gage malo', I: 8, J: 3, K: 3, sO: 0.35, sE: 0.55 }
+].forEach(function (c, ci) {
+  var g = maker(4000 + ci * 7919), dentro = 0, bajo = 0, alto = 0, n = 0, wM = [], wG = [];
+  var grr = c.sO * c.sO + c.sE * c.sE, real = grr / (grr + 1);
+  for (var t = 0; t < N; t++) {
+    var res = MSANested.compute(nestedRows(g, c.I, c.J, c.K, c.sO, 1, c.sE), {});
+    var m = MSAInterval.forResult(res, { conf: CONF });
+    var q = MSAInterval.forResult(res, { conf: CONF, method: 'GPQ' });
+    if (!m || !q) continue;
+    n++;
+    if (real < m.ratio.lo) bajo++; else if (real > m.ratio.hi) alto++; else dentro++;
+    wM.push(m.studyVar.hi - m.studyVar.lo);
+    wG.push(q.studyVar.hi - q.studyVar.lo);
+  }
+  console.log([c.n, fx(real), fx(dentro / n, 1), fx(bajo / n), fx(alto / n),
+               mediana(wM).toFixed(1) + ' pp', mediana(wG).toFixed(1) + ' pp'].join('\t'));
 });

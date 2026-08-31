@@ -142,74 +142,85 @@
 
   /* --- Las cuadraticas ---------------------------------------------------
    *
-   * S1..S4 son los cuadrados medios: MSParte, MSOperador, MSParte*Operador y
-   * MSReplicas. Sin termino de interaccion, S3 es el MS de error y S4 vale 0,
-   * igual que d: con eso los diez terminos de la variante con interaccion se
-   * reducen exactamente a los seis de la variante sin interaccion, que es como
-   * Minitab las imprime. No hay dos caminos de codigo porque no hay dos
-   * formulas: hay una con un termino apagado.
+   * UNA SOLA FORMULA PARA LOS DOS MODELOS
+   *
+   * Minitab publica el cruzado y el anidado en paginas distintas, con los
+   * indices barajados: en el cruzado el pivote es S1 (MSParte) y en el anidado
+   * es S2 (MSPieza(Operador)). Escritas termino a termino parecen dos formulas.
+   * No lo son: son la misma plantilla con otro reparto de papeles. Se comprobo
+   * sobre las dos transcripciones, termino a termino, antes de unificarlas.
+   *
+   * La plantilla. Con  W = suma de c_q * S_q^2  y  D = S_p^2 - S_m^2, donde
+   * `p` es el cuadrado medio que aporta la varianza de pieza y `m` el que se le
+   * resta:
+   *
+   *   A = suma_q  c_q^2 (1 - X_q^2) S_q^4  +  suma_{q<r}  c_q c_r K(q,r) S_q^2 S_r^2
+   *   B = -2 c_p (1 - X_p^2) S_p^4 + 2 c_m (1 - X_m^2) S_m^4
+   *       - suma_{r != m}  c_r K(p,r) S_p^2 S_r^2
+   *       + (c_p - c_m) K(p,m) S_p^2 S_m^2
+   *       + suma_{r != p}  c_r K(m,r) S_m^2 S_r^2
+   *   C = (1 - X_p^2) S_p^4 + (1 - X_m^2) S_m^4 - K(p,m) S_p^2 S_m^2
+   *
+   * donde X_q es G_q para el pivote y H_q para los demas en el limite inferior,
+   * y al reves en el superior; y el peso cruzado K(q,r) vale:
+   *
+   *   - si el par toca al pivote:  (2 + G_pr)  abajo,  (2 + H_pr)  arriba
+   *     con el PIVOTE PRIMERO en el subindice: la pagina escribe G_12 en el
+   *     cruzado y G_21 en el anidado, y G_qr no es simetrico.
+   *   - si no lo toca:  2 abajo,  (2 - half * H*_qr) arriba.
+   *
+   * En B no aparecen los pares que no tocan ni a `p` ni a `m`. Verificado
+   * contra las dos transcripciones: en el cruzado falta justo el par (2,4), y
+   * en el anidado no falta ninguno porque solo hay tres terminos.
+   *
+   * El limite sin incertidumbre es el control de que la plantilla esta bien:
+   * con G y H a cero queda A = W^2, B = -2DW, C = D^2, raiz doble D/W, y
+   * multiplicador * D/W tiene que dar la razon puntual. Se prueba en
+   * tests/tests-mls.js para los dos modelos.
    * --------------------------------------------------------------------- */
-  function quadLower(s, co, k) {
-    var s1 = s[1], s2 = s[2], s3 = s[3], s4 = s[4];
-    var a = co.a, b = co.b, c = co.c, d = co.d;
-    var G = k.G, H = k.H;
-    var A =
-      a * a * (1 - G[1] * G[1]) * s1 * s1 +
-      b * b * (1 - H[2] * H[2]) * s2 * s2 +
-      c * c * (1 - H[3] * H[3]) * s3 * s3 +
-      d * d * (1 - (H[4] === undefined ? 0 : H[4] * H[4])) * s4 * s4 +
-      a * b * (2 + k.Gqr(1, 2)) * s1 * s2 +
-      a * c * (2 + k.Gqr(1, 3)) * s1 * s3 +
-      (d ? a * d * (2 + k.Gqr(1, 4)) * s1 * s4 : 0) +
-      2 * b * c * s2 * s3 + 2 * b * d * s2 * s4 + 2 * c * d * s3 * s4;
-    var B =
-      -2 * a * (1 - G[1] * G[1]) * s1 * s1 +
-      2 * c * (1 - H[3] * H[3]) * s3 * s3 -
-      b * (2 + k.Gqr(1, 2)) * s1 * s2 +
-      a * (2 + k.Gqr(1, 3)) * s1 * s3 -
-      c * (2 + k.Gqr(1, 3)) * s1 * s3 -
-      (d ? d * (2 + k.Gqr(1, 4)) * s1 * s4 : 0) +
-      2 * b * s2 * s3 + 2 * d * s3 * s4;
-    var C =
-      (1 - G[1] * G[1]) * s1 * s1 +
-      (1 - H[3] * H[3]) * s3 * s3 -
-      (2 + k.Gqr(1, 3)) * s1 * s3;
-    return { A: A, B: B, C: C };
+
+  /** Peso del termino cruzado del par (q, r). */
+  function crossWeight(spec, k, lower, hStarFn, q, r) {
+    var p = spec.p;
+    if (q === p || r === p) {
+      var other = (q === p) ? r : q;
+      return 2 + (lower ? k.Gqr(p, other) : k.Hqr(p, other));
+    }
+    if (lower) return 2;
+    return 2 - spec.half * hStarFn(k, Math.min(q, r), Math.max(q, r));
   }
 
-  function quadUpper(s, co, k, hStarFn, half) {
-    var s1 = s[1], s2 = s[2], s3 = s[3], s4 = s[4];
-    var a = co.a, b = co.b, c = co.c, d = co.d;
-    var G = k.G, H = k.H;
-    /* `half` es el 0.5 que la variante con interaccion antepone a H*. La
-       variante sin interaccion lo imprime sin el; se respeta cada una. */
-    function w(q, r) { return 2 - half * hStarFn(k, q, r); }
-    var A =
-      a * a * (1 - H[1] * H[1]) * s1 * s1 +
-      b * b * (1 - G[2] * G[2]) * s2 * s2 +
-      c * c * (1 - G[3] * G[3]) * s3 * s3 +
-      d * d * (1 - (G[4] === undefined ? 0 : G[4] * G[4])) * s4 * s4 +
-      a * b * (2 + k.Hqr(1, 2)) * s1 * s2 +
-      a * c * (2 + k.Hqr(1, 3)) * s1 * s3 +
-      (d ? a * d * (2 + k.Hqr(1, 4)) * s1 * s4 : 0) +
-      b * c * w(2, 3) * s2 * s3 +
-      (d ? b * d * w(2, 4) * s2 * s4 : 0) +
-      (d ? c * d * w(3, 4) * s3 * s4 : 0);
-    var B =
-      -2 * a * (1 - H[1] * H[1]) * s1 * s1 +
-      2 * c * (1 - G[3] * G[3]) * s3 * s3 -
-      b * (2 + k.Hqr(1, 2)) * s1 * s2 +
-      a * (2 + k.Hqr(1, 3)) * s1 * s3 -
-      c * (2 + k.Hqr(1, 3)) * s1 * s3 -
-      (d ? d * (2 + k.Hqr(1, 4)) * s1 * s4 : 0) +
-      b * w(2, 3) * s2 * s3 +
-      (d ? d * w(3, 4) * s3 * s4 : 0);
-    /* (2 + H13), simetrico de (2 + G13) del limite inferior. La pagina sin
-       interaccion lo imprime como 2(1 + H13); ver errata 3 en la cabecera. */
-    var C =
-      (1 - H[1] * H[1]) * s1 * s1 +
-      (1 - G[3] * G[3]) * s3 * s3 -
-      (2 + k.Hqr(1, 3)) * s1 * s3;
+  function quadratic(s, spec, k, lower, hStarFn) {
+    var c = spec.c, idx = spec.idx, p = spec.p, m = spec.m;
+    /* X_q: el pivote lleva G abajo y H arriba; los demas al reves. */
+    function X(q) {
+      var g = (q === p) === lower;
+      var v = g ? k.G[q] : k.H[q];
+      return v === undefined ? 0 : v;
+    }
+    function diag(q) { var x = X(q); return 1 - x * x; }
+    function w(q, r) { return crossWeight(spec, k, lower, hStarFn, q, r); }
+
+    var A = 0, B = 0, i, j, q, r;
+    for (i = 0; i < idx.length; i++) {
+      q = idx[i];
+      A += c[q] * c[q] * diag(q) * s[q] * s[q];
+      for (j = i + 1; j < idx.length; j++) {
+        r = idx[j];
+        A += c[q] * c[r] * w(q, r) * s[q] * s[r];
+      }
+    }
+
+    B = -2 * c[p] * diag(p) * s[p] * s[p] + 2 * c[m] * diag(m) * s[m] * s[m];
+    for (i = 0; i < idx.length; i++) {
+      r = idx[i];
+      if (r !== p && r !== m) {
+        B += -c[r] * w(p, r) * s[p] * s[r] + c[r] * w(m, r) * s[m] * s[r];
+      }
+    }
+    B += (c[p] - c[m]) * w(p, m) * s[p] * s[m];
+
+    var C = diag(p) * s[p] * s[p] + diag(m) * s[m] * s[m] - w(p, m) * s[p] * s[m];
     return { A: A, B: B, C: C };
   }
 
@@ -254,29 +265,36 @@
    *
    * con X = chi2_{1-ah}(m1); U es lo mismo con ah en los tres cuantiles.
    *
+   * Tambien es la misma para los dos modelos, con los papeles repartidos por
+   * el mismo `spec`: g1 y g2 se construyen sobre el par (p, m) que forma el
+   * numerador, y g3 es la combinacion lineal entera, que vale el multiplicador
+   * por la varianza total.
+   *
    * Control de coherencia (esta en las pruebas): si todos los cuantiles valen
    * 1, el parentesis colapsa a (g1/g2 - 1) y L queda en (g1-g2)/g3, que es la
    * razon puntual parte/total. Sin multiplicador: aqui no lo lleva.
    * --------------------------------------------------------------------- */
-  function satterthwaite(s, co, df, ah) {
+  function satterthwaite(s, spec, df, ah) {
     var st = stats();
-    var g1 = co.a * s[1];
-    var g2 = co.a * s[3];
-    var g3 = co.a * s[1] + co.b * s[2] + co.c * s[3] + co.d * s[4];
-    var m1 = df[1], m2 = df[3];
-    var den = (co.a * s[1]) * (co.a * s[1]) / df[1] +
-              (co.b * s[2]) * (co.b * s[2]) / df[2] +
-              (co.c * s[3]) * (co.c * s[3]) / df[3] +
-              (co.d ? (co.d * s[4]) * (co.d * s[4]) / df[4] : 0);
+    var c = spec.c, idx = spec.idx, p = spec.p, m = spec.m;
+    var g1 = spec.mult * s[p];
+    var g2 = spec.mult * s[m];
+    var g3 = 0, den = 0;
+    for (var i = 0; i < idx.length; i++) {
+      var q = idx[i], term = c[q] * s[q];
+      g3 += term;
+      if (!(df[q] > 0)) return null;
+      den += term * term / df[q];
+    }
     if (!(den > 0) || !(g2 > 0) || !(g3 > 0)) return null;
-    var m3 = g3 * g3 / den;
+    var m1 = df[p], m2 = df[m], m3 = g3 * g3 / den;
     var R = g1 / g2;
     if (!(R > 0) || !isFinite(R)) return null;
 
-    function bound(p) {
-      var F13 = st.fInv(p, m1, m3);
-      var F12 = st.fInv(p, m1, m2);
-      var X = st.chi2Inv(p, m1) / m1;
+    function bound(pr) {
+      var F13 = st.fInv(pr, m1, m3);
+      var F12 = st.fInv(pr, m1, m2);
+      var X = st.chi2Inv(pr, m1) / m1;
       if (!isFinite(F13) || !(F13 > 0)) return null;
       return (g2 / (g3 * F13)) * (R - X + F12 * (X - F12) / R);
     }
@@ -287,13 +305,55 @@
 
   function clamp01(x) { return x < 0 ? 0 : (x > 1 ? 1 : x); }
 
+  /* --- El reparto de papeles de cada modelo ------------------------------
+   *
+   * `idx` son los indices S_q que participan, `c` sus coeficientes, `p` y `m`
+   * los del numerador (razon proporcional a S_p^2 - S_m^2), `mult` el factor
+   * que convierte la raiz en la razon, y `half` el 0.5 que la variante cruzada
+   * con interaccion antepone a H*.
+   *
+   * En los tres casos el multiplicador es I y los coeficientes son los de la
+   * combinacion lineal que vale (multiplicador x varianza total). Los del
+   * cruzado estan publicados al pie de la pagina de relaciones; los del
+   * anidado NO -esa pagina solo publica I, J y K-, y se derivan del gamma_3
+   * impreso en su propio "segundo metodo". Ver docs/mls-transcripcion.md.
+   * --------------------------------------------------------------------- */
+  function specFor(model, dims, hasFour) {
+    var I = dims.I, J = dims.J, K = dims.K;
+    if (model === 'nested') {
+      /* S1 = MSOperador, S2 = MSPieza(Operador), S3 = MSRepetibilidad.
+         El pivote es S2: la varianza de pieza sale de S2 - S3.
+         gamma_3 = S1^2 + (I-1)S2^2 + I(K-1)S3^2 = I*K*sigma2_total. La pagina
+         lo imprime como (IK - 1)S3^2; con ese coeficiente no da la varianza
+         total. Ver errata 10. */
+      return { idx: [1, 2, 3], c: { 1: 1, 2: I - 1, 3: I * (K - 1) },
+               p: 2, m: 3, mult: I, half: 1 };
+    }
+    if (hasFour) {
+      /* Cruzado con interaccion. S1 = MSParte, S2 = MSOperador,
+         S3 = MSParte*Operador, S4 = MSReplicas. */
+      return { idx: [1, 2, 3, 4],
+               c: { 1: I, 2: J, 3: I * J - I - J, 4: I * J * (K - 1) },
+               p: 1, m: 3, mult: I, half: 0.5 };
+    }
+    /* Cruzado sin interaccion: S3 pasa a ser el MS de error y `c` cambia de
+       valor. La tabla de Minitab publica solo el valor con interaccion. Ojo:
+       `c` es un coeficiente, no unos grados de libertad -aqui df[3] vale
+       IJK-I-J+1, que es otro numero-. */
+    return { idx: [1, 2, 3], c: { 1: I, 2: J, 3: I * J * K - I - J },
+             p: 1, m: 3, mult: I, half: 1 };
+  }
+
   /* ------------------------------------------------------------------------
    * partTotal(ms, df, dims, options)
    *
-   *   ms   { 1: MSParte, 2: MSOperador, 3: MSParte*Operador o MSError,
-   *          4: MSReplicas (ausente sin interaccion) }
+   *   ms   cruzado: { 1: MSParte, 2: MSOperador, 3: MSParte*Operador o MSError,
+   *                   4: MSReplicas (ausente sin interaccion) }
+   *        anidado: { 1: MSOperador, 2: MSPieza(Operador), 3: MSRepetibilidad }
    *   df   los grados de libertad de cada uno, con las mismas claves
-   *   dims { I: partes, J: operadores, K: replicas }
+   *   dims { I: partes -en el anidado, por operador-, J: operadores,
+   *          K: replicas }
+   *   options.model  'crossed' (por omision) o 'nested'
    *
    * Devuelve { lo, hi, method, ... } con la razon parte/total truncada a
    * [0,1], o null si el estudio no admite el metodo.
@@ -306,45 +366,36 @@
     var I = dims.I, J = dims.J, K = dims.K;
     if (!(I > 1) || !(J > 1) || !(K > 1)) return null;
 
-    var withInter = ms[4] !== undefined && ms[4] !== null && df[4] > 0;
-    var s = { 1: ms[1], 2: ms[2], 3: ms[3], 4: withInter ? ms[4] : 0 };
-    for (var q = 1; q <= 3; q++) {
-      if (!isFinite(s[q]) || s[q] < 0) return null;
-      if (!(df[q] > 0)) return null;
-    }
+    var model = options.model === 'nested' ? 'nested' : 'crossed';
+    var hasFour = model === 'crossed' &&
+                  ms[4] !== undefined && ms[4] !== null && df[4] > 0;
+    var spec = specFor(model, dims, hasFour);
 
-    /* a, b, c, d publicados al pie de la pagina de relaciones. `c` es un
-       coeficiente de la combinacion lineal, NO unos grados de libertad: sin
-       interaccion vale IJK-I-J mientras que df[3] vale IJK-I-J+1. */
-    var co = {
-      a: I,
-      b: J,
-      c: withInter ? (I * J - I - J) : (I * J * K - I - J),
-      d: withInter ? I * J * (K - 1) : 0
-    };
+    var s = {}, dfs = {};
+    for (var i = 0; i < spec.idx.length; i++) {
+      var q = spec.idx[i];
+      if (!isFinite(ms[q]) || ms[q] < 0 || !(df[q] > 0)) return null;
+      s[q] = ms[q];
+      dfs[q] = df[q];
+    }
 
     var conf = options.conf === undefined ? 0.95 : options.conf;
     var alpha = 1 - conf;
     var ah = options.oneSided ? alpha : alpha / 2;
 
-    var k = makeConstants(withInter ? { 1: df[1], 2: df[2], 3: df[3], 4: df[4] }
-                                    : { 1: df[1], 2: df[2], 3: df[3] }, ah);
+    var k = makeConstants(dfs, ah);
     var hStarName = options.hStar || DEFAULT_H_STAR;
     var hStarFn = H_STAR[hStarName] || H_STAR[DEFAULT_H_STAR];
-    var half = withInter ? 0.5 : 1;
 
-    /* El multiplicador es I, el numero de partes. Ver errata 1 en la cabecera. */
-    var mult = I;
-
-    var rl = solve(quadLower(s, co, k), -1);
-    var ru = solve(quadUpper(s, co, k, hStarFn, half), +1);
+    var rl = solve(quadratic(s, spec, k, true, hStarFn), -1);
+    var ru = solve(quadratic(s, spec, k, false, hStarFn), +1);
 
     var out, method;
     if (rl !== null && ru !== null) {
-      out = { lo: mult * rl, hi: mult * ru };
+      out = { lo: spec.mult * rl, hi: spec.mult * ru };
       method = 'MLS';
     } else {
-      out = satterthwaite(s, co, df, ah);
+      out = satterthwaite(s, spec, dfs, ah);
       method = 'Satterthwaite';
       if (!out) return null;
     }
@@ -355,7 +406,8 @@
     return {
       lo: lo, hi: hi,
       method: method,
-      withInteraction: withInter,
+      model: model,
+      withInteraction: hasFour,
       hStar: hStarName,
       truncated: (out.lo < 0 || out.hi > 1)
     };
@@ -364,9 +416,10 @@
   /* ------------------------------------------------------------------------
    * gageTotal(...) - la razon del sistema de medicion, derivada de la anterior
    *
-   * Regla publicada por Minitab. El mapeo 1 - x es decreciente, asi que
-   * INTERCAMBIA los papeles de los limites; la pagina es-mx los escribe sin
-   * intercambiar, lo que devuelve un intervalo invertido. Aqui se intercambian.
+   * Regla publicada por Minitab, la misma en el cruzado y en el anidado. El
+   * mapeo 1 - x es decreciente, asi que INTERCAMBIA los papeles de los
+   * limites; la pagina es-mx los escribe sin intercambiar, lo que devuelve un
+   * intervalo invertido. Aqui se intercambian.
    * ----------------------------------------------------------------------*/
   function gageTotal(ms, df, dims, options) {
     var p = partTotal(ms, df, dims, options);
@@ -375,6 +428,7 @@
       lo: clamp01(1 - p.hi),
       hi: clamp01(1 - p.lo),
       method: p.method,
+      model: p.model,
       withInteraction: p.withInteraction,
       hStar: p.hStar,
       truncated: p.truncated,
@@ -388,8 +442,8 @@
     DEFAULT_H_STAR: DEFAULT_H_STAR,
     H_STAR_MODES: Object.keys(H_STAR),
     _constants: makeConstants,
-    _quadLower: quadLower,
-    _quadUpper: quadUpper,
+    _spec: specFor,
+    _quadratic: quadratic,
     _solve: solve,
     _satterthwaite: satterthwaite
   };

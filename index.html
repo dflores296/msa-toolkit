@@ -78,7 +78,10 @@
         las mismas piezas. AIAG sugiere 10 piezas, 3 operadores y 3 replicas.</p>
       <p class="hint" data-methods="anidado">Define el tamano del estudio y los nombres. Cada operador mide
         <strong>sus propias</strong> piezas, tomadas del mismo lote. AIAG sugiere 10 piezas por operador,
-        3 operadores y 3 replicas.</p>
+        3 operadores y 3 replicas.<br>
+        La pieza se identifica por el par <strong>operador + pieza</strong>, asi que puedes numerar 1..n
+        las de cada operador: la &laquo;1&raquo; de uno y la &laquo;1&raquo; de otro se analizan como dos
+        piezas fisicas distintas.</p>
 
       <p class="hint" data-methods="atributos">Define el tamano del estudio y los nombres. Cada evaluador
         clasifica <strong>las mismas piezas</strong> varias veces. AIAG sugiere alrededor de 50 piezas,
@@ -425,6 +428,7 @@
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
 <script src="assets/vendor/chart.umd.js?v=20260831d"></script>
+<script src="assets/js/design.js?v=20260831d"></script>
 <script src="assets/js/stats.js?v=20260831d"></script>
 <script src="assets/js/anova.js?v=20260831d"></script>
 <script src="assets/js/anova-nested.js?v=20260831d"></script>

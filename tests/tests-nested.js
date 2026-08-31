@@ -276,12 +276,39 @@
       (what || '') + ': el mensaje no menciona "' + fragment + '" -> ' + v.errors.join(' | '));
   }
 
-  test('validacion anidada: una pieza compartida entre operadores manda al metodo cruzado', function () {
+  /* Esta prueba afirmaba lo contrario hasta F-02: un nombre repetido entre
+     operadores era un ERROR y el mensaje mandaba al metodo cruzado. Era el
+     bug. En un estudio destructivo la pieza "1" de A y la "1" de B son dos
+     objetos que ya no existen, y ningun dato de la captura puede demostrar
+     que fueran el mismo. Asi que se acepta y se avisa, que es lo unico que
+     los datos sostienen. Los escenarios completos estan en tests-design.js. */
+  test('validacion anidada: un nombre repetido entre operadores se acepta y se avisa', function () {
     var rows = nestedRows();
     rows.forEach(function (r) { if (r.operator === 'B' && r.part === 'Pieza 11') r.part = 'Pieza 1'; });
-    expectError(rows, 'usa el metodo Cruzado', 'pieza compartida');
-    // Y el dataset cruzado completo cae entero en el mismo error.
-    expectError(crossedRows(), 'usa el metodo Cruzado', 'dataset cruzado');
+    var v = MSANested.validate(rows);
+    assert(v.ok, 'ya no es un error: ' + v.errors.join(' | '));
+    assert(v.warnings.join(' | ').indexOf(MSADesign.REPEATED_LABEL_NOTICE) >= 0,
+      'pero se avisa: ' + v.warnings.join(' | '));
+    assert(v.errors.join(' | ').indexOf('usa el metodo Cruzado') < 0,
+      'y no se ordena cambiar de metodo');
+
+    /* El dataset cruzado entero tambien pasa la validacion anidada, y tiene
+       que pasarla: los datos no distinguen los dos disenos. Lo que separa un
+       estudio cruzado de uno anidado es lo que se hizo en la planta, no la
+       forma de la matriz, asi que la eleccion es del usuario y la app solo
+       puede decirle que supone cada metodo. */
+    var vc = MSANested.validate(crossedRows());
+    assert(vc.ok, 'la matriz cruzada es un anidado valido en forma: ' + vc.errors.join(' | '));
+    assert(vc.warnings.join(' | ').indexOf(MSADesign.CROSSED_HINT) >= 0,
+      'y ahi el aviso ofrece justamente el cruzado: ' + vc.warnings.join(' | '));
+  });
+
+  test('validacion anidada: el aviso no afirma que las piezas sean las mismas', function () {
+    var w = MSANested.compute(crossedRows(), {}).warnings.join(' | ');
+    assert(w.indexOf('midieron las mismas piezas') < 0,
+      'no se afirma identidad fisica desde la coincidencia de nombres: ' + w);
+    assert(w.indexOf('se consideran objetos fisicos distintos') >= 0,
+      'se dice como los trata el modelo: ' + w);
   });
 
   test('validacion anidada: rechaza distinto numero de piezas por operador', function () {

@@ -69,7 +69,9 @@
       partsLabel: 'Piezas por operador', partNamesLabel: 'Nombres de las piezas, por operador',
       countLabel: 'piezas por operador',
       help: 'Gage R&R anidado, para pruebas destructivas: cada operador mide sus propias piezas, ' +
-            'tomadas de un lote homogeneo. El diseno no separa la interaccion operador x pieza.' },
+            'tomadas de un lote homogeneo. La pieza se identifica por el par operador + pieza, asi ' +
+            'que los numeros se pueden repetir entre operadores. El diseno no separa la interaccion ' +
+            'operador x pieza.' },
     { id: 'atributos', badge: 'Attribute Agreement Analysis', available: true,
       engine: function () { return MSAAttribute; },
       partsLabel: 'Piezas', partNamesLabel: 'Nombres de las piezas',
@@ -164,9 +166,11 @@
     selectFirstVisibleTab();
 
     if (changed && isUserAction) {
-      // Al pasar al anidado, unos nombres de pieza que venian repetidos entre
-      // operadores (lo normal en el cruzado) no sirven: se renumeran de cero.
-      if (m.id === 'anidado' && firstDuplicate(allPartNames())) state.partsByOperator = [];
+      /* Antes, al pasar al anidado se tiraban los nombres de pieza si alguno
+         se repetia entre operadores. Ya no hace falta (F-02): en el anidado
+         la identidad es el par operador|pieza, asi que repetir "1" es legal.
+         Tirarlos era ademas la unica parte del cambio de metodo que ocurria
+         en silencio, sin decir que se perdia. */
       state.standard = {};
       renderNameInputs();
       if (!$('captureSection').hidden) {
@@ -204,8 +208,9 @@
   function methodSwitchNote(m) {
     if (m.id === 'anidado') {
       return 'Metodo cambiado a anidado y tabla vaciada. El anidado supone que cada operador midio ' +
-        'SUS PROPIAS piezas, tomadas de un lote homogeneo, porque medirlas las destruye. Por eso las ' +
-        'piezas se renumeran corridas y ningun nombre puede repetirse entre operadores.';
+        'SUS PROPIAS piezas, tomadas de un lote homogeneo, porque medirlas las destruye. La pieza se ' +
+        'identifica por el par operador + pieza, asi que puedes numerar las de cada operador 1..n: ' +
+        'la "1" de uno y la "1" de otro se analizan como piezas distintas.';
     }
     if (m.id === 'atributos') {
       return 'Metodo cambiado a atributos y tabla vaciada. Aqui la celda no es un numero sino una ' +
@@ -287,22 +292,16 @@
   function partsPerOperator() {
     return isNested() ? (state.partsByOperator[0] || []).length : state.parts.length;
   }
-  /** Todos los nombres de pieza, en el orden de la tabla de captura. */
-  function allPartNames() {
-    if (!isNested()) return state.parts.slice();
-    var out = [];
-    state.partsByOperator.forEach(function (g) { out = out.concat(g); });
-    return out;
-  }
 
   function renderNameInputs() {
     var nOp = clamp(parseInt($('numOperators').value, 10), 2, 20, 3);
     var nPart = clamp(parseInt($('numParts').value, 10), 2, 50, 10);
     state.operators = defaultNames('Operador', nOp, state.operators);
     state.parts = defaultNames('Pieza', nPart, state.parts);
-    /* En el anidado el nombre de la pieza no se puede repetir entre operadores:
-       la numeracion corre de largo (1..30), que es como se etiqueta un lote del
-       que se van sacando piezas. */
+    /* La numeracion por omision corre de largo (1..30), que es como se etiqueta
+       un lote del que se van sacando piezas. Es una SUGERENCIA, no un
+       requisito: numerar 1..n dentro de cada operador tambien es valido, y es
+       la convencion mas comun en destructivas. Ver F-02 y assets/js/design.js. */
     var prevByOperator = state.partsByOperator || [];
     state.partsByOperator = [];
     for (var o = 0; o < nOp; o++) {
@@ -498,15 +497,30 @@
     } else {
       state.parts = state.parts.map(trimOrDefault('Pieza'));
     }
-    var dup = firstDuplicate(ops) || firstDuplicate(allPartNames());
+    /* Nombres repetidos. Que cuenta como repetido depende del metodo, y ahi
+       estaba F-02: en el anidado la identidad de una pieza es el par
+       operador|pieza, asi que "1" bajo Ana y "1" bajo Beto son dos piezas
+       distintas y la captura es legal. Solo repetir un nombre DENTRO del
+       mismo operador es un error, porque ahi si serian la misma celda.
+       En el cruzado, en cambio, la lista de piezas es una sola y compartida:
+       cualquier repeticion es un error. */
+    var dup = firstDuplicate(ops) ||
+              (isNested() ? firstDuplicateWithin(state.partsByOperator)
+                          : firstDuplicate(state.parts));
     if (dup) {
       showMessages($('configMsg'), [isNested()
-        ? 'Hay nombres repetidos ("' + dup + '"). En un estudio anidado cada operador mide piezas ' +
-          'distintas, asi que ningun nombre de pieza puede repetirse, ni siquiera entre operadores.'
+        ? 'Hay nombres repetidos ("' + dup + '") dentro de un mismo operador. Cada operador tiene ' +
+          'que poder distinguir sus propias piezas; entre operadores si se pueden repetir.'
         : 'Hay nombres repetidos ("' + dup + '"). Cada operador y cada pieza debe tener un nombre unico.'], []);
       return false;
     }
     clearMessages($('configMsg'));
+    /* Repetidos ENTRE operadores: legal, y se dice lo que significa antes de
+       capturar, no despues de calcular. Los dos textos salen de design.js. */
+    if (isNested()) {
+      var notes = MSADesign.repeatedLabelNotes(MSADesign.observe(state.partsByOperator));
+      if (notes.length) showMessages($('configMsg'), [], notes);
+    }
 
     // Clases explicitas por columna. No dependemos de :first-child, que alineaba
     // distinto la primera fila de cada operador: ahi la celda de pieza es el
@@ -566,6 +580,14 @@
     for (var i = 0; i < arr.length; i++) {
       if (seen[arr[i]]) return arr[i];
       seen[arr[i]] = true;
+    }
+    return null;
+  }
+  /** El primer nombre repetido DENTRO de algun grupo. Entre grupos no mira. */
+  function firstDuplicateWithin(groups) {
+    for (var i = 0; i < groups.length; i++) {
+      var d = firstDuplicate(groups[i] || []);
+      if (d) return d;
     }
     return null;
   }
@@ -1374,11 +1396,6 @@
     return out;
   }
 
-  /* Que diseno trae el archivo, leido de los datos y no del metodo activo:
-     si todos los operadores midieron las mismas piezas es cruzado; si ninguna
-     pieza se repite entre operadores es anidado. Cualquier otra cosa (unas
-     compartidas y otras no) no es ninguno de los dos y se deja como esta para
-     que el motor lo diga con su propio mensaje. */
   /* Antes de mirar el diseno hay que mirar el TIPO de dato: si las mediciones
      no son numeros, no es un estudio de variables por mucho que las piezas se
      repartan como cruzado. Se pide mayoria clara para no confundir un archivo
@@ -1392,23 +1409,6 @@
       if (!isFinite(Number(v.replace(',', '.')))) text++;
     });
     return n > 0 && text / n > 0.8;
-  }
-
-  function detectDesign(partsByOp) {
-    if (partsByOp.length < 2) return null;
-    var owner = {}, shared = 0, own = 0;
-    partsByOp.forEach(function (g, oi) {
-      g.forEach(function (pt) {
-        if (owner[pt] === undefined) { owner[pt] = oi; own++; }
-        else if (owner[pt] !== oi) shared++;
-      });
-    });
-    if (shared === 0) return 'anidado';
-    var first = partsByOp[0];
-    var same = partsByOp.every(function (g) {
-      return g.length === first.length && g.every(function (pt) { return first.indexOf(pt) >= 0; });
-    });
-    return same ? 'cruzado' : null;
   }
 
   function loadPayload(p) {
@@ -1428,22 +1428,31 @@
     });
     var maxRep = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
 
-    /* El archivo manda sobre el metodo activo. Importar un estudio anidado
-       estando en cruzado daria un error de piezas incompletas que no dice nada
-       del problema real, asi que se cambia el metodo y se avisa. */
-    var notes = [];
+    /* A que metodo va este archivo. La decision entera vive en design.js, sin
+       DOM, y aqui solo se aplica: era estar pegada al DOM lo que hacia que la
+       unica manera de ver F-02 fuera abrir el navegador e importar.
 
-    /* El tipo de dato manda sobre el metodo activo, igual que el diseno: un
-       archivo de categorias importado estando en cruzado daria "no es un
-       numero valido" en cada celda, que no dice nada del problema real. */
+       Lo que cambio con F-02: el metodo que el archivo DECLARA (campo
+       `method`, o su `format`) manda sobre lo que sugieran los nombres de las
+       piezas, y ningun cambio de metodo se deduce ya en silencio de esos
+       nombres. Lo que se deduce, se pregunta. */
     var categorical = looksCategorical(rows);
-    if (categorical && !isAttribute()) {
-      applyMethod('atributos', false);
-      notes.push('El archivo trae clasificaciones y no mediciones numericas, asi que se cambio al ' +
-                 'metodo de atributos.');
-    } else if (!categorical && isAttribute()) {
-      applyMethod('cruzado', false);
-      notes.push('El archivo trae mediciones numericas, asi que se salio del metodo de atributos.');
+    var routed = MSADesign.route({
+      activeMethod: state.method,
+      explicitMethod: MSADesign.methodOfPayload(p),
+      observed: MSADesign.observe(partsByOp),
+      categorical: categorical,
+      isAvailable: function (id) { return methodById(id).available; }
+    });
+    var notes = routed.notes.slice();
+    if (routed.changed) applyMethod(routed.method, false);
+    if (routed.question && confirm(routed.question)) {
+      applyMethod(routed.proposal, false);
+      notes.push('Metodo cambiado a ' + routed.proposal + ' porque lo confirmaste al importar. ' +
+                 'El archivo no declaraba metodo.');
+    } else if (routed.question) {
+      notes.push('Se conservo el metodo ' + state.method + ': el archivo no declara metodo y los ' +
+                 'nombres de las piezas no bastan para deducirlo.');
     }
 
     /* Las categorias y el estandar salen del propio archivo. El estandar es
@@ -1473,14 +1482,6 @@
       }
     }
 
-    var design = categorical ? null : detectDesign(partsByOp);
-    if (design && design !== state.method && methodById(design).available) {
-      applyMethod(design, false);
-      notes.push('El archivo trae un diseno ' + design + ' (' + (design === 'anidado'
-        ? 'ninguna pieza la miden dos operadores'
-        : 'todos los operadores midieron las mismas piezas') +
-        '), asi que se cambio a ese metodo.');
-    }
     var perOp = partsByOp.map(function (g) { return g.length; });
     if (isNested() && Math.min.apply(null, perOp) !== Math.max.apply(null, perOp)) {
       notes.push('Los operadores no traen el mismo numero de piezas (entre ' +
@@ -1502,9 +1503,10 @@
     }
 
     state.operators = ops;
-    // Cada metodo se queda con la estructura que le toca. La del otro no se
-    // pisa con nombres que ahi serian invalidos (en un archivo cruzado las
-    // piezas se repiten entre operadores, y el anidado no lo admite).
+    /* Cada metodo se queda con la estructura que le toca, y no se pisa la del
+       otro: en el cruzado la lista de piezas es una sola y compartida; en el
+       anidado cada operador trae la suya, y ahi los nombres si pueden
+       coincidir entre operadores porque la identidad es el par. */
     if (isNested()) state.partsByOperator = partsByOp.map(function (g) { return g.slice(); });
     else state.parts = parts;
     $('numOperators').value = ops.length;

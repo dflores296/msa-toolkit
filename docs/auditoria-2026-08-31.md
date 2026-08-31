@@ -20,7 +20,7 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-04 · Categoría de rechazo por orden de aparición | P0 | **Cerrado** | `04dc8d5` |
 | F-01 · `Var_GRR = 0` tratado como veredicto | P1 (era P0) | **Cerrado** | `3beef45`, `1fc0a3b` |
 | F-03 · El reporte de atributos lanza TypeError | P0 | **Cerrado** | este commit |
-| F-02 · Anidado ruteado a cruzado | P0 | **Pendiente** | — |
+| F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
 | F-05 · Reporte con datos nuevos y tablas viejas | P1 | Pendiente | — |
 | F-06 · Atributos 0/1 → ANOVA de variables | P1 | Pendiente | — |
 | F-07 · %GRR sin intervalo de confianza | P1 | Pendiente | — |
@@ -138,6 +138,59 @@ convierten a σ con una raíz antes de compararlas con el escalón.
 `EQUALITY_EPS_RATIO` (1e-12) son **protección numérica, no criterios de
 calidad**.
 
+### F-02 — El anidado se ruteaba a cruzado · este commit
+
+**Causa raíz:** la identidad de una pieza se leía como un **nombre global**, y
+en el anidado no lo es. La convención natural de una destructiva —numerar 1..n
+las piezas de cada operador— produce nombres que coinciden entre operadores sin
+que las piezas tengan nada que ver. De ahí salían tres fallos encadenados, y
+los tres se reprodujeron ejecutando el código antes de tocarlo:
+
+```
+partsByOp = [["1".."5"], ["1".."5"], ["1".."5"]]
+
+1. detectDesign(partsByOp)      -> "cruzado"   (app.js)
+   y la app cambiaba sola de metodo, avisando "todos los operadores midieron
+   las mismas piezas", que es falso.
+2. MSANested.validate(rows)     -> ok: false
+   "...5 pieza(s) aparecen bajo varios... usa el metodo Cruzado."
+   El validador empujaba al metodo que asume lo contrario de lo que ocurrio.
+3. MSAAnova.compute(rows)       -> acepta la matriz (esta balanceada) y publica
+   un ANOVA con termino Operador x Parte, que fisicamente no existe.
+```
+
+**La regla:** en el anidado la identidad estadística de una pieza es el **par
+(operador, pieza)** — `Ana|1` y `Beto|1` son dos objetos distintos. El
+identificador local se conserva intacto para tablas, gráficas, exportaciones y
+reportes; solo la identidad interna se califica.
+
+**Y la regla de enrutado:** un nombre repetido no es evidencia de nada. Ningún
+cambio de método se deduce ya de los nombres: manda el que el archivo
+**declara** (`method`, o su `format`), y lo que solo se sospecha se pregunta.
+Estando en anidado, ninguna coincidencia de nombres saca del anidado.
+
+**Corregido con un cambio estructural, no un `if`,** igual que F-03: la decisión
+se extrae a `assets/js/design.js`, un modelo **puro y sin DOM**. Mientras vivió
+dentro de `app.js`, la única manera de ver el fallo era abrir el navegador e
+importar un archivo.
+
+En vez del error que empujaba al método equivocado, se emiten dos avisos que
+son lo único que los datos sostienen:
+
+> En el método anidado, las piezas con el mismo identificador bajo operadores
+> diferentes se consideran objetos físicos distintos.
+>
+> Si los operadores midieron realmente las mismas piezas físicas, utiliza el
+> método cruzado.
+
+**Compatibilidad:** los estudios anidados existentes no se mueven. Con
+identificadores únicos globales —lo que la app propone por omisión, 1..30— la
+validación pasa exactamente igual, sin avisos nuevos, y
+`tests/regresion-visual.js HEAD anidado` no encuentra ninguna diferencia:
+veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
+idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
+funcionara dejó de funcionar.
+
 ### F-03 y F-17 — El reporte impreso · este commit
 
 `buildPrintHeader` daba por hecha la forma de respuesta de los métodos de
@@ -161,28 +214,6 @@ blanco con su título).
 ---
 
 ## Pendientes, en el orden que recomiendo
-
-### F-02 (P0) — El anidado se rutea a cruzado
-
-La convención más natural para etiquetar un estudio destructivo es numerar las
-piezas de cada operador 1..n. Con esa captura:
-
-```
-partsByOp = [["1".."5"], ["1".."5"], ["1".."5"]]
-detectDesign(...) -> "cruzado"    (app.js, funcion detectDesign)
-```
-
-La app **cambia sola de método** y avisa «todos los operadores midieron las
-mismas piezas», que es falso. Por la vía manual, el validador del anidado
-rechaza los datos con un mensaje que **empuja al método equivocado**. El motor
-cruzado acepta la matriz (está balanceada) y produce un ANOVA con un término
-operador × pieza que **no existe físicamente**.
-
-**Arreglo propuesto:** (a) en el método anidado, calificar internamente el
-nombre con el operador (`op ‖ pieza`) para que repetir «1» sea legal; (b) en
-`detectDesign`, no decidir el diseño por los nombres cuando el método activo es
-anidado, y **nunca cambiar de método sin confirmación explícita**. El mensaje de
-validación debe preguntar, no afirmar.
 
 ### F-05 (P1) — El reporte puede mezclar resultados viejos con datos nuevos
 
@@ -221,27 +252,27 @@ permanente **«actualizado al escribir»**, que promete algo que la app no hace.
 
 ## Calificaciones
 
-| Dimensión | 31-ago inicial | Tras F-01/03/04 |
-|---|---|---|
-| Exactitud estadística | 72 | 78 |
-| Calidad de código | 74 | 76 |
-| Arquitectura | 70 | 73 |
-| UX | 68 | 70 |
-| UI | 84 | 84 |
-| Seguridad | 68 | 68 |
-| Rendimiento | 82 | 82 |
+| Dimensión | 31-ago inicial | Tras F-01/03/04 | Tras F-02 |
+|---|---|---|---|
+| Exactitud estadística | 72 | 78 | 85 |
+| Calidad de código | 74 | 76 | 78 |
+| Arquitectura | 70 | 73 | 76 |
+| UX | 68 | 70 | 74 |
+| UI | 84 | 84 | 84 |
+| Seguridad | 68 | 68 | 68 |
+| Rendimiento | 82 | 82 | 82 |
 
 ## ¿Publicaría esta aplicación en producción para una planta de manufactura?
 
-**Todavía no**, pero queda un solo bloqueante. De los cuatro P0 originales, tres
-están cerrados. **F-02** es el que falta: analizar una prueba destructiva con un
-modelo que asume lo contrario de lo que ocurrió físicamente, y encima con la
-aplicación empujando activamente hacia él.
+**Los cuatro P0 están cerrados.** Con F-02 se va el último bloqueante: ya no hay
+manera de que la aplicación analice una prueba destructiva con un modelo que
+asume lo contrario de lo que ocurrió físicamente, ni de que empuje hacia él.
 
-Cerrado F-02, más el rótulo de F-05 y la afirmación de validación de F-15, la
-respuesta cambia a **sí** — con la reserva razonable de que un dictamen de
-liberación lo firme una persona que sepa leer las gráficas, no la tarjeta de
-veredicto sola.
+Quedan dos cosas de las que dependen afirmaciones que la pantalla hace y no
+sostiene: el rótulo «actualizado al escribir» de F-05 y la validación AIAG
+afirmada para los tres métodos de F-15. Corregidas esas dos, **sí** — con la
+reserva razonable de que un dictamen de liberación lo firme una persona que sepa
+leer las gráficas, no la tarjeta de veredicto sola.
 
 Lo que sí publicaría hoy, con confianza, es el **motor cruzado como
 calculadora**: reproduce los valores publicados de Minitab dígito a dígito y

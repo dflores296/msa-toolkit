@@ -211,6 +211,26 @@ compartido, importación que conserva el método, reordenar filas y renombrar
 piezas— y `tests/prueba-diseno.js` comprueba en un navegador de verdad que la
 aplicación cablea ese modelo.
 
+### Intervalo de confianza del %GRR
+
+El %GRR es una estimación, no un número exacto: doce estudios del **mismo**
+sistema dan entre 20 % y 45 %. `assets/js/interval.js` publica su intervalo por
+el método **GPQ** —el que usa Minitab—, con 90 % de confianza por omisión, y el
+veredicto sale del intervalo: solo se dictamina si el intervalo entero cae en
+una banda; si cruza un umbral, el estudio **no alcanza a decidir** y se dice.
+El punto sigue en la tarjeta como estimación, con su etiqueta AIAG debajo.
+
+El intervalo es **determinista** —la semilla sale de los propios cuadrados
+medios—, así que el mismo estudio da siempre el mismo intervalo. Se valida por
+**cobertura**, no contra una tabla copiada: `tests/tests-interval.js` simula
+estudios con %GRR verdadero conocido y comprueba que el intervalo lo contiene a
+la tasa nominal.
+
+Consecuencia que conviene saber de antemano: un estudio 10×3×3 **no alcanza** a
+clasificar un gage cuyo %GRR ronda el umbral, porque con 3 operadores la
+reproducibilidad tiene 2 grados de libertad. Eso ya era verdad antes; ahora se
+ve.
+
 ### Orden de carga
 
 `tests/tests-carga.js` fija el contrato de dependencias entre los módulos:
@@ -222,7 +242,7 @@ porque `anova-nested.js` dereferencia `MSADesign` al evaluarse: es una
 precondición real, y se prueba en vez de disimularse con una degradación
 silenciosa.
 
-167 pruebas de regresión entre los cuatro modelos puros —todas sobre el cálculo:
+192 pruebas de regresión entre los modelos puros —todas sobre el cálculo:
 corren en Node, sin navegador, y no tocan la pantalla. Para correrlas:
 
 ```bash
@@ -330,6 +350,7 @@ assets/js/anova-nested.js motor anidado (pruebas destructivas)
 assets/js/attribute.js   motor de concordancia por atributos
 assets/js/design.js      identidad de la pieza y enrutado de método — sin DOM
 assets/js/report.js      encabezado del reporte impreso — sin DOM
+assets/js/interval.js    intervalo de confianza del %GRR (GPQ) — sin DOM
                          (design.js va ANTES que anova-nested.js: lo usa al cargar)
 assets/js/charts.js      las ocho gráficas (Chart.js)
 assets/js/app.js         interfaz y flujo

@@ -182,6 +182,15 @@
       : NO_EVAL]);
     rows.push(['% Study Variation (GRR)',
       numOr(r.metrics && r.metrics.pctStudyVar, 2, ' %')]);
+    /* F-07. El intervalo va en el encabezado, no en una nota al pie: es la
+       cifra con la que se decide, y un reporte que solo imprime el punto
+       invita a tratarlo como exacto. Si no se pudo calcular, la fila
+       desaparece -- no se imprime un intervalo vacio. */
+    if (r.interval && r.interval.studyVar && r.interval.studyVar.lo !== null) {
+      rows.push(['IC ' + Math.round(100 * r.interval.conf) + ' % del %GRR (' + r.interval.method + ')',
+        numOr(r.interval.studyVar.lo, 2, ' %') + ' a ' + numOr(r.interval.studyVar.hi, 2, ' %')]);
+    }
+    if (r.intervalVerdict) rows.push(['Veredicto por el intervalo', textOr(r.intervalVerdict.label)]);
     rows.push(['Categorias distintas', textOr(r.ndcLabel)]);
     rows.push(['Discriminacion', textOr(r.discrimination && r.discrimination.label)]);
     if (r.inconclusive) rows.push(['Veredicto', 'Estudio no concluyente']);

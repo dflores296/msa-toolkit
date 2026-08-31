@@ -193,29 +193,93 @@ veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
 
-### F-07 — Un punto sin intervalo decidía la aceptación · `0105a08` · **EN VALIDACIÓN**
+### F-07 — Un punto sin intervalo decidía la aceptación · `0105a08` → `55c921f` · **EN VALIDACIÓN**
 
-> **F-07 NO está cerrada.** La revisión metodológica está en
-> [`docs/f07-validacion-gpq.md`](f07-validacion-gpq.md), con estado **`C`**:
-> el método es válido y concuerda con dos referencias independientes, pero la
-> política de veredicto debe modificarse antes de usarse para liberar o
-> rechazar instrumentos. Tres afirmaciones de la entrada de abajo quedan
-> **corregidas** por ese documento:
+> **F-07 NO está cerrada.** La revisión metodológica completa está en
+> [`docs/f07-validacion-gpq.md`](f07-validacion-gpq.md). Este recuadro es el
+> punto de entrada para retomar el trabajo desde otra sesión o cuenta: resume
+> qué se implementó, qué falta y por qué, con referencia a las secciones
+> exactas del documento largo.
 >
-> 1. **«GPQ, el que usa Minitab» es FALSO.** Minitab usa MLS con respaldo
->    Satterthwaite. La descripción correcta es «método GPQ implementado por la
->    aplicación».
-> 2. **La justificación del 90 % era circular** («concluye más» no es un
->    criterio estadístico).
-> 3. **El piso de 60 mediciones mide la cosa equivocada:** no distingue
->    estructuras de diseño, y bloquea estudios de 30 mediciones mejores que
->    otros de 60 que deja pasar.
+> #### Lo que quedó implementado (commit `55c921f`)
 >
-> Lo que la revisión **confirmó**: el intervalo concuerda con la referencia
-> analítica exacta dentro del error Monte Carlo, concuerda con MLS sobre
-> σ²_grr con una discrepancia explicada por el truncado, el intervalo usa
-> siempre el mismo modelo que el punto, y en 6 000 estudios simulados no hubo
-> **ni una** aceptación ni un rechazo incorrectos.
+> - **Las cuatro afirmaciones falsas sobre Minitab, retiradas** de
+>   `interval.js`, esta auditoría, `README.md` y el documento de validación:
+>   «GPQ es el método de Minitab», «90 % es su valor por omisión», y «no hay
+>   valores publicados contra qué validar» (sí los hay: existe una página
+>   propia de Minitab para intervalos de *razones* de varianza).
+> - **El GPQ dejó de dictaminar.** Vuelve a dictaminar la **estimación
+>   puntual** con las bandas AIAG (`assess()` en `anova.js`). El intervalo se
+>   conserva como información, rotulado «GPQ experimental, en validación, no
+>   utilizado para el dictamen», y cuando cruza un límite emite sólo una
+>   advertencia de lectura — nunca una categoría.
+> - **Retirada la política que exigía el intervalo entero dentro de una
+>   banda**, con dos motivos medidos: la banda condicional mide 20 pp y un
+>   intervalo más ancho no cabe en ella por geometría (un 5×3×2 concluía el
+>   0 % de las veces), y la conclusividad dependía de la distancia del gage al
+>   umbral, no de la calidad del estudio.
+> - **Piso de 60 mediciones retirado**, sin sustituto obligatorio; quedan
+>   avisos informativos por operadores, piezas, réplicas y representatividad
+>   del rango, en los dos motores.
+> - **Un solo intervalo, dos escalas.** %Contribution y %Study Variation se
+>   derivan del mismo intervalo de la razón `V_GRR/V_Total`; ya no pueden
+>   contradecirse entre sí.
+> - **Fronteras de banda unificadas**: 1.00, 9.00, 10.00 y 30.00 son
+>   condicionales, escritas una sola vez en `assess`. Antes, 9.00 exacto hacía
+>   que el criterio puntual y el del intervalo se contradijeran.
+> - **Nivel de confianza seleccionable** (90/95/99, 95 % por omisión), en la
+>   huella del resultado, recalcula al cambiar, se imprime.
+> - Suites en verde tras el cambio: 196/196 Node, 75/75 impresión, 50/50
+>   diseño, 35/35 frescura.
+>
+> Detalle completo: §3, §5–§9 y §13 de `docs/f07-validacion-gpq.md`.
+>
+> #### Lo que NO se hizo, y por qué
+>
+> **El intervalo oficial por MLS/Satterthwaite sobre la razón —el núcleo de
+> F-07— sigue sin implementarse.** No es una decisión pendiente de aprobación:
+> es un bloqueo de fuente. Este entorno tiene el egreso de red restringido
+> (`support.minitab.com` responde 403 al proxy), así que no se pudieron leer
+> las páginas de fórmulas directamente. **El 31 de agosto se subió al
+> repositorio un documento técnico de referencia** —
+> [`docs/Documento técnico de referencia — Fórmulas del método MLS…`](Documento%20t%C3%A9cnico%20de%20referencia%20F%C3%B3rmulas%20del%20m%C3%A9todo%20MLS%20%28Modified%20Large%20Sample%29%20para%20intervalos%20de%20confianza%20en%20estudios%20Gage%20R%26R.md)
+> — que investigó las fuentes primarias y **desbloquea una parte, no toda**:
+>
+> - **Desbloqueado y listo para implementar:** el intervalo exacto χ² de
+>   repetibilidad, las constantes G_q/H_q con su regla de validación de rango,
+>   el MLS reconstruido para combinaciones lineales positivas (Gage total,
+>   Total, validable numéricamente contra Minitab), el truncamiento y la regla
+>   de límites unilaterales. Todo confirmado verbatim o con ruta de validación
+>   clara.
+> - **Sigue bloqueado:** los coeficientes `A`, `B`, `C` de la ecuación
+>   cuadrática que da el intervalo de la **razón** —el cálculo que
+>   efectivamente reemplazaría al GPQ— no están en ninguna fuente de acceso
+>   libre. Viven en imágenes (no texto) en Minitab y en tres fuentes de pago
+>   (Burdick, Borror & Montgomery 2005; Gui, Graybill, Burdick & Ting 1995;
+>   Burdick & Graybill 1992). El propio documento recomienda **no
+>   reconstruirlos**: publicar una cuadrática inventada y llamarla «el método
+>   de Minitab» repetiría el error exacto que F-07 existe para corregir.
+>
+> **Plan para continuar, en dos etapas — ver §14 de `docs/f07-validacion-gpq.md`
+> para el detalle completo:**
+>
+> 1. **Etapa 1 (aprobable ya):** implementar lo desbloqueado — repetibilidad
+>    exacta, G_q/H_q, MLS reconstruido y validado para Gage total/Total — en un
+>    módulo nuevo que no reutiliza funciones del GPQ. No resuelve el intervalo
+>    de la razón, pero dejaría el terreno determinista y sin simulación donde
+>    sí hay fuente.
+> 2. **Etapa 2 (bloqueada):** requiere transcribir A, B, C verbatim de una
+>    fuente de pago con acceso institucional, o decidir documentar
+>    permanentemente el intervalo de la razón como «sin fuente primaria
+>    verificable» y mantener el GPQ como único intervalo, ya rotulado
+>    experimental — que es el estado actual.
+>
+> **Hallazgo adicional del documento:** la sub-cobertura del motor anidado
+> (86–88 % contra 90 % nominal, medida en §12 limitación 3) puede no ser un
+> defecto de esta implementación — Chiang (2001/2002) documenta que MLS y
+> Satterthwaite para razones sub-cubren cuando el componente del numerador es
+> pequeño y de pocos grados de libertad, el régimen exacto de un anidado con
+> pocos operadores. Queda como hipótesis a confirmar en la Etapa 1.
 
 
 **Reproducido** con el motor en vivo, y confirma el hallazgo:

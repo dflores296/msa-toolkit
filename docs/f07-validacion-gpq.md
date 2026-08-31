@@ -584,7 +584,21 @@ Estado actualizado tras ejecutar las decisiones aprobadas.
    estándar del nominal 90 %), y anidado 10×3×2 da 87.00 % (−4.0 EE), todos con
    61 % de truncado; el cruzado 5×3×2 equivalente da 91.90 %. **No es ruido de
    muestreo**, y la dirección es la insegura: el intervalo es más estrecho de lo
-   que declara. Pendiente de diagnóstico.
+   que declara.
+   > **Actualización (documento técnico de referencia, §D/F).** Esto puede **no
+   > ser un defecto de esta implementación**: Chiang (2001, *Technometrics*
+   > 43(3):356-367) demostró que tanto MLS como Satterthwaite para razones
+   > "can fail by a large margin to maintain the nominal confidence level"
+   > cuando el componente del numerador (reproducibilidad) es pequeño y de
+   > pocos grados de libertad — exactamente el régimen de un anidado con pocos
+   > operadores. Antes de tratarlo como bug, el documento pide descartar dos
+   > causas de implementación propias del GPQ actual: convención de cola
+   > invertida en el muestreo χ² (no aplica aquí, es simulación, no G_q/H_q) y
+   > el truncamiento asimétrico en [0,1]. **Sigue pendiente de diagnóstico**,
+   > pero ahora con una hipótesis nula clara: si al migrar a MLS la cobertura
+   > sube a ≥89–90 %, era la implementación; si persiste en 86–88 % sólo con
+   > numerador chico y pocos g.l., es la limitación conocida del método y se
+   > documenta, no se corrige.
 4. **`V_grr ≈ 0` no está probado ni acotado.**
 5. **Tasas de truncado de hasta 67 % no se muestran** al usuario.
 6. **La semilla no es canónica** (§10). Decisión no aprobada en este alcance.
@@ -621,7 +635,7 @@ Aprobadas por el responsable del producto. Estado de cada una:
 | 5 | Retirar la clasificación por intervalo | ✅ **Hecho** — el intervalo sólo advierte cruces |
 | 6 | %Contribution y %StudyVar del mismo intervalo | ✅ **Hecho** — las dos derivan de la razón, no se simulan por separado |
 | 7 | Fronteras de banda coherentes en toda la aplicación | ✅ **Hecho** — 1.00, 9.00, 10.00 y 30.00 son **condicional**; escritas una sola vez en `assess` |
-| 8 | Intervalo oficial por MLS + Satterthwaite sobre la razón | ⛔ **No hecho — bloqueado**, ver §14 |
+| 8 | Intervalo oficial por MLS + Satterthwaite sobre la razón | ⛔ **No hecho — parcialmente desbloqueado**, ver §14 |
 | 9 | Intervalo de %Tolerance | ⏸ **Pendiente de referencia validada** — se conserva el punto y se dice explícitamente |
 | 10 | Semilla canónica con versión de algoritmo | ⏸ **Pendiente** — no aprobado en este alcance |
 
@@ -632,36 +646,97 @@ lectura. No emite categorías, no produce «no concluyente» y no bloquea nada.
 
 ---
 
-## 14. Por qué el §8 no se implementó
+## 14. Por qué el §8 no se implementó — actualizado con el documento técnico
 
-**Es un bloqueo de entorno, no una decisión.** El contenedor en el que se
-trabajó tiene el egreso de red restringido: `support.minitab.com` —y cualquier
-otro host— responde `403` al `CONNECT` del proxy. Las páginas de *methods and
-formulas* de razones de varianza **no se pudieron leer**.
+**El bloqueo de red seguía vigente cuando se escribió la primera versión de esta
+sección:** el contenedor tiene el egreso restringido y `support.minitab.com`
+respondía `403` al `CONNECT` del proxy. No se resolvió leyendo la fuente desde
+aquí — se resolvió **por otra vía**: el responsable del producto adjuntó
+[`docs/Documento técnico de referencia — Fórmulas del método MLS…`](Documento%20t%C3%A9cnico%20de%20referencia%20F%C3%B3rmulas%20del%20m%C3%A9todo%20MLS%20%28Modified%20Large%20Sample%29%20para%20intervalos%20de%20confianza%20en%20estudios%20Gage%20R%26R.md),
+que investiga las fórmulas contra las fuentes primarias (Burdick & Graybill
+1984, 1992; Burdick, Borror & Montgomery 2003/2005; Gui, Graybill, Burdick &
+Ting 1995; Chiang 2001/2002) y **declara explícitamente, fórmula por fórmula,
+qué está confirmado verbatim, qué es una reconstrucción razonada y qué sigue sin
+verificar.** Esa disciplina es la que le da valor: es la misma que exige el
+hallazgo de F-07.
 
-Lo que sí se pudo confirmar por búsqueda, y no es suficiente para implementar:
+### Lo que el documento desbloquea (Etapa 1 — se puede implementar ya)
 
-- MLS es el método principal; Satterthwaite es la alternativa cuando «no se
-  cumplen ciertas condiciones».
-- Las cotas se obtienen **resolviendo una ecuación cuadrática**: `L = J ×`
-  (raíz menor), `U = J ×` (raíz mayor).
-- Si `B² − 4AC < 0` no hay solución y se usa Satterthwaite.
-- El intervalo de %Study Variation se obtiene **transformando** el de
-  %Contribution — que es exactamente lo que ahora hace esta aplicación (§9 del
-  encargo), aunque sobre un intervalo GPQ en vez del correcto.
+Confirmado **verbatim** contra Minitab o contra un paper con ecuación citable:
 
-**Lo que falta son las definiciones de `A`, `B`, `C` y `J`.** Sin ellas,
-implementar «MLS» y rotularlo como las fórmulas publicadas de Minitab sería
-repetir **exactamente el error que F-07 existe para corregir**: afirmar una
-autoridad que no se verificó. Por eso no se implementó.
+1. **Repetibilidad: intervalo EXACTO χ², nunca MLS.** `L = n₄S₄²/χ²_{1−α/2:n₄}`,
+   `U = n₄S₄²/χ²_{α/2:n₄}`. Determinista, sin sorteos, verificable dígito a
+   dígito contra Minitab con cualquier dataset — candidato natural a primer test
+   de regresión del módulo nuevo.
+2. **G_q, H_q** (Burdick & Graybill 1984, Technometrics 26(2), ec. 2.3), con una
+   regla de validación de rango explícita en el propio documento: `G_q ∈ (0,1)`,
+   `H_q ≥ 0`; si no se cumple, la cola de la χ²/F está invertida. Esa aserción
+   debe ir en el código, no sólo en un comentario.
+3. **Estimadores puntuales por componente**, cruzado y anidado — coinciden con
+   los que ya usan `anova.js` y `anova-nested.js`, así que no cambian.
+4. **MLS para combinaciones lineales POSITIVAS** (Gage total, Total): forma
+   Graybill-Wang, marcada por el documento como «reconstruida, no verbatim» —
+   se implementa y se **valida numéricamente** contra Minitab en 3–4 datasets,
+   nunca se cita como transcripción literal.
+5. **Truncamiento**: `[0, ∞)` en componentes, `[0, 1]` en razones, aplicado
+   **antes** de la raíz cuadrada — confirmado verbatim, ya es lo que hace
+   `interval.js` sobre el GPQ.
+6. **Límites unilaterales**: sustituir `α/2` por `α` en G y H — confirmado
+   verbatim, aplica igual al exacto, a MLS y a Satterthwaite.
+7. **`gage/total = 1 − parte/total`**, con el intercambio L↔U que produce el
+   `1 − x` — confirmado verbatim, y es la misma arquitectura que ya tiene
+   `interval.js` (`ratio` como origen único de las dos escalas).
 
-**Para desbloquearlo** hace falta una de estas dos cosas:
+### Lo que SIGUE bloqueado (Etapa 2 — el núcleo de F-07)
 
-1. Ejecutar la sesión en un entorno con acceso a `support.minitab.com`, o
-2. Aportar las páginas (texto o PDF) al repositorio como fuente citable.
+**Los coeficientes `A`, `B`, `C` de la ecuación cuadrática de la razón —el
+cálculo que de verdad reemplaza al GPQ— no están en ninguna fuente de acceso
+libre.** Viven en imágenes PNG en las páginas de Minitab (no texto, no MathML) y
+en texto sólo en tres fuentes de pago: Burdick, Borror & Montgomery (2005, ASA-
+SIAM, cap. 3-4), Gui, Graybill, Burdick & Ting (1995, *JSPI* 48:215-227) y
+Burdick & Graybill (1992, Marcel Dekker) para los términos cruzados `G_qq′`,
+`H_qq′` que hacen falta en las diferencias de cuadrados medios (σ²_P, σ²_O,
+σ²_PO).
 
-Con eso, la implementación es directa: el módulo nuevo va aparte —no reutiliza
-ninguna función del GPQ—, es determinista, sin sorteos ni semillas, y sustituye
-al GPQ como origen del intervalo de la razón. La estructura ya está preparada:
-`interval.js` publica hoy `ratio: {lo, hi}` y deriva de ahí las dos escalas, así
-que cambiar el origen del `ratio` no toca la presentación.
+**La recomendación del propio documento es no reconstruirlos:** "no publique A,
+B, C reconstruidos […] esto es precisamente el tipo de atribución que el
+hallazgo de auditoría exige." Implementar una cuadrática inventada y rotularla
+como «el método de Minitab» repetiría el error exacto que F-07 existe para
+corregir — sólo que en la fórmula en vez de en el nombre.
+
+### Plan de dos etapas para cerrar F-07
+
+**Etapa 1 (aprobable ya, sin fuente adicional):** implementar repetibilidad
+exacta + G_q/H_q + MLS reconstruido y validado numéricamente para Gage total y
+Total, en un módulo nuevo que no reutiliza funciones del GPQ. Esto **no**
+resuelve el núcleo de F-07 —la razón sigue sin intervalo correcto— pero es
+determinista, sin `DRAWS` ni semillas, y deja el terreno preparado.
+
+**Etapa 2 (bloqueada, requiere una de estas dos cosas):**
+
+1. Transcribir `A`, `B`, `C` y `G_qq′`/`H_qq′` verbatim de BBM 2005 cap. 3-4 o
+   de Gui et al. 1995, citados con número de ecuación — requiere acceso
+   institucional a esas fuentes de pago, que no está disponible en este entorno.
+2. Alternativamente, si se decide no perseguir el acceso: **documentar** el
+   intervalo de la razón como «no implementado por falta de fuente primaria
+   verificable» de forma permanente, y mantener el GPQ como el único intervalo
+   disponible, rotulado experimental — que es exactamente el estado actual.
+
+**No hay ruta de "reconstruir y validar numéricamente" para la Etapa 2** como
+sí la hay para el Gage total en la Etapa 1: sin `A`, `B`, `C` publicados contra
+los que comparar, "validar numéricamente" no tiene con qué contrastarse — sería
+validar la reconstrucción contra sí misma.
+
+**Hallazgo adicional del documento, relevante para §12.** La sub-cobertura del
+anidado (86–88 % contra 90 % nominal) puede no ser un defecto: Chiang
+(2001/2002) documenta que MLS y Satterthwaite para razones sub-cubren quando el
+componente del numerador es pequeño y de pocos grados de libertad —el régimen
+exacto de un anidado con pocos operadores. Ver la nota añadida en la limitación
+3 del §12.
+
+Con eso, la implementación de la Etapa 1 es directa: el módulo nuevo va aparte,
+es determinista, sin sorteos ni semillas, y sustituye al GPQ como origen de los
+componentes con intervalo (no de la razón). La estructura ya está preparada:
+`interval.js` publica hoy `ratio: {lo, hi}` y deriva de ahí las dos escalas de
+la razón; la Etapa 1 no toca esa razón, así que cambiarla en la Etapa 2 no
+tocará la presentación.

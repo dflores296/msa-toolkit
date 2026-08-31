@@ -551,9 +551,16 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
   .results-panel { max-height: none; overflow: visible; background: #fff; padding: 0; gap: 14px; }
   #resultBody { gap: 14px; }
 
-  /* Sin pestanas, los cuatro paneles se imprimen uno tras otro, cada uno con
-     su titulo (data-print-title). */
-  .tab-panel[hidden] { display: block !important; }
+  /* Sin pestanas, los paneles se imprimen uno tras otro, cada uno con su
+     titulo (data-print-title). Pero SOLO los del metodo activo: la regla de
+     antes revelaba todos los paneles ocultos, incluidos los del otro metodo,
+     que existen en el mismo HTML y salian como paginas en blanco con su
+     encabezado. preparePrint() ya revela en JS los que tocan; esto es la red
+     por si esa preparacion no llego a correr. */
+  html[data-method="cruzado"]   .tab-panel[hidden][data-methods~="cruzado"],
+  html[data-method="anidado"]   .tab-panel[hidden][data-methods~="anidado"],
+  html[data-method="atributos"] .tab-panel[hidden][data-methods~="atributos"],
+  .tab-panel[hidden]:not([data-methods]) { display: block !important; }
   .tab-panel { break-before: page; }
   .tab-panel[data-panel="componentes"] { break-before: auto; }
   .tab-panel::before {

@@ -1659,54 +1659,81 @@
   function preparePrint() {
     if (printRestore) return;                       // ya preparado (Ctrl+P sobre el boton)
     var theme = currentTheme();
-    // Los paneles ocultos hay que revelarlos ANTES de imprimir: un lienzo que
-    // nunca estuvo visible se dibujo en 0x0 y saldria en blanco.
-    /* Se revelan los paneles del metodo ACTIVO, no todos: los del otro metodo
-       existen en el mismo HTML y saldrian impresos con sus tablas vacias. */
-    var method = state.method;
-    var hiddenPanels = [].slice.call(document.querySelectorAll('.tab-panel[hidden]'))
-      .filter(function (el) { return appliesToMethod(el, method); });
-    hiddenPanels.forEach(function (el) { el.hidden = false; });
-    // El tema oscuro se imprimiria con fondos negros; los lienzos son mapas de
-    // bits, asi que no basta con CSS: hay que redibujar en claro.
-    if (theme === 'dark') applyTheme('light', false);
-    buildPrintHeader();
-    buildPrintAnnex();
-    void document.body.offsetHeight;                // fuerza el reflujo antes de medir
-    MSACharts.resizeAll();
+    var revealed = [];
+
+    /* EL RESTAURADOR SE REGISTRA ANTES DE TOCAR LA PANTALLA.
+       Antes se armaba al final, asi que si la preparacion fallaba a mitad --
+       y F-03 era exactamente eso: el encabezado lanzaba TypeError en
+       atributos -- la pantalla se quedaba rota y sin manera de volver:
+       paneles del otro metodo revelados, tema claro forzado sobre un usuario
+       que tenia el oscuro, y ningun printRestore que el evento afterprint
+       pudiera llamar. Registrar primero cuesta nada y quita ese modo de fallo
+       entero: pase lo que pase despues, la pantalla vuelve a su sitio. */
     printRestore = function () {
-      hiddenPanels.forEach(function (el) { el.hidden = true; });
+      revealed.forEach(function (el) { el.hidden = true; });
       if (theme === 'dark') applyTheme('dark', false);
       MSACharts.resizeAll();
       printRestore = null;
     };
+
+    try {
+      /* Los paneles ocultos hay que revelarlos ANTES de imprimir: un lienzo
+         que nunca estuvo visible se dibujo en 0x0 y saldria en blanco. Solo
+         los del metodo ACTIVO: los del otro existen en el mismo HTML y
+         saldrian impresos con sus tablas vacias. */
+      var method = state.method;
+      [].slice.call(document.querySelectorAll('.tab-panel[hidden]'))
+        .filter(function (el) { return appliesToMethod(el, method); })
+        .forEach(function (el) { el.hidden = false; revealed.push(el); });
+      // El tema oscuro se imprimiria con fondos negros; los lienzos son mapas
+      // de bits, asi que no basta con CSS: hay que redibujar en claro.
+      if (theme === 'dark') applyTheme('light', false);
+      buildPrintHeader();
+      buildPrintAnnex();
+      void document.body.offsetHeight;              // fuerza el reflujo antes de medir
+      MSACharts.resizeAll();
+    } catch (e) {
+      /* Que el reporte salga incompleto es malo; que la aplicacion se quede
+         rota despues de imprimir es peor. Se deja constancia visible en el
+         propio encabezado -- para que nadie firme un reporte creyendo que
+         esta completo -- y se sigue: el restaurador ya esta puesto. */
+      try {
+        $('printHeader').innerHTML =
+          '<h1 class="rep-title">' + esc(studyName() || 'Estudio') + '</h1>' +
+          '<p class="rep-sub">No se pudo armar el encabezado de este reporte: ' +
+          esc(e.message) + '. Revisa el resultado en pantalla antes de usarlo.</p>';
+      } catch (e2) { /* ni eso: mejor un reporte sin encabezado que una app rota */ }
+    }
   }
 
   function restoreAfterPrint() { if (printRestore) printRestore(); }
 
+  /* Capa fina sobre MSAReport.headerRows: aqui solo se lee la pantalla y se
+     pinta. Que filas van en cada metodo lo decide el modelo puro, que se
+     prueba en Node contra los tres resultados reales (tests/tests-report.js).
+     Mientras esa decision vivio aqui dentro, la unica manera de descubrir que
+     estaba rota era abrir el navegador e imprimir. */
   function buildPrintHeader() {
-    var r = state.result;
-    var name = studyName() || 'Estudio Gage R&R';
-    var meta = [
-      ['Fecha', new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })],
-      ['Estudio', state.operators.length + ' operadores x ' + partsPerOperator() + ' ' +
-        activeMethod().countLabel + ' x ' + state.replicates + ' replicas = ' +
-        (state.operators.length * partsPerOperator() * state.replicates) + ' mediciones'],
-      ['Especificacion', specLabel()],
-      ['Multiplicador', $('svMultiplier').value + ' sigma'],
-      ['Alfa', isNested() ? 'no aplica' : $('alpha').value],
-      ['Modelo', r ? (r.model === 'nested' ? 'Anidado (sin interaccion estimable)'
-                    : r.model === 'with-interaction' ? 'Con interaccion' : 'Sin interaccion (agrupada)') : '-'],
-      ['% Study Variation (GRR)', r ? r.metrics.pctStudyVar.toFixed(2) + ' %' : '-'],
-      ['Categorias distintas', r ? r.ndcLabel : '-'],
-      ['Discriminacion', r && r.discrimination ? r.discrimination.label : '-']
-    ];
+    var m = activeMethod();
+    var rows = MSAReport.headerRows(state.result, {
+      date: new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }),
+      method: state.method,
+      operators: state.operators.length,
+      parts: partsPerOperator(),
+      replicates: state.replicates,
+      countLabel: m.countLabel,
+      spec: specLabel(),
+      multiplier: $('svMultiplier').value,
+      alpha: $('alpha').value
+    });
+    /* El subtitulo sale del metodo activo, no del atributo data-method del
+       documento: si ese atributo faltara, methodById cae al primer metodo y el
+       reporte de un estudio de atributos se encabezaria "Crossed ANOVA". */
     $('printHeader').innerHTML =
-      '<h1 class="rep-title">' + esc(name) + '</h1>' +
-      '<p class="rep-sub">' + esc(methodById(document.documentElement.getAttribute('data-method')).badge) +
-        ' &middot; MSA Toolkit</p>' +
-      '<div class="rep-meta">' + meta.map(function (m) {
-        return '<div><span>' + esc(m[0]) + '</span><strong>' + esc(m[1]) + '</strong></div>';
+      '<h1 class="rep-title">' + esc(studyName() || 'Estudio MSA') + '</h1>' +
+      '<p class="rep-sub">' + esc(m.badge) + ' &middot; MSA Toolkit</p>' +
+      '<div class="rep-meta">' + rows.map(function (row) {
+        return '<div><span>' + esc(row[0]) + '</span><strong>' + esc(row[1]) + '</strong></div>';
       }).join('') + '</div>';
   }
 

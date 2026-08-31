@@ -227,18 +227,27 @@ funcionara dejó de funcionar.
 300 estudios 3x5x2 de un sistema BUENO: 24/300 "Inaceptable" -> 8 % de rechazos falsos
 ```
 
-**Método: GPQ**, el que usa Minitab. En un modelo balanceado cada cuadrado
-medio cumple `MS·df/σ² ~ χ²_df`, así que `MS·df/W` con `W ~ χ²_df` simulada es
-una cantidad pivotal generalizada. Se simulan juegos de MS, se recalculan los
-componentes **con las mismas fórmulas del motor** —truncado de negativos
-incluido— y se toman percentiles. Se prefirió a MLS porque %Study Variation,
-%Contribución y %Tolerance salen del mismo juego, y el truncado queda *dentro*
-del pivote en vez de ignorarse.
+> **CORREGIDO DESPUÉS DE F-07.** El párrafo original decía «Método: GPQ, el que
+> usa Minitab». **Era falso.** Minitab documenta **MLS** como método principal
+> para los intervalos de razones de varianza, y usa **Satterthwaite** u otra
+> aproximación publicada cuando no se cumplen las condiciones del método
+> principal. El GPQ es una implementación **experimental de esta aplicación**.
 
-**Validación: cobertura, no una tabla copiada.** No hay valores publicados a
-mano para estos intervalos, así que no se inventa una referencia: se simulan
-estudios de sistemas con %GRR verdadero conocido y se cuenta cuántas veces el
-intervalo lo contiene. Medido contra un nominal de 90 %:
+**Método: GPQ**, implementado por esta aplicación y **no atribuible a Minitab**.
+En un modelo balanceado cada cuadrado medio cumple `MS·df/σ² ~ χ²_df`, así que
+`MS·df/W` con `W ~ χ²_df` simulada es una cantidad pivotal generalizada. Se
+simulan juegos de MS, se recalculan los componentes **con las mismas fórmulas
+del motor** —truncado de negativos incluido— y se toman percentiles.
+
+> **CORREGIDO DESPUÉS DE F-07.** «No hay valores publicados a mano para estos
+> intervalos» **era falso**. Minitab publica método y fórmulas para los
+> intervalos de **razones de varianza**, cruzado y anidado por separado. La
+> referencia existe; lo que no se ha hecho es comparar contra ella.
+
+**Validación: cobertura, no una tabla copiada.** Se simulan estudios de sistemas
+con %GRR verdadero conocido y se cuenta cuántas veces el intervalo lo contiene.
+Es evidencia de consistencia interna, **no** validación externa. Medido contra
+un nominal de 90 %:
 
 | Caso | Cobertura | Ancho medio |
 |---|---|---|
@@ -250,34 +259,41 @@ intervalo lo contiene. Medido contra un nominal de 90 %:
 Una cobertura sobre cientos de estudios no se acierta por casualidad; un número
 suelto, sí.
 
-**Confianza por omisión: 90 %**, el valor de Minitab para Gage R&R. Medido, no
-elegido por gusto: sobre un gage excelente (%GRR real 5.4 %) un 10×3×3 concluye
-el **18 %** de las veces al 95 % y el **44 %** al 90 %. Un veredicto que casi
-nunca se emite no ayuda a nadie.
+> **CORREGIDO DESPUÉS DE F-07.** «90 %, el valor de Minitab» **era falso**: no
+> se demostró que 90 % sea el valor por omisión de Minitab, cuya documentación
+> dice que 95 % normalmente funciona bien. Y justificar el nivel por «concluye
+> más veces» es **circular**: cuántas veces se emite un veredicto no es un
+> criterio estadístico. **Confianza por omisión hoy: 95 %**, seleccionable
+> entre 90, 95 y 99.
 
-**El veredicto sale del intervalo**, y solo concluye si el intervalo entero cae
-en una banda. El punto **no desaparece**: sigue en la tarjeta como estimación
-—es lo que imprime Minitab y contra lo que se compara la convención AIAG—, con
-su etiqueta AIAG debajo. Lo que cambia es que deja de dictaminar.
+> **RETIRADO DESPUÉS DE F-07.** La política que describe este párrafo —el
+> veredicto sale del intervalo— **ya no existe**. Se retiró por dos motivos
+> medidos: la banda condicional [10 %, 30 %] mide 20 pp y un intervalo más ancho
+> no cabe en ella **por geometría** (un 5×3×2 concluía el 0 % de las veces), y
+> la conclusividad dependía de la distancia del gage al umbral, no de la calidad
+> del estudio. **Hoy dictamina la estimación puntual con las bandas AIAG**, y el
+> intervalo sólo advierte cuando cruza un límite.
 
 **El resultado incomoda, y es correcto.** Sobre el propio dataset AIAG:
 
 ```
-%StudyVar 27.86 %   IC 90 % [16.95, 69.18]   -> No concluyente: cruza el 30 %
+%StudyVar 27.86 %   Evaluacion AIAG puntual: Condicional segun la aplicacion
+                    IC 95 % [14.92, 81.72]  -> advertencia: cruza el limite de 30 %
 ```
 
-No es un defecto del intervalo. Con 3 operadores la reproducibilidad tiene
-**2 grados de libertad**, y en el pivote `MS_op` se puede inflar hasta 40×. Un
-estudio 10×3×3 no alcanza a clasificar un gage cuyo %GRR real ronda el umbral;
-eso ya era verdad antes, solo que no se veía.
+El intervalo es genuinamente ancho, y no es un defecto del cálculo: con 3
+operadores la reproducibilidad tiene **2 grados de libertad**, y en el pivote
+`MS_op` se puede inflar hasta 40×. Lo que cambió es la lectura: el estudio
+**sí** recibe dictamen —el puntual— y el intervalo advierte que ese dictamen
+cae cerca de una frontera.
 
-**El piso de 60 mediciones se implementó, y no es redundante.** Se midió: solo
-con el intervalo, un 5×3×2 sigue concluyendo el 24–51 % de las veces. El piso
-cubre una incertidumbre que el intervalo **no mide** —que 5 piezas cubran el
-rango del proceso— y bloquea el **veredicto**, nunca el cálculo.
-
-**Efecto medido sobre el caso de la auditoría** (300 estudios 3×5×2 de un
-sistema bueno): rechazos falsos **7.3 % → 0.3 %**.
+> **RETIRADO DESPUÉS DE F-07.** El piso de 60 mediciones **ya no existe**.
+> Medía el total de mediciones, que no distingue estructuras de diseño: un
+> 2×15×2 de 60 mediciones da un intervalo **2.7× más ancho** que un 3×10×2 de
+> las mismas 60, y el piso los trataba igual mientras bloqueaba un 3×5×2 de 30
+> que es mejor que el 2×15×2. La representatividad del rango de piezas sigue
+> siendo un motivo legítimo para **advertir** —y se advierte, en los dos
+> motores—, pero no para un umbral numérico que bloquee el veredicto.
 
 **Ningún motor se tocó.** `interval.js` lee la tabla ANOVA del propio
 resultado. La regresión visual lo confirma: `panelComponentes`, `panelAnova`,
@@ -547,13 +563,14 @@ hace y no sostiene —la validación AIAG para los tres métodos, F-15—, y sig
 pie la reserva de siempre: que un dictamen de liberación lo firme una persona
 que sepa leer las gráficas, no la tarjeta de veredicto sola.
 
-Con una advertencia que sale de haber cerrado F-07 y no estaba en la auditoría:
-**el estudio 10×3×3 de manual no alcanza a clasificar un gage cuyo %GRR ronda
-el umbral.** La aplicación ahora lo dice en vez de esconderlo detrás de un
-punto, pero quien la use va a ver «no concluyente» más a menudo de lo que
-espera. Eso es información, no un defecto — y cambia lo que conviene hacer:
-diseñar estudios con más operadores, que es donde está el cuello de botella
-(la reproducibilidad tiene o−1 grados de libertad).
+Con una advertencia que sale de F-07: **el estudio 10×3×3 de manual estima el
+%GRR con mucha imprecisión cuando el gage ronda un umbral.** El intervalo lo
+hace visible en vez de esconderlo detrás de un punto. Eso es información, no un
+defecto — y cambia lo que conviene hacer: diseñar estudios con más operadores,
+que es donde está el cuello de botella (la reproducibilidad tiene o−1 grados de
+libertad). Lo que **no** se hace con esa información es retirar el dictamen:
+F-07 demostró que hacerlo dejaba estudios enteros sin veredicto por la posición
+del gage frente al umbral, no por la calidad de la medición.
 
 Lo que sí publicaría hoy, con confianza, es el **motor cruzado como
 calculadora**: reproduce los valores publicados de Minitab dígito a dígito y

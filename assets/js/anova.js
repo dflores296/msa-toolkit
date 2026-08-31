@@ -114,8 +114,21 @@
       warnings.push('Solo ' + (nPart * nOp * nRep) + ' mediciones: por debajo de 40 el %GRR es ' +
         'muy impreciso. AIAG sugiere 10x3x3 = 90.');
     }
+    /* Avisos de suficiencia del diseno. Son INFORMATIVOS: ninguno bloquea el
+       calculo ni el veredicto puntual. F-07 retiro el piso de 60 mediciones
+       que si bloqueaba, porque medía la dimension equivocada -- un 2x15x2 de
+       60 mediciones da un intervalo 2.7 veces mas ancho que un 3x10x2 de las
+       mismas 60, y el piso los trataba igual. Cada dimension se avisa por
+       separado, que es como se corrige un diseno. */
     if (nPart < 10) warnings.push('Con ' + nPart + ' piezas el intervalo de confianza del componente pieza-a-pieza es amplio; AIAG sugiere 10.');
     if (nOp < 3) warnings.push('Con ' + nOp + ' operadores la reproducibilidad se estima con poca precision; AIAG sugiere 3.');
+    if (nRep < 3) warnings.push('Con ' + nRep + ' replicas la repetibilidad se estima con pocos grados de libertad; AIAG sugiere 3.');
+    /* Este no sale de los datos, y por eso se dice siempre: si las piezas no
+       cubren el rango del proceso, el %GRR sale bajo por la razon equivocada.
+       Los numeros del estudio no pueden detectarlo. */
+    warnings.push('Las piezas del estudio deben cubrir el rango de variacion esperado del proceso. ' +
+      'Si no lo cubren, el % Study Variation sale optimista y ningun calculo de esta pagina puede ' +
+      'detectarlo: es un juicio sobre como se eligieron las piezas, no sobre los datos.');
 
     return {
       ok: true, errors: [], warnings: warnings,
@@ -696,12 +709,19 @@
 
 
   /* --- Clasificacion AIAG + clase de monitor EMP (Wheeler) --- */
+  /* Bandas AIAG sobre la ESTIMACION PUNTUAL. Estas son las que dictaminan.
+     Las fronteras son cerradas por arriba y por abajo en la banda condicional,
+     y se escriben una sola vez aqui para que pantalla, impresion y pruebas no
+     puedan divergir: 10.00 y 30.00 son CONDICIONAL, y solo lo estrictamente
+     mayor que 30.00 es No aceptable. Lo mismo con 1.00 y 9.00 en contribucion.
+     Antes de F-07 la contribucion usaba `< 9` y el criterio por intervalo
+     usaba `<= 9`: en 9.00 exacto las dos tarjetas se contradecian. */
   function assess(pctSV, pctPT, pctContrib, ndc, icc) {
     function aiag(v) {
       if (v === null) return null;
       if (v < 10) return { level: 'ok',   label: 'Aceptable (menor que 10 %)' };
-      if (v <= 30) return { level: 'warn', label: 'Marginal (10 a 30 %)' };
-      return { level: 'bad', label: 'Inaceptable (mayor que 30 %)' };
+      if (v <= 30) return { level: 'warn', label: 'Condicional segun la aplicacion (10 a 30 %)' };
+      return { level: 'bad', label: 'No aceptable (mayor que 30 %)' };
     }
     var empClass = icc >= 0.8 ? { level: 'ok',   label: 'Monitor de primera clase (ICC >= 0.80)' }
                  : icc >= 0.5 ? { level: 'warn', label: 'Monitor de segunda clase (0.50 <= ICC < 0.80)' }
@@ -710,9 +730,10 @@
     return {
       studyVar: aiag(pctSV),
       tolerance: aiag(pctPT),
-      contribution: pctContrib < 1 ? { level: 'ok',   label: 'Excelente (menor que 1 %)' }
-                  : pctContrib < 9 ? { level: 'warn', label: 'Aceptable (1 a 9 %)' }
-                  :                  { level: 'bad',  label: 'Pobre (mayor que 9 %)' },
+      contribution: pctContrib === null ? null
+                  : pctContrib < 1 ? { level: 'ok',   label: 'Aceptable (menor que 1 %)' }
+                  : pctContrib <= 9 ? { level: 'warn', label: 'Condicional segun la aplicacion (1 a 9 %)' }
+                  :                   { level: 'bad',  label: 'No aceptable (mayor que 9 %)' },
       ndc: ndc === null ? null
          : ndc >= 5 ? { level: 'ok',  label: 'NDC = ' + ndc + ' (>= 5)' }
                     : { level: 'bad', label: 'NDC = ' + ndc + ' (< 5)' },

@@ -428,8 +428,26 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
   font-size: 11px; color: var(--ink-faint); margin-top: -2px; line-height: 1.35;
   font-variant-numeric: tabular-nums;
 }
-.verdict .ci.point { margin-top: 4px; font-style: italic; }
+.verdict .ci em { font-style: normal; opacity: .8; }
 .verdict .t.unknown {
+  background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border);
+}
+
+/* --- F-07: la seccion "R&R total" ---
+   Una sola caja para el punto, su evaluacion AIAG y el intervalo. Las filas
+   son etiqueta a la izquierda y valor a la derecha, con la etiqueta capaz de
+   partirse en varias lineas: los rotulos aqui son frases, no palabras. */
+.grr-card { margin-top: 14px; }
+.grr-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+}
+.grr-row:last-of-type { border-bottom: 0; }
+.grr-k { color: var(--ink-soft); font-size: 12.5px; flex: 1 1 auto; }
+.grr-v { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.grr-note { font-size: 11px; color: var(--ink-faint); margin: 6px 0 0; line-height: 1.45; }
+.grr-warn {
+  font-size: 12px; margin: 8px 0 0; padding: 8px 10px; border-radius: 6px;
   background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border);
 }
 

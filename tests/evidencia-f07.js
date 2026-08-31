@@ -326,7 +326,9 @@ function seccionAIAG() {
   console.log('    %Contrib     punto ' + fx(res.metrics.pctContribution, 2).padStart(7) +
     '   [' + fx(iv1.contribution.lo, 2) + ', ' + fx(iv1.contribution.hi, 2) + ']');
   console.log('    %Tolerance   punto ' + fx(res.metrics.pctTolerance, 2).padStart(7) +
-    '   [' + fx(iv1.tolerance.lo, 2) + ', ' + fx(iv1.tolerance.hi, 2) + ']');
+    '   (sin intervalo: pendiente de referencia validada)');
+  console.log('    razon R      = V_GRR / V_Total       [' +
+    fx(iv1.ratio.lo, 5) + ', ' + fx(iv1.ratio.hi, 5) + ']   <- de aqui salen las dos de arriba');
   console.log('    segunda ejecucion identica: ' +
     (JSON.stringify(iv1.studyVar) === JSON.stringify(iv2.studyVar)));
 
@@ -399,7 +401,9 @@ function seccionCobertura() {
   var N = 400, DRAWS = 1200, CONF = 0.90;
   console.log('  ' + N + ' estudios por escenario, ' + DRAWS + ' sorteos GPQ cada uno, conf ' +
     (100 * CONF) + ' %, semilla base 20260907');
-  console.log('\n  escenario                     %GRR   cobert   EE     nulos  trunc   ACEP  INAC  NOCONC   aceptMal rechMal');
+  console.log('\n  ACEP/INAC salen del veredicto PUNTUAL AIAG; `cruza` es el % de estudios en que');
+  console.log('  el intervalo toca un limite y se emite la advertencia de lectura.');
+  console.log('\n  escenario                     %GRR   cobert   EE     nulos  trunc   ACEP  INAC   cruza   aceptMal rechMal');
   ESC.forEach(function (e, idx) {
     var g = maker(20260907 + idx * 101);
     var tv = trueSV(e.sPart, e.sOp, e.sInt, e.sRep);
@@ -418,11 +422,14 @@ function seccionCobertura() {
       if (!iv) { nulos++; continue; }
       hechos++;
       if (iv.studyVar.lo <= tv && tv <= iv.studyVar.hi) dentro++;
-      var c = MSAInterval.classify(iv.studyVar, null, res.design.n);
-      if (!c.conclusive) noconc++;
-      else if (c.level === 'ok') { acep++; if (tv > 30) aceptMal++; }
-      else if (c.level === 'bad') { inac++; if (tv < 10) rechMal++; }
-      else { acep += 0; }
+      /* Quien dictamina es la ESTIMACION PUNTUAL, asi que los errores de
+         decision se cuentan sobre ella. La columna `cruza` mide cuantas veces
+         el intervalo toca un limite, que es lo unico que el intervalo aporta
+         hoy: una advertencia de lectura. */
+      var nivel = res.assessment && res.assessment.studyVar ? res.assessment.studyVar.level : null;
+      if (nivel === 'ok') { acep++; if (tv > 30) aceptMal++; }
+      else if (nivel === 'bad') { inac++; if (tv < 10) rechMal++; }
+      if (MSAInterval.crossings(iv.studyVar)) noconc++;
     }
     var cob = 100 * dentro / hechos;
     var ee = 100 * Math.sqrt((cob / 100) * (1 - cob / 100) / hechos);
@@ -432,8 +439,8 @@ function seccionCobertura() {
       String(acep).padStart(6) + String(inac).padStart(6) + String(noconc).padStart(8) +
       String(aceptMal).padStart(10) + String(rechMal).padStart(8));
   });
-  console.log('\n  ACEP/INAC/NOCONC no suman ' + N + ': falta la banda marginal (10-30 %).');
-  console.log('  aceptMal = declarado Aceptable con %GRR real > 30. rechMal = Inaceptable con real < 10.');
+  console.log('\n  ACEP/INAC no suman ' + N + ': falta la banda condicional (10-30 %).');
+  console.log('  aceptMal = punto Aceptable con %GRR real > 30. rechMal = punto No aceptable con real < 10.');
 }
 
 /* =========================================================================
@@ -448,7 +455,7 @@ function seccionDiseno() {
     { n: '3 op x 5 piezas x 2 rep (N=30)', o: 3, p: 5, r: 2 },
     { n: '3 op x 10 piezas x 3 rep (N=90)', o: 3, p: 10, r: 3 }
   ];
-  console.log('  diseno                            N    gl_parte gl_op gl_int gl_rep   ancho IC   concluye');
+  console.log('  diseno                            N    gl_parte gl_op gl_int gl_rep   ancho IC     cruza');
   D.forEach(function (d, idx) {
     var g = maker(555 + idx * 7), anchos = 0, conc = 0, n = 150, hechos = 0;
     for (var t = 0; t < n; t++) {
@@ -458,9 +465,10 @@ function seccionDiseno() {
       if (!iv) continue;
       hechos++;
       anchos += iv.studyVar.hi - iv.studyVar.lo;
-      /* Se mide la conclusividad SOLO por el intervalo, sin el piso de 60,
-         para poder juzgar si el piso aporta algo. */
-      if (MSAInterval.classify(iv.studyVar).conclusive) conc++;
+      /* Ya no hay "conclusividad": el intervalo no clasifica. Lo que se cuenta
+         es cuantas veces cruza un limite, que es cuando se emite advertencia.
+         Lo que de verdad distingue un diseno de otro es el ANCHO. */
+      if (MSAInterval.crossings(iv.studyVar)) conc++;
     }
     console.log('  ' + d.n.padEnd(34) + String(d.o * d.p * d.r).padStart(4) +
       String(d.p - 1).padStart(9) + String(d.o - 1).padStart(6) +
@@ -468,7 +476,9 @@ function seccionDiseno() {
       (fx(anchos / hechos, 1) + ' pp').padStart(11) +
       (fx(100 * conc / hechos, 0) + ' %').padStart(11));
   });
-  console.log('\n  Gage excelente (%GRR real 5.4 %). "concluye" = solo por el intervalo, SIN el piso de 60.');
+  console.log('\n  Gage excelente (%GRR real 5.4 %). "cruza" = % de estudios cuyo intervalo toca un limite.');
+  console.log('  El piso de 60 mediciones esta RETIRADO: no distinguia estas estructuras. Comparese el');
+  console.log('  2x15x2 (60 mediciones) con el 3x10x2 (las mismas 60) y con el 3x5x2 (solo 30).');
 }
 
 /* =========================================================================

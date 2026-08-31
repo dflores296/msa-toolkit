@@ -682,7 +682,7 @@
    * ------------------------------------------------------------------ */
   var STAMP_FIELDS = ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator',
                       'lsl', 'usl', 'tolerance', 'processMean', 'historicalSigma',
-                      'categories', 'rejectCategory'];
+                      'categories', 'rejectCategory', 'confLevel'];
 
   /** Huella de lo que hay AHORA en pantalla. Barata: solo lee valores. */
   function captureStamp() {
@@ -878,18 +878,15 @@
        tabla ANOVA, asi que ningun motor cambia por esto. Es determinista: la
        semilla sale de los propios cuadrados medios. */
     if (result.model !== 'attribute') {
-      result.interval = MSAInterval.forResult(result);
-      result.intervalVerdict = result.interval && !result.inconclusive
-        ? MSAInterval.classify(result.interval.studyVar, null, result.design.n) : null;
-      result.intervalVerdictTol = result.interval && result.interval.tolerance && !result.inconclusive
-        ? MSAInterval.classify(result.interval.tolerance, null, result.design.n) : null;
-      /* La contribucion tiene sus propios umbrales (1 % y 9 %, los de Minitab),
-         no los del %Study Variation. Si se dejara dictaminando por el punto,
-         la pantalla diria "no concluyente" en una tarjeta y "Aceptable" en la
-         de al lado sobre el mismo sistema de medicion. */
-      result.intervalVerdictContrib = result.interval && !result.inconclusive
-        ? MSAInterval.classify(result.interval.contribution, CONTRIB_THRESHOLDS, result.design.n)
-        : null;
+      result.interval = MSAInterval.forResult(result, { conf: readConfLevel() });
+      /* El intervalo NO clasifica. Lo unico que aporta ademas del rango es una
+         advertencia cuando cruza un limite de evaluacion, para que nadie lea
+         una clasificacion puntual fronteriza como si fuera holgada. La
+         advertencia se calcula sobre %StudyVar; %Contribution es la misma
+         razon en otra escala, asi que cruzar 10/30 y cruzar 1/9 es el mismo
+         hecho y no hace falta comprobarlo dos veces. */
+      result.intervalCross = result.interval && !result.inconclusive
+        ? MSAInterval.crossings(result.interval.studyVar, null) : null;
     }
 
     state.result = result;
@@ -900,11 +897,10 @@
     $('resultBody').hidden = false;
     /* El aviso va con el resultado, que es donde alguien decide. No se
        sustituye a los avisos del motor: se suma a ellos. */
-    var avisos = result.warnings.slice();
-    if (result.intervalVerdict && !result.intervalVerdict.conclusive) {
-      avisos.unshift(result.intervalVerdict.label);
-    }
-    showMessages($('resultMsg'), [], avisos);
+    /* La advertencia de cruce del intervalo NO va aqui: vive en la seccion
+       "R&R total", junto al numero al que se refiere. Repetirla arriba la
+       convertiria en un segundo dictamen, que es justo lo que F-07 retira. */
+    showMessages($('resultMsg'), [], result.warnings.slice());
     /* Cada familia de metodos trae su propia vista de resultados, porque no
        publican la misma forma de respuesta: variables dan componentes de
        varianza, atributos da concordancias. El resto de la pantalla -pasos,
@@ -926,11 +922,12 @@
      no dice contra que se compara ni de donde sale. */
   var VERDICT_HELP = {
     sv: 'Cuanta de la variacion del estudio se debe al sistema de medicion, en desviacion estandar ' +
-        '(6 sigma del Gage R&R / 6 sigma total). Criterio AIAG: menos de 10 % aceptable, 10 a 30 % ' +
-        'marginal, mas de 30 % inaceptable.',
+        '(6 sigma del Gage R&R / 6 sigma total). Criterio AIAG sobre la estimacion puntual: menos de ' +
+        '10 % aceptable, 10 a 30 % condicional segun la aplicacion, mas de 30 % no aceptable.',
     contrib: 'Que fraccion de la varianza total aporta el sistema de medicion. Es aditivo: todas las ' +
-        'fuentes suman 100 %, por eso sirve para comparar fuentes entre si. Minitab considera menos ' +
-        'de 1 % excelente y mas de 9 % pobre.',
+        'fuentes suman 100 %, por eso sirve para comparar fuentes entre si. Es la MISMA razon que el ' +
+        '% Study Variation en otra escala: %Contribution = (%StudyVar / 100)^2 x 100. Bandas: menos ' +
+        'de 1 % aceptable, 1 a 9 % condicional segun la aplicacion, mas de 9 % no aceptable.',
     tol: 'Que parte de la tolerancia se come el sistema de medicion: (multiplicador x sigma del Gage R&R) ' +
         '/ (USL - LSL). No depende de las piezas que elegiste, pero si de la tolerancia. Solo se calcula ' +
         'si diste LSL y USL o la tolerancia directa.',
@@ -944,57 +941,99 @@
         'complementaria al criterio AIAG, no sustituto.'
   };
 
-  /* F-07. El veredicto lo decide el INTERVALO, no el punto: un %GRR de 26 %
-     con intervalo [15, 47] no es "marginal", es un estudio que no alcanza a
-     decidir, y decirlo cambia lo que hace quien lo lee -- repetir con mas
-     piezas, en vez de firmar.
-
-     El punto NO desaparece de la tarjeta. Es la estimacion, es lo que imprime
-     Minitab y es contra lo que la gente compara la convencion AIAG; lo que
-     cambia es que deja de ser el que dictamina. Cuando el intervalo concluye,
-     la etiqueta del punto se mantiene debajo como referencia. */
+  /* F-07. QUIEN DICTAMINA ES LA ESTIMACION PUNTUAL, con las bandas AIAG de
+     `assess`. El intervalo acompana, se rotula como experimental y no emite
+     ninguna categoria: la politica que clasificaba por el intervalo esta
+     retirada (el porque, en la cabecera de interval.js). */
   function intervalLine(iv) {
-    if (!iv || iv.lo === null || iv.hi === null) return '';
-    return '<div class="ci">IC ' + Math.round(100 * (state.result.interval.conf)) + ' %: ' +
-      iv.lo.toFixed(2) + ' - ' + iv.hi.toFixed(2) + ' %</div>';
+    if (!iv || iv.lo === null || iv.hi === null || !state.result.interval) return '';
+    return '<div class="ci">IC ' + Math.round(100 * state.result.interval.conf) + ' %: ' +
+      iv.lo.toFixed(2) + ' - ' + iv.hi.toFixed(2) + ' % <em>(experimental)</em></div>';
   }
 
   /* Umbrales de %Contribucion: son varianzas, no desviaciones, asi que la
-     escala es otra. Minitab llama excelente a menos del 1 % y pobre a mas
-     del 9 %; son los mismos que ya usa `assess`. */
+     escala es otra. Menos de 1 % aceptable, mas de 9 % no aceptable; son los
+     mismos que usa `assess`, escritos una sola vez alli. */
   var CONTRIB_THRESHOLDS = { good: 1, bad: 9 };
+
+  /* Nivel de confianza elegido en pantalla. Entra en la huella (STAMP_FIELDS),
+     asi que cambiarlo marca el resultado como desactualizado y obliga a
+     recalcular, igual que cambiar alfa o el multiplicador. */
+  function readConfLevel() {
+    var el = $('confLevel');
+    var v = el ? parseFloat(el.value) : NaN;
+    return isFinite(v) && v > 0 && v < 1 ? v : MSAInterval.DEFAULT_CONF;
+  }
 
   function renderVerdict(r) {
     var a = r.assessment, iv = r.interval;
-    var sv = r.intervalVerdict, tolV = r.intervalVerdictTol;
     var cards = [
       card('% Study Variation (GRR)', r.metrics.pctStudyVar.toFixed(2) + ' %',
-           sv || a.studyVar, VERDICT_HELP.sv, iv && intervalLine(iv.studyVar),
-           sv ? a.studyVar : null),
+           a.studyVar, VERDICT_HELP.sv, iv && intervalLine(iv.studyVar)),
       card('% Contribucion (GRR)', r.metrics.pctContribution.toFixed(2) + ' %',
-           r.intervalVerdictContrib || a.contribution, VERDICT_HELP.contrib,
-           iv && intervalLine(iv.contribution),
-           r.intervalVerdictContrib ? a.contribution : null),
+           a.contribution, VERDICT_HELP.contrib, iv && intervalLine(iv.contribution)),
+      /* %Tolerance conserva su resultado puntual y NO lleva intervalo: su
+         denominador es la tolerancia de especificacion, no la varianza total,
+         asi que no es una transformacion de la razon V_GRR/V_Total y no se
+         puede derivar del intervalo de arriba. Pendiente de referencia
+         validada; no se inventa uno. */
       r.metrics.pctTolerance === null
         ? card('% Tolerance (P/T)', 'sin LSL/USL', null, VERDICT_HELP.tol)
         : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %',
-               tolV || a.tolerance, VERDICT_HELP.tol,
-               iv && iv.tolerance ? intervalLine(iv.tolerance) : '',
-               tolV ? a.tolerance : null),
+               a.tolerance, VERDICT_HELP.tol),
       card('Categorias distintas', r.ndcLabel, a.ndc, VERDICT_HELP.ndc),
       card('ICC (EMP, Wheeler)', r.icc.toFixed(3), a.emp, VERDICT_HELP.icc)
     ];
     $('verdicts').innerHTML = cards.join('');
+    renderGrr(r);
   }
 
-  function card(k, v, t, help, extra, pointNote) {
+  function card(k, v, t, help, extra) {
     return '<div class="verdict"' + (help ? ' title="' + esc(k + ': ' + help) + '"' : '') + '>' +
       '<div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' +
       (extra || '') +
       (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') +
-      (pointNote ? '<div class="ci point">El punto solo, con el criterio AIAG: ' +
-                   esc(pointNote.label) + '</div>' : '') +
       '</div>';
+  }
+
+  /* ---------------------------------------------------------------------
+   * "R&R total": la seccion que reune en un solo sitio lo que antes estaba
+   * repartido entre tarjetas contiguas que podian leerse como dictamenes
+   * independientes. El orden es deliberado: primero el punto y su evaluacion
+   * -que es la que dictamina-, y despues el intervalo, rotulado como
+   * experimental, con la advertencia de cruce si la hay. La %Contribucion
+   * aparece como equivalencia, no como una segunda prueba.
+   * ------------------------------------------------------------------- */
+  function renderGrr(r) {
+    var box = $('grrSummary');
+    if (!box) return;
+    if (!r.metrics || r.model === 'attribute') { box.hidden = true; return; }
+    var a = r.assessment, iv = r.interval, h = [];
+
+    h.push('<div class="grr-row"><span class="grr-k">% Study Variation</span>' +
+           '<span class="grr-v">' + r.metrics.pctStudyVar.toFixed(2) + ' %</span></div>');
+    if (a.studyVar) {
+      h.push('<div class="grr-row"><span class="grr-k">Evaluacion AIAG basada en la estimacion ' +
+             'puntual</span><span class="t ' + a.studyVar.level + '">' +
+             esc(a.studyVar.label) + '</span></div>');
+    }
+    if (iv && iv.studyVar && iv.studyVar.lo !== null) {
+      h.push('<div class="grr-row"><span class="grr-k">IC ' +
+             Math.round(100 * iv.conf) + ' % de la razon V_GRR / V_Total, en % Study Variation' +
+             '</span><span class="grr-v">' + iv.studyVar.lo.toFixed(2) + ' % a ' +
+             iv.studyVar.hi.toFixed(2) + ' %</span></div>');
+      h.push('<p class="grr-note">Intervalo GPQ experimental, en validacion. ' +
+             'No utilizado para el dictamen.</p>');
+      if (r.intervalCross) h.push('<p class="grr-warn">' + esc(r.intervalCross.label) + '</p>');
+    }
+    h.push('<div class="grr-row"><span class="grr-k">% Contribucion equivalente</span>' +
+           '<span class="grr-v">' + r.metrics.pctContribution.toFixed(2) + ' %</span></div>');
+    h.push('<p class="grr-note">% Contribucion y % Study Variation son dos escalas de la misma ' +
+           'razon: %Contribucion = (%StudyVar / 100)<sup>2</sup> x 100. No son dos pruebas ' +
+           'independientes.</p>');
+
+    box.innerHTML = h.join('');
+    box.hidden = false;
   }
 
   /* Barras de "Evaluacion de la variacion": mismos dos datos que mostraba
@@ -2013,7 +2052,7 @@
       if (e.target.files && e.target.files[0]) importFile(e.target.files[0]);
       e.target.value = '';
     });
-    ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator', 'lsl', 'usl', 'tolerance', 'processMean', 'historicalSigma']
+    ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator', 'lsl', 'usl', 'tolerance', 'processMean', 'historicalSigma', 'confLevel']
       .forEach(function (id) {
         $(id).addEventListener('change', function () { if (state.result) calculate(); });
       });

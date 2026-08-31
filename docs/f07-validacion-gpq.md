@@ -1,7 +1,19 @@
 # F-07 — Validación del intervalo de confianza del %GRR
 
-**Estado: `C` — método válido, pero la política de veredicto debe modificarse.**
-Ver §13. **F-07 no se cierra con este documento.**
+**Estado: `C` — el GPQ es una implementación experimental y no dictamina.**
+La política de veredicto **ya se corrigió** (§13). Lo que falta para cerrar F-07
+es sustituir el GPQ por **MLS con alternativa Satterthwaite** sobre la razón, y
+validar contra la referencia publicada. **F-07 sigue abierta.**
+
+> **Corrección de fondo respecto a la primera versión de este documento.** El
+> §4 de la versión original concluía que el intervalo de la razón «no tiene
+> referencia externa». **La premisa era incorrecta: la referencia existe.**
+> Minitab publica método y fórmulas para los intervalos de **razones de
+> varianza**, en páginas propias para cruzado y anidado, con MLS como método
+> principal y Satterthwaite como alternativa cuando la ecuación cuadrática no
+> tiene solución válida (`B² − 4AC < 0`). La brecha no es «no hay contra qué
+> validar»; es **«hay una referencia publicada y esta aplicación no se ha
+> comparado contra ella»**. Eso convierte la brecha de insalvable en ejecutable.
 
 Todos los números se regeneran con `node tests/evidencia-f07.js` (secciones:
 `exacta`, `mls`, `aiag`, `cobertura`, `diseno`, `semilla`, `modelo`). Ese script
@@ -140,7 +152,17 @@ F-07 de la auditoría afirman o insinúan la equivalencia con Minitab.
 
 ---
 
-## 3. El nivel de confianza del 90 %
+## 3. El nivel de confianza
+
+> **ACTUALIZADO.** El 90 % por omisión está **retirado**. Hoy el valor por
+> omisión es **95 %**, seleccionable entre 90, 95 y 99 desde la pantalla. El
+> nivel entra en la huella del resultado, obliga a recalcular al cambiarlo y se
+> imprime en el reporte. Ya no se atribuye ningún nivel a Minitab, cuya
+> documentación dice que 95 % normalmente funciona bien. La justificación
+> anterior —«al 90 % se concluye más»— era **circular** y está retirada: con qué
+> frecuencia se emite un veredicto no es un criterio estadístico. Y desde que el
+> intervalo no dictamina, la objeción desaparece por completo: cambiar el nivel
+> ya no puede cambiar ningún dictamen.
 
 **La justificación que di era circular** — «concluye el 44 % de las veces en vez
 del 18 %» describe una consecuencia, no un criterio. Retirada.
@@ -220,10 +242,17 @@ MLS. Es el truncado a cero: GPQ trunca dentro del pivote, MLS no. La mayor
 (+15.5 %) es el modelo con interacción, que tiene dos componentes truncables.
 La dirección es la esperada y es consistente en los cinco casos.
 
-**Lo que estas dos referencias NO cubren:** el intervalo de **%Study Variation**,
-que es una **razón**, y es el que dictamina. §4.1 valida un componente; §4.2
-valida σ²_grr. **La razón no está validada contra ninguna referencia externa.**
-Esa es la brecha principal de este informe.
+**Lo que estas dos referencias NO cubren:** el intervalo de la **razón**
+`V_GRR / V_Total`, del que salen %Study Variation y %Contribution. §4.1 valida un
+componente aislado; §4.2 valida σ²_grr, que es un **numerador**. La razón tiene
+el mismo σ²_grr en el numerador y dentro del denominador, así que su
+distribución **no** se deduce de las marginales de sus partes: la correlación
+entre numerador y denominador es justo lo que no está verificado, y justo lo que
+modela la ecuación cuadrática de la referencia publicada.
+
+**La razón sigue sin validarse contra la referencia externa, que sí existe** (ver
+el recuadro del encabezado). Ésa es la brecha principal, y es la razón por la
+que el GPQ dejó de dictaminar.
 
 ---
 
@@ -231,47 +260,69 @@ Esa es la brecha principal de este informe.
 
 400 estudios por escenario, 1 200 sorteos GPQ cada uno, confianza nominal 90 %,
 semilla base 20260907. `EE` = error estándar binomial de la cobertura.
+**`ACEP` e `INAC` salen del veredicto PUNTUAL AIAG**, que es el que dictamina;
+`cruza` es el porcentaje de estudios en que el intervalo toca un límite y se
+emite la advertencia de lectura.
 
-| Escenario | %GRR real | Cobertura | EE | nulos | trunc. | ACEP | INAC | NOCONC | acept. mala | rech. malo |
-|---|---|---|---|---|---|---|---|---|---|---|
-| cruzado excelente (lejos de 10) | 5.4 | 91.3 | ±1.4 | 0 | 19 % | 176 | 0 | 224 | 0 | 0 |
-| cruzado **justo en 10 %** | 10.0 | 90.3 | ±1.5 | 0 | 11 % | 7 | 0 | 392 | 0 | 0 |
-| cruzado medio (20 %) | 19.9 | 90.5 | ±1.5 | 0 | 17 % | 0 | 1 | 348 | 0 | 0 |
-| cruzado **justo en 30 %** | 29.8 | 91.3 | ±1.4 | 0 | 16 % | 0 | 29 | 368 | 0 | 0 |
-| cruzado malo (55 %) | 54.6 | 90.5 | ±1.5 | 0 | 10 % | 0 | 327 | 73 | 0 | 0 |
-| cruzado **con interacción** | 29.5 | 91.8 | ±1.4 | 0 | 25 % | 0 | 28 | 369 | 0 | 0 |
-| cruzado **σ_op = 0 exacto** | 19.6 | 90.8 | ±1.4 | 0 | **67 %** | 0 | 1 | 262 | 0 | 0 |
-| cruzado σ_op ≈ 0 | 19.6 | **93.8** | ±1.2 | 0 | **64 %** | 0 | 0 | 298 | 0 | 0 |
-| cruzado chico 5×3×2 | 14.7 | 91.0 | ±1.4 | 0 | 39 % | 0 | 0 | **400** | 0 | 0 |
-| cruzado 2 operadores | 28.5 | **94.0** | ±1.2 | 0 | 37 % | 0 | 13 | 385 | 0 | 0 |
-| cruzado 5 operadores | 28.5 | 90.5 | ±1.5 | 0 | 6 % | 0 | 22 | 367 | 0 | 0 |
-| cruzado grande 25×4×4 | 28.5 | 90.3 | ±1.5 | 0 | 3 % | 0 | 16 | 361 | 0 | 0 |
-| **anidado** 10×3×3 | 28.5 | 89.5 | ±1.5 | 0 | 60 % | 0 | 30 | 365 | 0 | 0 |
-| **anidado** 5×3×2 | 14.7 | **87.3** | ±1.7 | 0 | 58 % | 0 | 0 | **400** | 0 | 0 |
-| **anidado** malo | 54.6 | 90.0 | ±1.5 | 0 | 40 % | 0 | 388 | 12 | 0 | 0 |
+| Escenario | %GRR real | Cobertura | EE | trunc. | ACEP | INAC | cruza | acept. mala | rech. malo |
+|---|---|---|---|---|---|---|---|---|---|
+| cruzado excelente (lejos de 10) | 5.4 | 91.3 | ±1.4 | 19 % | 387 | 0 | 225 | 0 | 0 |
+| cruzado **justo en 10 %** | 10.0 | 90.3 | ±1.5 | 11 % | 184 | 1 | 392 | 0 | 1 |
+| cruzado medio (20 %) | 19.9 | 90.5 | ±1.5 | 17 % | 0 | 39 | 348 | 0 | 0 |
+| cruzado **justo en 30 %** | 29.8 | 91.3 | ±1.4 | 16 % | 0 | 213 | 368 | 0 | 0 |
+| cruzado malo (55 %) | 54.6 | 90.5 | ±1.5 | 10 % | 0 | 400 | 73 | 0 | 0 |
+| cruzado **con interacción** | 29.5 | 91.8 | ±1.4 | 25 % | 0 | 236 | 369 | 0 | 0 |
+| cruzado **σ_op = 0 exacto** | 19.6 | 90.8 | ±1.4 | **67 %** | 1 | 30 | 262 | 0 | 0 |
+| cruzado σ_op ≈ 0 | 19.6 | **93.8** | ±1.2 | **64 %** | 0 | 25 | 298 | 0 | 0 |
+| cruzado chico 5×3×2 | 14.7 | 91.0 | ±1.4 | 39 % | **35** | **46** | 397 | 0 | 0 |
+| cruzado 2 operadores | 28.5 | **94.0** | ±1.2 | 37 % | 0 | 197 | 385 | 0 | 0 |
+| cruzado 5 operadores | 28.5 | 90.5 | ±1.5 | 6 % | 0 | 197 | 367 | 0 | 0 |
+| cruzado grande 25×4×4 | 28.5 | 90.3 | ±1.5 | 3 % | 0 | 140 | 361 | 0 | 0 |
+| **anidado** 10×3×3 | 28.5 | 89.5 | ±1.5 | 60 % | 0 | 204 | 365 | 0 | 0 |
+| **anidado** 5×3×2 | 14.7 | **87.3** | ±1.7 | 58 % | **30** | **112** | 384 | 0 | 0 |
+| **anidado** malo | 54.6 | 90.0 | ±1.5 | 40 % | 0 | 400 | 12 | 0 | 0 |
 
-ACEP+INAC+NOCONC no suma 400: falta la banda marginal (10–30 %).
+ACEP+INAC no suma 400: falta la banda condicional (10–30 %).
 Procedimiento: normales independientes, σ_pieza = 1, σ_op y σ_rep fijados para
 el %GRR objetivo; interacción sólo en el escenario marcado; anidados generados
 con piezas propias por operador.
 
 **Lecturas:**
 
-- Cobertura entre **87.3 % y 94.0 %** contra un nominal de 90 %. Nada se desploma.
-- **Anidado 5×3×2: 87.3 % ± 1.7**, 1.6 EE por debajo del nominal. Es el escenario
-  más débil y merece más simulaciones antes de darlo por bueno.
+- Cobertura del intervalo entre **87.3 % y 94.0 %** contra un nominal de 90 %.
 - **Conservador donde hay poca información:** 2 operadores (94.0 %) y σ_op ≈ 0
   (93.8 %). Coherente con el truncado.
-- **Tasa de truncado hasta 67 %.** En dos de cada tres estudios de esos
-  escenarios al menos un componente se truncó a cero. No aparece en la interfaz.
-- **Aceptación incorrecta y rechazo incorrecto: 0 en 6 000 estudios.** Es el
-  resultado de seguridad más fuerte del informe.
-- **Precio:** el 5×3×2 y el anidado 5×3×2 son **100 % no concluyentes**, y hasta
-  el gage claramente malo concluye sólo el 82 %.
+- **Tasa de truncado hasta 67 %**, y no aparece en la interfaz.
+- **El anidado sub-cubre de forma sistemática** — no es ruido; ver limitación 3
+  del §12.
+
+**El precio de que dictamine el punto, medido y explícito.** Con el veredicto
+puntual, los estudios chicos **sí** emiten clasificaciones equivocadas dentro de
+la banda condicional: un 5×3×2 cruzado cuyo %GRR real es 14.7 % —o sea,
+condicional— se declara **Aceptable 35 veces y No aceptable 46 veces de 400**; el
+anidado equivalente, 30 y 112. Ninguna de esas etiquetas es correcta. Los
+errores graves siguen en cero (aceptar un gage con %GRR real > 30, o rechazar uno
+con real < 10: **0 en 6 000 estudios**, salvo un único caso en el escenario que
+está *exactamente* sobre el umbral del 10 %).
+
+Ese es el intercambio que F-07 acepta conscientemente: la política anterior
+evitaba esas etiquetas equivocadas retirando el veredicto, pero lo retiraba
+tanto que la banda condicional era inalcanzable y la decisión dependía de la
+posición del gage frente al umbral. **Un dictamen imperfecto y declarado es
+preferible a ningún dictamen**, y por eso la advertencia de cruce existe: en el
+5×3×2 el intervalo cruza un límite en el **99 %** de los estudios, así que la
+advertencia aparece prácticamente siempre que la clasificación es frágil.
 
 ---
 
-## 6. Regla del mínimo de 60 mediciones
+## 6. Regla del mínimo de 60 mediciones — **RETIRADA**
+
+> **EJECUTADO.** El piso ya no existe en el código. No se sustituyó por umbrales
+> obligatorios de grados de libertad: quedan **avisos informativos** por
+> operadores, piezas, réplicas y representatividad del rango, y **ninguno
+> bloquea** el cálculo ni el veredicto puntual. Lo que sigue documenta por qué
+> se retiró.
+
 
 **Origen: política propia de esta aplicación.** No es AIAG ni Minitab; el número
 salió de la propia auditoría («digamos, 60»). **No debe presentarse como
@@ -368,7 +419,17 @@ produce el veredicto «No concluyente».
 
 ---
 
-## 8. Política de veredicto — documentada y, en un punto, incorrecta
+## 8. Política de veredicto — **la que se describe aquí está RETIRADA**
+
+> **EJECUTADO.** Nada de esta sección sigue vigente en el código. Hoy dictamina
+> la **estimación puntual** con las bandas AIAG; el intervalo no clasifica.
+> Además se corrigió la discrepancia de frontera: 1.00, 9.00, 10.00 y 30.00
+> pertenecen a la banda **condicional**, escritas una sola vez en `assess` para
+> que pantalla, impresión y pruebas no puedan divergir. Y se agrupó todo lo que
+> se dice del R&R total en una sola sección de pantalla y de reporte, en vez de
+> tarjetas contiguas que podían leerse como dictámenes independientes. Lo que
+> sigue documenta el defecto que motivó el cambio.
+
 
 **Regla actual:** se dictamina sólo si el intervalo **entero** cae en una banda.
 
@@ -506,43 +567,101 @@ global 1..15 dan intervalos **bit a bit idénticos**. Reordenar filas: idéntico
 
 ## 12. Limitaciones conocidas
 
-1. **El intervalo de %StudyVar —el que dictamina— no está validado contra
-   ninguna referencia externa.** Lo validado es un componente aislado (exacto) y
-   σ²_grr (MLS). La razón, no.
-2. **Error Monte Carlo de ≈ 1 punto porcentual** en el límite superior con
-   `DRAWS = 4000`, no declarado y sin criterio de convergencia.
-3. **La política de veredicto no resuelve el desacuerdo entre métricas** ni
-   define un veredicto global (§8).
-4. **El piso de 60 mediciones mide la cosa equivocada** (§6).
-5. **`V_grr ≈ 0` no está probado ni acotado.**
-6. **Tasas de truncado de hasta 67 % no se muestran** al usuario.
-7. **La semilla no es canónica** (§10).
-8. **Sin pruebas cerca de los umbrales de %Contribution** (1 % y 9 %).
-9. **Anidado 5×3×2: cobertura 87.3 %**, el escenario más débil.
-10. **La cobertura se midió con datos generados por el mismo modelo que el método
-    asume** (normales, balanceados, independientes). No dice nada sobre
-    robustez a la no-normalidad.
+Estado actualizado tras ejecutar las decisiones aprobadas.
+
+**Vigentes:**
+
+1. **El intervalo de la razón no está validado contra la referencia externa
+   publicada.** Es la brecha principal y la razón por la que el GPQ no
+   dictamina. Ver §14.
+2. **Error Monte Carlo con `DRAWS = 4000`.** Medido con 40 semillas sobre el
+   dataset AIAG: la desviación estándar del límite superior es **1.39 pp**, y
+   entre semillas el rango va de 67.85 a 74.38 (6.5 pp). Con 20 000 sorteos baja
+   a 0.57 pp y el costo pasa de 3 ms a 19 ms. No está declarado en la interfaz.
+   Desaparece cuando el intervalo pase a MLS, que es determinista y no simula.
+3. **El motor anidado sub-cubre.** Medido con 2 000 estudios por caso: anidado
+   5×3×2 da 86.05 % y 87.85 % con dos semillas distintas (−5.1 y −2.9 errores
+   estándar del nominal 90 %), y anidado 10×3×2 da 87.00 % (−4.0 EE), todos con
+   61 % de truncado; el cruzado 5×3×2 equivalente da 91.90 %. **No es ruido de
+   muestreo**, y la dirección es la insegura: el intervalo es más estrecho de lo
+   que declara. Pendiente de diagnóstico.
+4. **`V_grr ≈ 0` no está probado ni acotado.**
+5. **Tasas de truncado de hasta 67 % no se muestran** al usuario.
+6. **La semilla no es canónica** (§10). Decisión no aprobada en este alcance.
+7. **La cobertura se midió con datos generados por el mismo modelo que el método
+   asume** (normales, balanceados, independientes). No dice nada sobre robustez
+   a la no-normalidad.
+8. **%Tolerance no tiene intervalo.** Su denominador es la tolerancia de
+   especificación, no `V_Total`, así que no se deriva de la razón. Se conserva el
+   punto y se declara «pendiente de referencia validada».
+
+**Resueltas por las decisiones aprobadas:**
+
+- ~~La política de veredicto no resuelve el desacuerdo entre métricas~~ →
+  %Contribution y %StudyVar salen del **mismo** intervalo de la razón, así que no
+  pueden discrepar; y el dictamen es uno solo, el puntual.
+- ~~El piso de 60 mediciones mide la cosa equivocada~~ → retirado.
+- ~~Sin pruebas cerca de los umbrales de %Contribution~~ → hay pruebas en 0.99,
+  1.00, 9.00 y 9.01, y en 9.99, 10.00, 30.00 y 30.01 para %StudyVar y %Tolerance.
+- ~~Anidado 5×3×2: cobertura 87.3 %, merece más simulaciones~~ → se midió, y
+  resultó ser un problema real: ahora es la limitación 3.
 
 ---
 
-## 13. Decisiones que requieren aprobación antes de tocar código
+## 13. Decisiones aprobadas, y qué se hizo con cada una
 
-| # | Decisión | Mi recomendación |
+Aprobadas por el responsable del producto. Estado de cada una:
+
+| # | Decisión | Estado |
 |---|---|---|
-| 1 | Retirar la afirmación sobre Minitab de `interval.js`, reporte y auditoría | **Hacerlo ya.** Es una corrección de veracidad, no una decisión. |
-| 2 | Marcar el intervalo como **«En validación»** en pantalla y reporte | **Hacerlo ya**, junto con 1. |
-| 3 | Nivel de confianza: ¿selector 90/95/99? ¿predeterminado? | Selector, con **95 %** predeterminado. |
-| 4 | Sustituir el piso de 60 por criterios de grados de libertad | Sí, con la tabla de §6. |
-| 5 | Veredicto global y jerarquía entre métricas | Diseñar antes de tocar nada. |
-| 6 | ¿Debe %Contribution tener tarjeta propia, siendo la misma información que %StudyVar? | Merece discusión: hoy duplica. |
-| 7 | Semilla canónica con versión de algoritmo | Sí. |
-| 8 | Declarar sorteos y error Monte Carlo en el reporte | Sí. |
-| 9 | Mostrar la tasa de truncado | Sí, como advertencia metodológica. |
-| 10 | ¿Se acepta un método sin validación externa de la razón para **dictaminar**? | **No.** Mientras tanto, el intervalo se publica como información y **el veredicto vuelve al criterio puntual AIAG**, con el intervalo al lado. |
+| 1 | Retirar la atribución a Minitab del GPQ y del 90 % | ✅ **Hecho** — `interval.js`, `auditoria-2026-08-31.md`, `README.md`, este documento |
+| 2 | Marcar el intervalo como experimental / en validación | ✅ **Hecho** — pantalla y reporte impreso |
+| 3 | Nivel de confianza seleccionable, 95 % por omisión | ✅ **Hecho** — 90 / 95 / 99, en la huella, recalcula, se imprime |
+| 4 | Retirar el piso de 60 mediciones | ✅ **Hecho** — sin sustituto obligatorio; sólo avisos informativos |
+| 5 | Retirar la clasificación por intervalo | ✅ **Hecho** — el intervalo sólo advierte cruces |
+| 6 | %Contribution y %StudyVar del mismo intervalo | ✅ **Hecho** — las dos derivan de la razón, no se simulan por separado |
+| 7 | Fronteras de banda coherentes en toda la aplicación | ✅ **Hecho** — 1.00, 9.00, 10.00 y 30.00 son **condicional**; escritas una sola vez en `assess` |
+| 8 | Intervalo oficial por MLS + Satterthwaite sobre la razón | ⛔ **No hecho — bloqueado**, ver §14 |
+| 9 | Intervalo de %Tolerance | ⏸ **Pendiente de referencia validada** — se conserva el punto y se dice explícitamente |
+| 10 | Semilla canónica con versión de algoritmo | ⏸ **Pendiente** — no aprobado en este alcance |
 
-**Clasificación final: `C` — el método es válido y la implementación concuerda
-con dos referencias independientes, pero la política de veredicto debe
-modificarse antes de usarse para liberar o rechazar instrumentos.**
+**Lo que hoy dictamina: la estimación puntual con las bandas AIAG.** El
+intervalo GPQ acompaña, se rotula «experimental, en validación, no utilizado
+para el dictamen», y cuando cruza un límite emite una única advertencia de
+lectura. No emite categorías, no produce «no concluyente» y no bloquea nada.
 
-Si se exige validación externa del intervalo de la **razón** antes de cualquier
-uso decisorio, la clasificación es **`B`**.
+---
+
+## 14. Por qué el §8 no se implementó
+
+**Es un bloqueo de entorno, no una decisión.** El contenedor en el que se
+trabajó tiene el egreso de red restringido: `support.minitab.com` —y cualquier
+otro host— responde `403` al `CONNECT` del proxy. Las páginas de *methods and
+formulas* de razones de varianza **no se pudieron leer**.
+
+Lo que sí se pudo confirmar por búsqueda, y no es suficiente para implementar:
+
+- MLS es el método principal; Satterthwaite es la alternativa cuando «no se
+  cumplen ciertas condiciones».
+- Las cotas se obtienen **resolviendo una ecuación cuadrática**: `L = J ×`
+  (raíz menor), `U = J ×` (raíz mayor).
+- Si `B² − 4AC < 0` no hay solución y se usa Satterthwaite.
+- El intervalo de %Study Variation se obtiene **transformando** el de
+  %Contribution — que es exactamente lo que ahora hace esta aplicación (§9 del
+  encargo), aunque sobre un intervalo GPQ en vez del correcto.
+
+**Lo que falta son las definiciones de `A`, `B`, `C` y `J`.** Sin ellas,
+implementar «MLS» y rotularlo como las fórmulas publicadas de Minitab sería
+repetir **exactamente el error que F-07 existe para corregir**: afirmar una
+autoridad que no se verificó. Por eso no se implementó.
+
+**Para desbloquearlo** hace falta una de estas dos cosas:
+
+1. Ejecutar la sesión en un entorno con acceso a `support.minitab.com`, o
+2. Aportar las páginas (texto o PDF) al repositorio como fuente citable.
+
+Con eso, la implementación es directa: el módulo nuevo va aparte —no reutiliza
+ninguna función del GPQ—, es determinista, sin sorteos ni semillas, y sustituye
+al GPQ como origen del intervalo de la razón. La estructura ya está preparada:
+`interval.js` publica hoy `ratio: {lo, hi}` y deriva de ahí las dos escalas, así
+que cambiar el origen del `ratio` no toca la presentación.

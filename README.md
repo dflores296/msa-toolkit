@@ -225,6 +225,16 @@ una herramienta de escritorio aparte (`npm i playwright && npx playwright
 install chromium`). La aplicación y `tests/run-node.js` siguen corriendo sin
 instalar nada.
 
+**Reporte impreso.** `node tests/tests-report.js` corre dentro de la suite y
+prueba el modelo puro del encabezado (`assets/js/report.js`) contra los tres
+resultados reales. Además, `node tests/prueba-impresion.js` recorre el camino
+completo de impresión en un navegador de verdad —botón *Imprimir / PDF* y
+`Ctrl+P`, en los tres métodos— y comprueba que el encabezado no trae campos de
+otro método ni `undefined`/`null`/`NaN`, que no se cuelan los paneles del método
+ajeno, que la interfaz se restaura **aunque la preparación falle**, y que
+imprimir no altera los cálculos ni el estado capturado. Necesita Playwright,
+que **no es dependencia del proyecto**, igual que `regresion-visual.js`.
+
 **Lo que esto todavía no cubre.** La herramienta compara *dos revisiones del
 repo*, así que sirve para no mover lo que ya estaba bien, no para encontrar lo
 que nunca estuvo bien: un defecto presente en las dos coincide y pasa por bueno.
@@ -234,6 +244,14 @@ nombres escritos por el usuario. Entre eso y que ninguna suite toca el DOM, un
 cambio en `assets/js/app.js` puede dejar las 80 pruebas en verde y romper la
 pantalla: se comprueba a mano, en el navegador. Está anotado como deuda en
 [`docs/plan-siguientes-metodos.md`](docs/plan-siguientes-metodos.md).
+
+## Auditoría
+
+[`docs/auditoria-2026-08-31.md`](docs/auditoria-2026-08-31.md) — auditoría
+crítica de los tres motores bajo el supuesto de que la aplicación aprueba o
+rechaza sistemas de medición en planta. Lleva el estado de cada hallazgo, lo
+corregido con su commit y lo pendiente con su razonamiento, para poder retomarla
+desde otra sesión.
 
 ## Qué se corrigió respecto del Excel
 

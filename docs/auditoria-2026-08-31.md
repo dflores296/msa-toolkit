@@ -1,0 +1,263 @@
+# Auditoría MSA Toolkit — 31 de agosto de 2026
+
+Auditoría crítica de los tres motores MSA bajo el supuesto de que la aplicación
+**aprueba o rechaza sistemas de medición en una planta industrial**.
+
+Base auditada: commit `52b6b1e` (`main` = `develop`).
+Cada hallazgo marcado como confirmado fue **reproducido ejecutando los motores**,
+no inferido de la lectura del código.
+
+Este documento existe para poder **retomar el trabajo desde otra sesión o
+cuenta**: lleva el estado de cada hallazgo, lo que ya se corrigió y con qué
+commit, y lo que queda pendiente con su razonamiento.
+
+---
+
+## Estado actual
+
+| Hallazgo | Prioridad | Estado | Commit |
+|---|---|---|---|
+| F-04 · Categoría de rechazo por orden de aparición | P0 | **Cerrado** | `04dc8d5` |
+| F-01 · `Var_GRR = 0` tratado como veredicto | P1 (era P0) | **Cerrado** | `3beef45`, `1fc0a3b` |
+| F-03 · El reporte de atributos lanza TypeError | P0 | **Cerrado** | este commit |
+| F-02 · Anidado ruteado a cruzado | P0 | **Pendiente** | — |
+| F-05 · Reporte con datos nuevos y tablas viejas | P1 | Pendiente | — |
+| F-06 · Atributos 0/1 → ANOVA de variables | P1 | Pendiente | — |
+| F-07 · %GRR sin intervalo de confianza | P1 | Pendiente | — |
+| F-14 · Inyección de fórmulas en el CSV exportado | P1 | Pendiente | — |
+| F-15 · «Validado contra AIAG» afirmado para los tres métodos | P1 | Pendiente | — |
+| F-08 · `__proto__` como nombre → NaN silencioso | P2 | Pendiente | — |
+| F-16 · Sin Content-Security-Policy | P2 | Pendiente | — |
+| F-10 · Alfa fuera de catálogo al importar → α = 0 | P2 | Pendiente | — |
+| F-11 · Tarjeta y barra se contradicen en %GRR = 10.00 | P2 | Pendiente | — |
+| F-17 · Impresión incluía paneles del otro método | P2 | **Cerrado** | este commit |
+| F-09 · `fSurvival(NaN)` devuelve 0 | P2 | Pendiente | — |
+| F-18 · Tooltips en `title=""`, ARIA de pestañas incompleto | P2 | Pendiente | — |
+| F-19 · Chart.js 4.4.1 sin lockfile, SRI ni revisión en CI | P2 | Pendiente | — |
+| F-13 · Filas duplicadas al importar se sobrescriben | P3 | Pendiente | — |
+| F-12 · Categoría llamada «otro» pierde su kappa | P3 | Pendiente | — |
+| F-20 · Duplicación cruzado/anidado; `app.js` monolítico | P3 | Parcial | `1fc0a3b` |
+| F-21 · Sin persistencia de la captura | P3 | Pendiente | — |
+| F-22 · Cadenas desactualizadas (`<title>`, badge, meta) | P3 | Pendiente | — |
+| F-23 · `num(v, sig)` mal nombrado; escalas inconsistentes | P3 | Pendiente | — |
+| F-24 · Semáforo solo por color | P3 | Pendiente | — |
+| F-25 · `betaInv` 200 iteraciones; `getComputedStyle` en bucle | P3 | Pendiente | — |
+| F-26 · Ninguna suite tocaba el DOM | P3 | Parcial | este commit |
+
+---
+
+## Lo que está bien, y es la parte difícil
+
+El **motor cruzado reproduce a Minitab dígito a dígito** sobre el dataset del
+apéndice AIAG MSA 4.ª ed. (`gageaiag.mtw`):
+
+| Cantidad | MSA Toolkit | Minitab publicado |
+|---|---|---|
+| % Contribución Total Gage R&R | 7.76 | 7.76 |
+| % Study Variation Total Gage R&R | 27.86 | 27.86 |
+| NDC | 4 | 4 |
+| F interacción · p | 0.4337 · 0.9741 | 0.434 · 0.974 |
+
+El **anidado** deriva sus componentes de los cuadrados medios esperados
+correctos (`σ²_rep = CM_rep`, `σ²_pieza = (CM_pieza(op) − CM_rep)/r`,
+`σ²_op = (CM_op − CM_pieza(op))/(n·r)`) y prueba cada efecto contra el estrato
+que lo contiene. En **atributos**, Fleiss y Cohen usan las fórmulas canónicas,
+con el error estándar bajo `H₀` correcto en ambos, y Clopper–Pearson por
+inversión de la beta. **La aritmética no es el problema.**
+
+---
+
+## Hallazgos cerrados
+
+### F-04 — La categoría de rechazo salía del orden de las filas · `04dc8d5`
+
+Sin `rejectCategory` explícita, el motor tomaba `cats[1]`: la **segunda
+categoría en orden de aparición en los datos**. Los mismos datos, reordenados,
+intercambiaban el error de fuga con la falsa alarma.
+
+```
+Caso: 3 piezas conformes, 1 no conforme. Ana comete 1 falsa alarma, 0 fugas.
+  primera fila "Pasa"     -> reject = "No pasa"  FUGA 0 %    FALSA ALARMA 33.3 %
+  mismos datos, otro orden -> reject = "Pasa"     FUGA 33.3 % FALSA ALARMA 0 %
+```
+
+Los umbrales AIAG son distintos a propósito (2 % y 5 %) porque una fuga llega
+al cliente y una falsa alarma se queda en la planta. **Corregido:** sin elección
+explícita y válida no se publican efectividad, fuga ni falsa alarma; el
+desplegable abre vacío; las tarjetas de veredicto llevan la categoría en el
+título. La prueba de invariancia de orden que existía enmascaraba el bug porque
+siempre pasaba `categories` explícitas.
+
+### F-01 — `Var_GRR = 0` no es un veredicto · `3beef45`, `1fc0a3b`
+
+**Enunciado original corregido:** afirmé que `Var_GRR = 0` implica falta de
+discriminación. **No la implica.** Un micrómetro excelente lo produce
+legítimamente:
+
+```
+A. LEGITIMO  micrometro 0.001 mm, error real 0.00002, piezas en 2 mm
+   V_grr = 2.1e-30   30/30 celdas sin variacion
+   %SV = 0.00 % "Aceptable"   %GRR real = 0.006 %   <- el veredicto es correcto
+   NDC = 654170470307296  <- 15 digitos en la tarjeta
+
+C. PATOLOGICO  las 90 lecturas identicas
+   %SV = 0.00 % "Aceptable"   NDC = null -> la tarjeta decia "inf"   avisos = 0
+```
+
+El defecto real es más estrecho: un **no-estimado presentado con la cara de un
+estimado**, más el NDC roto en las dos direcciones. Bajado de P0 a P1.
+
+**Cuatro estados, inferidos sin pedir ningún campo nuevo:**
+
+| Estado | Evidencia | NDC | Veredicto | Aviso |
+|---|---|---|---|---|
+| Escalón observado adecuado | escalón medido, ≤ 10 % | número | intacto | ninguno |
+| Repetibilidad no medible | ninguna réplica difirió | `No evaluable` | **intacto** | «el 0 % es una cota» |
+| Posible resolución insuficiente o redondeo | escalón > 10 % | número | intacto | con las cifras |
+| No concluyente | 1 valor distinto | `No evaluable` | **retirado** | mensaje explícito |
+
+**Cómo se infiere el escalón** — y por qué el alcance importa: es la mínima
+diferencia no nula entre **réplicas distintas del mismo operador sobre la misma
+pieza**. La mínima diferencia entre mediciones *cualesquiera* sobreestima 222×
+en el caso del micrómetro (ahí ninguna celda varía, así que esa diferencia es
+entre *piezas*) y levantaría una alarma sobre un instrumento excelente.
+
+**El escalón NO es la resolución nominal del instrumento.** Los datos solo
+demuestran con qué finura fueron *anotadas* las lecturas. Un micrómetro de
+0.0001 mm exportado redondeado a 0.01 mm produce datos idénticos a los de un
+equipo grueso. Por eso el aviso dice «posible resolución insuficiente **o**
+redondeo excesivo de los datos» y pide comprobar antes de concluir del equipo.
+
+**El 10 % se evalúa contra los dos denominadores**, cada uno cuando existe:
+`escalón / (k·σ_total)` siempre que `σ_total > 0`, y `escalón / tolerancia` solo
+si se capturó alguna. El estado final es **el peor de los dos** (un OR): basta
+con que uno se rebase. `V_grr` y `V_total` son **varianzas** (σ²), y se
+convierten a σ con una raíz antes de compararlas con el escalón.
+
+`DISCRIMINATION_LIMIT` (0.10) es el criterio AIAG. `ZERO_VARIANCE_RATIO` y
+`EQUALITY_EPS_RATIO` (1e-12) son **protección numérica, no criterios de
+calidad**.
+
+### F-03 y F-17 — El reporte impreso · este commit
+
+`buildPrintHeader` daba por hecha la forma de respuesta de los métodos de
+variables: `r.metrics.pctStudyVar.toFixed(2)` sobre un resultado de atributos
+lanzaba `TypeError`, `preparePrint()` abortaba entera y **el tercer método no
+podía entregar su documento**. Además `printRestore` nunca se asignaba, así que
+la pantalla se quedaba rota tras imprimir.
+
+**Corregido con un cambio estructural, no un `if`:** el encabezado se extrae a
+`assets/js/report.js`, un modelo **puro y sin DOM** que decide qué filas van en
+cada método y se prueba en Node contra los tres resultados reales. Mientras esa
+decisión vivió pegada al DOM, la única forma de descubrir que estaba rota era
+abrir el navegador e imprimir.
+
+Además: `preparePrint()` registra el restaurador **antes** de tocar la pantalla
+y envuelve la preparación en `try/catch`; y la regla de impresión
+`.tab-panel[hidden]{display:block!important}` se acota por método (antes
+revelaba también los paneles del método ajeno, que salían como páginas en
+blanco con su título).
+
+---
+
+## Pendientes, en el orden que recomiendo
+
+### F-02 (P0) — El anidado se rutea a cruzado
+
+La convención más natural para etiquetar un estudio destructivo es numerar las
+piezas de cada operador 1..n. Con esa captura:
+
+```
+partsByOp = [["1".."5"], ["1".."5"], ["1".."5"]]
+detectDesign(...) -> "cruzado"    (app.js, funcion detectDesign)
+```
+
+La app **cambia sola de método** y avisa «todos los operadores midieron las
+mismas piezas», que es falso. Por la vía manual, el validador del anidado
+rechaza los datos con un mensaje que **empuja al método equivocado**. El motor
+cruzado acepta la matriz (está balanceada) y produce un ANOVA con un término
+operador × pieza que **no existe físicamente**.
+
+**Arreglo propuesto:** (a) en el método anidado, calificar internamente el
+nombre con el operador (`op ‖ pieza`) para que repetir «1» sea legal; (b) en
+`detectDesign`, no decidir el diseño por los nombres cuando el método activo es
+anidado, y **nunca cambiar de método sin confirmación explícita**. El mensaje de
+validación debe preguntar, no afirmar.
+
+### F-05 (P1) — El reporte puede mezclar resultados viejos con datos nuevos
+
+Editar una celda dispara `validateLive()`, que **no invalida `state.result` ni
+oculta el panel**. Al imprimir, el encabezado y las tablas salen del resultado
+viejo mientras el anexo se arma leyendo el DOM actual — y el anexo afirma «los
+cálculos de este reporte salen exactamente de estos datos». Lo agrava el rótulo
+permanente **«actualizado al escribir»**, que promete algo que la app no hace.
+
+### F-07 (P1) — %GRR sin intervalo de confianza
+
+```
+12 estudios simulados 10x3x3 del MISMO sistema (sigma_ms/sigma_pieza = 0.30):
+  %GRR: 26.1 26.8 40.2 30.0 18.7 25.1 29.2 18.2 31.9 43.3 29.5 30.4
+  rango 18.2 % a 43.3 %  -> el mismo gage cae a los dos lados del 30 %
+
+300 estudios 3x5x2 de un sistema BUENO (sigma_ms/sigma_pieza = 0.15):
+  21/300 declarados "Inaceptable"  -> 7 % de rechazos falsos
+```
+
+### Los demás
+
+- **F-06:** `looksCategorical` exige >80 % de texto; atributos codificados 0/1
+  sacan al usuario del método y corren un ANOVA de variables.
+- **F-14:** `csvCell()` solo entrecomilla por `"`, `,` y salto de línea. Un
+  nombre que empiece por `=`, `+`, `-` o `@` se ejecuta al abrir en Excel.
+  Verificado: `=cmd|'/c calc'!A1` sale sin modificar.
+- **F-15:** el pie de página afirma validación AIAG en las tres pantallas; el
+  motor de atributos no tiene ningún dataset publicado detrás, cosa que los
+  propios documentos del repo reconocen.
+- **F-08:** solo `__proto__` rompe (`constructor`, `toString`, `valueOf` están
+  bien); da `%StudyVar = 0` con `decompositionError = NaN`, y el guardia
+  `> 1e-9` no dispara sobre NaN. Invertir a `!(x <= 1e-9)`.
+
+---
+
+## Calificaciones
+
+| Dimensión | 31-ago inicial | Tras F-01/03/04 |
+|---|---|---|
+| Exactitud estadística | 72 | 78 |
+| Calidad de código | 74 | 76 |
+| Arquitectura | 70 | 73 |
+| UX | 68 | 70 |
+| UI | 84 | 84 |
+| Seguridad | 68 | 68 |
+| Rendimiento | 82 | 82 |
+
+## ¿Publicaría esta aplicación en producción para una planta de manufactura?
+
+**Todavía no**, pero queda un solo bloqueante. De los cuatro P0 originales, tres
+están cerrados. **F-02** es el que falta: analizar una prueba destructiva con un
+modelo que asume lo contrario de lo que ocurrió físicamente, y encima con la
+aplicación empujando activamente hacia él.
+
+Cerrado F-02, más el rótulo de F-05 y la afirmación de validación de F-15, la
+respuesta cambia a **sí** — con la reserva razonable de que un dictamen de
+liberación lo firme una persona que sepa leer las gráficas, no la tarjeta de
+veredicto sola.
+
+Lo que sí publicaría hoy, con confianza, es el **motor cruzado como
+calculadora**: reproduce los valores publicados de Minitab dígito a dígito y
+está mejor documentado que el libro de Excel que reemplaza.
+
+---
+
+## Nota sobre cómo leer este documento
+
+F-01 se enunció mal la primera vez, el autor pidió la demostración, y al
+construirla resultó que un micrómetro excelente produce exactamente la misma
+salida. El hallazgo sobrevivió —el defecto existe— pero más pequeño y de otra
+naturaleza. **Los hallazgos pendientes no han pasado por ese mismo escrutinio.**
+Antes de implementar cualquiera, conviene reproducirlo primero.
+
+Pendientes de verificar contra fuente primaria, y señalados como tales desde el
+principio: la convención de denominadores de la tabla de atributos de AIAG
+(efectividad se cuenta a nivel de pieza, fuga y falsa alarma a nivel de
+decisión) y la situación de CVE de Chart.js 4.4.1.

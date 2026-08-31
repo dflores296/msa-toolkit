@@ -1,0 +1,291 @@
+# Transcripción del método MLS desde la documentación de Minitab
+
+**Qué es este documento.** El registro de dónde salió cada fórmula que
+implementa `assets/js/mls.js`, qué se leyó literalmente, qué se apartó de lo
+impreso y con qué prueba. Existe porque el hallazgo F-07 de la auditoría nació
+justamente de atribuir a Minitab un método que no era el suyo; la reparación no
+puede consistir en atribuirle ahora unas fórmulas sin poder enseñar de dónde
+vienen.
+
+**Fuentes.** Dos páginas de Minitab, versión es-mx, del Estudio R&R cruzado del
+sistema de medición, sección «Métodos y fórmulas»:
+
+- **Relaciones de la varianza en los intervalos de confianza.** Intervalos de
+  las **razones** (parte/total, gage/total, repetibilidad/total…). Es la que
+  contiene la maquinaria cuadrática y de la que sale el intervalo del %GRR.
+- **Componentes de la varianza en los intervalos de confianza.** Intervalos de
+  los **componentes** en unidades absolutas (mm², etc.). De aquí salen la tabla
+  de grados de libertad, el mapeo `MSParte = S₁²`, las reglas de truncamiento y
+  la definición de `G_qr`/`H_qr`.
+
+El método es de **Burdick & Graybill (1992)**, *Confidence Intervals on Variance
+Components*, y **Burdick, Borror & Montgomery (2005)**, *Design and Analysis of
+Gauge R&R Studies* (ASA-SIAM). Minitab los cita; no reimprime sus derivaciones.
+
+**Cómo se obtuvo.** Las fórmulas de esas páginas son imágenes PNG, no texto ni
+MathML, y el contenedor de desarrollo no tiene salida de red hacia
+`support.minitab.com`. Se transcribieron desde capturas de pantalla aportadas
+por el usuario, ampliando los tramos cortados por el desplazamiento horizontal.
+Cada apartado dice si se leyó completo o si quedó algo por confirmar.
+
+---
+
+## 1. Notación (leída verbatim)
+
+```
+H_q  = n_q / χ²_{α/2}(n_q) − 1
+G_q  = 1 − n_q / χ²_{1−α/2}(n_q)
+
+H_qr = { [1 − F_{α/2}(n_q,n_r)]² − H_q²·F²_{α/2}(n_q,n_r) − G_r² } / F_{α/2}(n_q,n_r)
+G_qr = { [F_{1−α/2}(n_q,n_r) − 1]² − G_q²·F²_{1−α/2}(n_q,n_r) − H_r² } / F_{1−α/2}(n_q,n_r)
+```
+
+`χ²_α` y `F_α` son el **percentil α·100**. Para límites unilaterales se
+reemplaza α/2 por α en H y G.
+
+```
+I = número de partes      J = número de operadores      K = número de réplicas
+
+Grados de libertad:  n₁ = I−1    n₂ = J−1    n₃ = (I−1)(J−1)    n₄ = IJ(K−1)
+Cuadrados medios:    MSParte = S₁²   MSOperador = S₂²   MSParte*Operador = S₃²
+                     MSRéplicas = S₄²        (ver errata 1)
+
+a = I     b = J     c = (IJ − I − J)     d = IJ(K−1)     e = I − 1
+```
+
+`e` no se usa en la razón parte/total; aparece en las «dos condiciones de
+existencia» de la razón repetibilidad/total, que no se han transcrito porque
+esta implementación no las necesita.
+
+> **Corrección a la versión anterior del documento técnico.** La reconstrucción
+> que se manejaba antes de tener esta página llevaba las colas de la F
+> **intercambiadas** (`G` con `F_α`, `H` con `F_{1−α}`). La estructura algebraica
+> era correcta; las colas no. Era exactamente el fallo que ese documento
+> señalaba como «causa candidata #1 de límites mal calibrados».
+
+**Invariante de control:** con esta convención `G_q ∈ (0,1)` y `H_q ≥ 0`. Si una
+implementación produce `G` fuera de ese rango o `H` negativo, tiene la cola de
+la χ² invertida. Se comprueba en `tests/tests-mls.js`.
+
+---
+
+## 2. Razón parte/total, método MLS (leída verbatim)
+
+### Límite inferior = (−B − √(B²−4AC)) / 2A
+
+```
+A = a²(1−G₁²)S₁⁴ + b²(1−H₂²)S₂⁴ + c²(1−H₃²)S₃⁴ + d²(1−H₄²)S₄⁴
+  + ab(2+G₁₂)S₁²S₂² + ac(2+G₁₃)S₁²S₃² + ad(2+G₁₄)S₁²S₄²
+  + 2bc·S₂²S₃² + 2bd·S₂²S₄² + 2cd·S₃²S₄²
+
+B = −2a(1−G₁²)S₁⁴ + 2c(1−H₃²)S₃⁴ − b(2+G₁₂)S₁²S₂² + a(2+G₁₃)S₁²S₃²
+  − c(2+G₁₃)S₁²S₃² − d(2+G₁₄)S₁²S₄² + 2b·S₂²S₃² + 2d·S₃²S₄²
+
+C = (1−G₁²)S₁⁴ + (1−H₃²)S₃⁴ − (2+G₁₃)S₁²S₃²
+```
+
+### Límite superior = (−B + √(B²−4AC)) / 2A
+
+```
+A = a²(1−H₁²)S₁⁴ + b²(1−G₂²)S₂⁴ + c²(1−G₃²)S₃⁴ + d²(1−G₄²)S₄⁴
+  + ab(2+H₁₂)S₁²S₂² + ac(2+H₁₃)S₁²S₃² + ad(2+H₁₄)S₁²S₄²
+  + bc(2−0.5H*₂₃)S₂²S₃² + bd(2−0.5H*₂₄)S₂²S₄² + cd(2−0.5H*₃₄)S₃²S₄²
+
+B = −2a(1−H₁²)S₁⁴ + 2c(1−G₃²)S₃⁴ − b(2+H₁₂)S₁²S₂² + a(2+H₁₃)S₁²S₃²
+  − c(2+H₁₃)S₁²S₃² − d(2+H₁₄)S₁²S₄² + b(2−0.5H*₂₃)S₂²S₃² + d(2−0.5H*₃₄)S₃²S₄²
+
+C = (1−H₁²)S₁⁴ + (1−G₃²)S₃⁴ − (2+H₁₃)S₁²S₃²
+```
+
+«Si B²−4AC < 0, no hay solución para la ecuación cuadrática. En este caso,
+Minitab utiliza el segundo método.»
+
+**Nota sobre la simetría.** El límite superior **no** es el inferior con G y H
+intercambiadas: coincide en los términos que tocan el índice 1, y difiere en los
+que no (`2bc` frente a `bc(2−0.5H*₂₃)`). Deducir uno del otro habría producido
+fórmulas incorrectas. Es la razón de que esta transcripción se hiciera término a
+término y no por simetría.
+
+**Variante sin término de interacción.** Es la misma fórmula con `d = 0` y
+`S₄² = 0`: los diez términos de `A` se reducen a los seis que Minitab imprime
+para esa variante. `mls.js` no tiene dos caminos de código porque no hay dos
+fórmulas.
+
+---
+
+## 3. Aproximación de Satterthwaite, el «segundo método» (leída verbatim)
+
+```
+L = γ̂₂ / (γ̂₃·F_{1−α/2}(m₁,m₃))
+    × ( γ̂₁/γ̂₂ − χ²_{1−α/2}(m₁)/m₁
+        + F_{1−α/2}(m₁,m₂)·[ χ²_{1−α/2}(m₁)/m₁ − F_{1−α/2}(m₁,m₂) ] / (γ̂₁/γ̂₂) )
+
+U = lo mismo con α/2 en los tres cuantiles.
+```
+
+```
+γ̂₁ = I·S₁²      m₁ = n₁
+γ̂₂ = I·S₃²      m₂ = n₃
+
+con interacción:  γ̂₃ = I·S₁² + J·S₂² + (IJ−I−J)S₃² + IJ(K−1)S₄²
+sin interacción:  γ̂₃ = I·S₁² + J·S₂² + (IJK−I−J)S₃²
+
+m₃ = γ̂₃² / ( (a·S₁²)²/n₁ + (b·S₂²)²/n₂ + (c·S₃²)²/n₃ + (d·S₄²)²/n₄ )
+```
+
+Aquí **no hay multiplicador**: `L` y `U` son ya la razón.
+
+**Control de coherencia.** Si todos los cuantiles valen 1, el paréntesis colapsa
+a `γ̂₁/γ̂₂ − 1` y `L` queda en `(γ̂₁−γ̂₂)/γ̂₃`, que es el estimador puntual de
+parte/total. Comprobado en las pruebas.
+
+---
+
+## 4. Reglas derivadas (leídas verbatim)
+
+```
+LI( gage/total ) = 1 − LS( parte/total )
+LS( gage/total ) = 1 − LI( parte/total )
+
+%Contribution   = 100 · razón
+%StudyVariation = 100 · √razón
+```
+
+Truncamiento, de la sección «Notación común y reglas»: los bordes de los
+componentes no pueden ser negativos y se fijan en cero; los de las razones deben
+quedar en [0,1] y se fijan en 0 o 1 según corresponda. El truncamiento va
+**antes** de la raíz cuadrada.
+
+---
+
+## 5. Erratas detectadas en la fuente
+
+Cada una con la comprobación que la demuestra. Ninguna se «arregló por
+parecido»: o hay álgebra que la decide, o se dejó como está y se anotó.
+
+| # | Dónde | Qué dice | Qué debe decir | Cómo se sabe |
+|---|---|---|---|---|
+| 1 | Notación, tabla de términos | `MSRéplicas = S₃⁴` | `MSRéplicas = S₄²` | Choca con `MSParte*Operador = S₃²` dos líneas antes, y con el uso de `S₄²` con `n₄` en todas las fórmulas |
+| 2 | IC de la varianza total | `σ̂²_Total = [I·S₁² + J·S₂² + (IJ−I−J)S₃² **−** IJ(K−1)S₄²] / IJK` | `+ IJ(K−1)S₄²` | Con `+` reproduce σ²_total exactamente contra los valores esperados de los cuadrados medios; con `−` da otra cosa. Y el `γ̂₃` del segundo método, en la misma página, lleva `+` |
+| 3 | Multiplicador de parte/total | «L es igual a **J** veces la solución más pequeña» | **I** veces | Con `G,H → 0` la cuadrática tiene raíz doble `D/W`; sólo `I·D/W` reproduce `σ²_parte/σ²_total`. Con `J` no. El mismo texto **sí** es correcto en la sección de reproducibilidad/operador, donde `J` es el multiplicador legítimo: es un copiar y pegar entre secciones. La página en-us dice «J times» igual, así que cotejar el inglés no lo habría cazado |
+| 4 | Parte/total, variante con interacción | No imprime multiplicador: da `(−B ± √(B²−4AC))/2A` a secas | Le falta el factor `I` | Mismo argumento que la 3 |
+| 5 | Coeficiente `c` | La tabla publica sólo `c = (IJ − I − J)` | Sin interacción, `c = (IJK − I − J)` | Lo confirma el `γ̂₃` impreso de la variante sin interacción. Ojo: `c` es un coeficiente de combinación lineal, **no** unos grados de libertad — sin interacción `n₃ = IJK−I−J+1`, que es otro número |
+| 6 | `C` del límite superior | Con interacción `(2+H₁₃)`; sin interacción `2(1+H₁₃)` | `(2+H₁₃)` en las dos | `2(1+H₁₃) ≠ (2+H₁₃)`. Se toma la forma simétrica de `C` del límite inferior, que lleva `(2+G₁₃)`. **El límite asintótico no discrimina** entre las dos lecturas (ambas tienden a 2), así que esto es una decisión razonada, no una demostración |
+| 7 | Término cruzado del límite superior | Con interacción `(2 − 0.5H*₂₃)`; sin interacción `(2 − H*₂₃)` | Sin resolver | Ocupan el mismo lugar estructural. Se implementa cada variante como está impresa. Con `H* = 0`, que es la elección por omisión, el punto es irrelevante |
+| 8 | Encabezado «Con término Operador» | `parte/total = 1 − (repetibilidad/total)` | Debería decir «**Sin** término Operador» | Esa identidad exige `σ²_total = σ²_parte + σ²_repetibilidad`, es decir sin operador y sin interacción. Con operador, `1 − repetibilidad/total` da `(parte+operador+interacción)/total` |
+| 9 | Reglas «1 − (…)» | `LI = 1 − (LI de …)`, `LS = 1 − (LS de …)` | Los límites se **intercambian** | `1 − x` es decreciente: tomado al pie de la letra devuelve un intervalo invertido |
+
+### Y una que no es errata de la fuente, sino de cómo leerla
+
+**La descripción «la solución más pequeña / más grande» no generaliza.** El
+texto describe los límites así, pero además imprime las dos fórmulas cerradas.
+Las dos descripciones coinciden **sólo si A > 0**, y `A` se vuelve negativa en
+cuanto hay pocos operadores: con `J = 3` son 2 grados de libertad, `H₂` pasa de
+38 y el término `b²(1−H₂²)S₂⁴` arrastra `A` por debajo de cero. Medido sobre el
+conjunto AIAG de 10×3×3, con el GPQ como tercero independiente:
+
+```
+min/max          %GRR [ 0.0, 100.0]   <- inservible, todo contra los topes
+fórmula impresa  %GRR [14.7,  81.4]
+GPQ              %GRR [14.9,  81.7]
+```
+
+Se implementa la fórmula. El texto describe el caso `A > 0`.
+
+---
+
+## 6. La constante no publicada: `H*`
+
+`H*_qr` aparece en el límite superior de parte/total y **no está definida en
+ninguna de las dos páginas de notación de Minitab**. Las dos definen `H_q`,
+`G_q`, `H_qr` y `G_qr`, y nada más. Tampoco aparece en el documento técnico de
+referencia. Es una laguna documental real, no un descuido de la transcripción.
+
+**Dónde cae el hueco, que es lo que decide su gravedad:**
+
+```
+%GRR superior = 100·√( 1 − LI(parte/total) )   ← sólo G y G_qr. Sin H*.
+%GRR inferior = 100·√( 1 − LS(parte/total) )   ← depende de H*.
+```
+
+El límite **superior** del %GRR, que es el que decidiría si un gage se rechaza,
+sale del límite **inferior** de parte/total, enteramente publicado. El hueco
+afecta sólo al límite inferior, que es informativo.
+
+**Cómo se eligió.** Por cobertura medida, no por parecido tipográfico. Como `H*`
+sólo mueve un extremo, la cobertura global no distingue entre candidatos: lo que
+discrimina es la tasa de fallo **por debajo**, que al 95 % bilateral debe valer
+2.50 %. Un candidato muy por debajo regala anchura; uno por encima miente sobre
+su propia confianza. Con 3 000 estudios por caso (`node tests/mls-cobertura.js`):
+
+| caso | razón real | `H*=0` | `H*=H_qr` | `H*=H_q·H_r` |
+|---|---|---|---|---|
+| 10×3×3 con interacción | 8.00 % | **2.70 %** | 5.53 % | 0.17 % |
+| 10×3×3 sin interacción | 6.76 % | **2.60 %** | 5.23 % | 0.10 % |
+| 5×3×2 estudio chico | 2.16 % | **3.17 %** | 5.50 % | 0.03 % |
+| 25×4×3 estudio grande | 2.54 % | **2.63 %** | 3.10 % | 0.27 % |
+| 10×3×3 gage malo | 26.20 % | **2.37 %** | 7.37 % | 0.10 % |
+| 25×4×3 gage pésimo | 53.92 % | **3.20 %** | 4.30 % | 0.03 % |
+
+`H* = 0` es el único que se mantiene cerca del 2.50 % nominal. `H_qr` es
+claramente anticonservador — hasta 7.37 % donde debería haber 2.50 %, o sea un
+intervalo que dice 95 % y entrega bastante menos. El producto `H_q·H_r` es tan
+conservador que el límite inferior deja de informar de nada.
+
+**Con `H* = 0` el término degenera en el mismo `2bc` pelado que lleva el límite
+inferior**, que es además la lectura que no inventa una corrección desconocida,
+y vuelve irrelevante la errata 7.
+
+Esto queda **abierto**: si algún día se consigue Burdick & Graybill (1992) o
+BBM (2005) cap. 3-4, hay que cotejar `H*_qr` y rehacer la medición. La elección
+actual es empírica y está rotulada como tal en `mls.js` y en la interfaz.
+
+---
+
+## 7. Validación de la implementación
+
+Cuatro comprobaciones independientes, en `tests/tests-mls.js` y
+`tests/mls-cobertura.js`:
+
+1. **Límite sin incertidumbre.** Con grados de libertad enormes, `G,H → 0`, la
+   cuadrática degenera en raíz doble y el intervalo colapsa sobre el estimador
+   puntual. Es la prueba que fijó el multiplicador `I`.
+2. **Concordancia con un tercero independiente.** El GPQ es otro método
+   publicado, con otra matemática. Anchuras medianas del intervalo del %GRR
+   sobre los mismos estudios:
+
+   | diseño | MLS | GPQ |
+   |---|---|---|
+   | 10×3×3 con interacción | 43.3 pp | 43.5 pp |
+   | 10×3×3 sin interacción | 40.9 pp | 40.4 pp |
+   | 10×4×3 | 29.9 pp | 30.8 pp |
+   | 10×5×3 | 26.6 pp | 27.2 pp |
+   | 25×4×4 | 21.9 pp | 21.2 pp |
+
+   Ningún intervalo tocando los topes de truncamiento. Ésta es la prueba que
+   cazó la regla de selección de raíz.
+3. **Cobertura.** Al 95 % nominal, la cobertura medida queda en torno al 96 %
+   (conservadora, como se espera del MLS), con las tasas de fallo por cola de la
+   tabla anterior.
+4. **Invariantes de rango** de `G` y `H`, que delatan una cola de χ² invertida.
+
+**Lo que estas validaciones no dicen.** Todas simulan datos con el mismo modelo
+que el método asume: normales, balanceados, efectos aleatorios independientes.
+Validan la aritmética del intervalo, no su comportamiento fuera del modelo. Y
+ninguna es una comparación contra una salida real de Minitab, que sigue siendo
+la prueba que faltaría para cerrar el asunto del todo.
+
+---
+
+## 8. Lo que queda pendiente
+
+- **El modelo anidado.** Minitab lo documenta en páginas propias que no se han
+  transcrito. El anidado sigue usando GPQ y sigue rotulado como experimental.
+  Aquí vive también la sub-cobertura del 86-88 % registrada como limitación 3 de
+  la auditoría.
+- **`H*_qr`**, según lo dicho arriba.
+- **Las «dos condiciones de existencia»** de la razón repetibilidad/total, que
+  esta implementación no necesita pero completarían la transcripción.
+- **El intervalo de %Tolerance**, cuyo denominador no es `V_Total` y por tanto no
+  se deriva de esta razón.
+- **Un cotejo contra una corrida real de Minitab** sobre el conjunto AIAG.

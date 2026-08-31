@@ -942,13 +942,16 @@
   };
 
   /* F-07. QUIEN DICTAMINA ES LA ESTIMACION PUNTUAL, con las bandas AIAG de
-     `assess`. El intervalo acompana, se rotula como experimental y no emite
-     ninguna categoria: la politica que clasificaba por el intervalo esta
-     retirada (el porque, en la cabecera de interval.js). */
+     `assess`. El intervalo acompana y no emite ninguna categoria: la politica
+     que clasificaba por el intervalo esta retirada (el porque, en la cabecera
+     de interval.js). La coletilla "(experimental)" la lleva solo el metodo que
+     lo es -el GPQ del anidado-, no el MLS del cruzado. */
   function intervalLine(iv) {
-    if (!iv || iv.lo === null || iv.hi === null || !state.result.interval) return '';
-    return '<div class="ci">IC ' + Math.round(100 * state.result.interval.conf) + ' %: ' +
-      iv.lo.toFixed(2) + ' - ' + iv.hi.toFixed(2) + ' % <em>(experimental)</em></div>';
+    var full = state.result.interval;
+    if (!iv || iv.lo === null || iv.hi === null || !full) return '';
+    return '<div class="ci">IC ' + Math.round(100 * full.conf) + ' %: ' +
+      iv.lo.toFixed(2) + ' - ' + iv.hi.toFixed(2) + ' %' +
+      (full.experimental ? ' <em>(experimental)</em>' : '') + '</div>';
   }
 
   /* Umbrales de %Contribucion: son varianzas, no desviaciones, asi que la
@@ -1022,8 +1025,7 @@
              Math.round(100 * iv.conf) + ' % de la razon V_GRR / V_Total, en % Study Variation' +
              '</span><span class="grr-v">' + iv.studyVar.lo.toFixed(2) + ' % a ' +
              iv.studyVar.hi.toFixed(2) + ' %</span></div>');
-      h.push('<p class="grr-note">Intervalo GPQ experimental, en validacion. ' +
-             'No utilizado para el dictamen.</p>');
+      h.push('<p class="grr-note">' + esc(iv.statusLabel || '') + '</p>');
       if (r.intervalCross) h.push('<p class="grr-warn">' + esc(r.intervalCross.label) + '</p>');
     }
     h.push('<div class="grr-row"><span class="grr-k">% Contribucion equivalente</span>' +

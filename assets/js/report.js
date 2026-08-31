@@ -183,10 +183,10 @@
     rows.push(['% Study Variation (GRR)',
       numOr(r.metrics && r.metrics.pctStudyVar, 2, ' %')]);
     /* F-07. Primero el dictamen, que sale de la ESTIMACION PUNTUAL, y despues
-       el intervalo, rotulado como experimental. El orden importa: un reporte
-       que abre con un intervalo invita a decidir con el, y este intervalo no
-       esta validado contra ninguna referencia externa. Si no se pudo calcular,
-       las filas desaparecen -- no se imprime un intervalo vacio. */
+       el intervalo, con el nombre de su metodo. El orden importa: un reporte
+       que abre con un intervalo invita a decidir con el, y decidir no es lo
+       que este intervalo hace. Si no se pudo calcular, las filas desaparecen
+       -- no se imprime un intervalo vacio. */
     if (r.assessment && r.assessment.studyVar) {
       rows.push(['Evaluacion AIAG basada en la estimacion puntual',
         textOr(r.assessment.studyVar.label)]);
@@ -195,8 +195,11 @@
       rows.push(['IC ' + Math.round(100 * r.interval.conf) + ' % de la razon V_GRR / V_Total, ' +
         'en % Study Variation',
         numOr(r.interval.studyVar.lo, 2, ' %') + ' a ' + numOr(r.interval.studyVar.hi, 2, ' %')]);
+      /* El rotulo viene dentro del propio intervalo, puesto por interval.js:
+         pantalla y papel nombran el mismo metodo porque leen el mismo dato. */
       rows.push(['Estado del intervalo',
-        'Intervalo GPQ experimental, en validacion. No utilizado para el dictamen.']);
+        textOr(r.interval.statusLabel ||
+               'Intervalo experimental. No utilizado para el dictamen.')]);
       if (r.intervalCross) rows.push(['Advertencia del intervalo', textOr(r.intervalCross.label)]);
     }
     rows.push(['% Contribucion equivalente',

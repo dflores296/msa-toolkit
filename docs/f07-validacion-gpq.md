@@ -1,9 +1,23 @@
 # F-07 — Validación del intervalo de confianza del %GRR
 
-**Estado: `C` — el GPQ es una implementación experimental y no dictamina.**
-La política de veredicto **ya se corrigió** (§13). Lo que falta para cerrar F-07
-es sustituir el GPQ por **MLS con alternativa Satterthwaite** sobre la razón, y
-validar contra la referencia publicada. **F-07 sigue abierta.**
+> **ACTUALIZACIÓN (posterior a todo lo que sigue). El MLS ya está implementado
+> para el modelo cruzado**, con la aproximación de Satterthwaite como
+> alternativa, transcrito de las páginas de Minitab. La transcripción, las
+> erratas de la fuente y la validación están en
+> [`mls-transcripcion.md`](mls-transcripcion.md); el módulo, en
+> `assets/js/mls.js`.
+>
+> **Lo que este documento sigue describiendo correctamente:** el GPQ, que es lo
+> que ahora usa **sólo el modelo anidado** y sigue siendo experimental; y las
+> mediciones que retiraron la política de dictaminar por intervalo, que siguen
+> vigentes porque son geométricas y no dependen del método.
+>
+> **Lo que ha quedado obsoleto:** todo lo que aquí se lee como «el cruzado usa
+> GPQ» o «falta implementar MLS». Ya no es así en el cruzado.
+
+**Estado: el GPQ es experimental y no dictamina; ahora vive sólo en el anidado.**
+La política de veredicto se corrigió en su momento (§13). **F-07 queda cerrada
+en el modelo cruzado y abierta en el anidado.**
 
 > **Corrección de fondo respecto a la primera versión de este documento.** El
 > §4 de la versión original concluía que el intervalo de la razón «no tiene

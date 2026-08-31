@@ -24,7 +24,7 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
 | F-05 · Reporte con datos nuevos y tablas viejas | P1 | **Cerrado** | este commit |
 | F-06 · Atributos 0/1 → ANOVA de variables | P1 | **Cerrado** | este commit |
-| F-07 · %GRR sin intervalo de confianza | P1 | **REABIERTO — en validación** | `0105a08` |
+| F-07 · %GRR sin intervalo de confianza | P1 | **CERRADO en el cruzado — abierto en el anidado** | `0105a08` |
 | F-14 · Inyección de fórmulas en el CSV exportado | P1 | Pendiente | — |
 | F-15 · «Validado contra AIAG» afirmado para los tres métodos | P1 | Pendiente | — |
 | F-08 · `__proto__` como nombre → NaN silencioso | P2 | Pendiente | — |
@@ -193,7 +193,32 @@ veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
 
-### F-07 — Un punto sin intervalo decidía la aceptación · `0105a08` → `55c921f` · **EN VALIDACIÓN**
+### F-07 — Un punto sin intervalo decidía la aceptación · `0105a08` → `55c921f` · **CERRADO EN EL CRUZADO**
+
+> **ACTUALIZACIÓN. El bloqueo de fuente se levantó y el MLS está implementado
+> para el modelo cruzado.** Las fórmulas se transcribieron desde capturas de las
+> páginas de Minitab aportadas por el usuario, no desde la red. El registro
+> completo —qué se leyó verbatim, las **nueve erratas** encontradas en la fuente,
+> los tres puntos donde la implementación se aparta de lo impreso y con qué
+> álgebra, y la constante `H*` que Minitab usa sin definir— está en
+> [`docs/mls-transcripcion.md`](mls-transcripcion.md). El módulo es
+> `assets/js/mls.js`; las pruebas, `tests/tests-mls.js`; la evidencia
+> regenerable, `tests/mls-cobertura.js`.
+>
+> **Lo que sigue abierto:** el MLS del modelo **anidado**, que necesita
+> transcribir las páginas propias de Minitab para ese diseño y donde vive la
+> sub-cobertura del 86-88 % registrada como limitación 3. El anidado sigue
+> usando GPQ y sigue rotulado como experimental. También sigue abierta la
+> constante `H*`, resuelta empíricamente por cobertura y no por fuente.
+>
+> **Lo que NO cambió:** el intervalo sigue sin dictaminar. Los dos motivos por
+> los que se retiró esa política son geométricos y ajenos al método —la banda
+> condicional mide 20 pp y muchos intervalos son más anchos, y la conclusividad
+> dependía de la distancia del gage al umbral y no de la calidad del estudio—,
+> así que tener ya el método publicado no los arregla.
+
+<details>
+<summary>Registro del estado anterior, cuando F-07 estaba bloqueada por la fuente</summary>
 
 > **F-07 NO está cerrada.** La revisión metodológica completa está en
 > [`docs/f07-validacion-gpq.md`](f07-validacion-gpq.md). Este recuadro es el
@@ -381,6 +406,8 @@ cae cerca de una frontera.
 resultado. La regresión visual lo confirma: `panelComponentes`, `panelAnova`,
 `csv` y el anexo salen idénticos; cambian solo las tarjetas, los avisos y el
 encabezado impreso, que es donde entra el intervalo.
+
+</details>
 
 ### F-06 — Un pasa/no pasa codificado 0/1 se analizaba como variables · este commit
 

@@ -120,10 +120,20 @@ async function capture(browser, port, tag, outDir) {
                 (x.querySelector('.t') || {}).textContent || ''].join(' | ');
       });
     }),
+    /* La linea del intervalo dentro de cada tarjeta, y el bloque de resumen del
+       %GRR entero -intervalo, nombre del metodo y advertencia de cruce-.
+       Estaban fuera de la comparacion: `veredictos` solo mira .k, .v y .t, asi
+       que un cambio de metodo del intervalo pasaba sin que esta herramienta
+       dijera nada. Se vio al medir F-07, donde el reporte impreso salia
+       DISTINTO y la pantalla decia igual aunque tambien habia cambiado. */
+    intervalosTarjeta: await page.$$eval('.verdict .ci', function (els) {
+      return els.map(function (x) { return x.textContent.replace(/\s+/g, ' ').trim(); });
+    }),
     barrasEvaluacion: await page.$$eval('.eval-row', function (els) {
       return els.map(function (x) { return x.textContent.replace(/\s+/g, ' ').trim(); });
     }),
     avisos: await txt('#resultMsg'),
+    bloqueGrr: await txt('#grrSummary'),
     conteoCaptura: await txt('#captureCount'),
     // El panel entero, no cada id: asi la comparacion sobrevive a que un
     // parrafo pase de estar escrito en el HTML a llenarse desde el JS.

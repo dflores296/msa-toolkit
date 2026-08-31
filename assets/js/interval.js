@@ -1,77 +1,94 @@
 /* ============================================================================
- * interval.js - Intervalo de confianza del %GRR. Metodo GPQ.
+ * interval.js - Intervalo de confianza de la razon V_GRR / V_Total.
  *
- * POR QUE EXISTE ESTE ARCHIVO
+ * ESTADO: IMPLEMENTACION EXPERIMENTAL. NO DICTAMINA.
  *
- * F-07 de la auditoria. La aplicacion publicaba un %GRR puntual con un
- * veredicto categorico. Ni AIAG MSA 4a ed. ni Minitab tratan ese numero como
- * exacto: los dos ofrecen intervalos, precisamente porque con 90 mediciones la
- * incertidumbre del %GRR es enorme. Reproducido antes de escribir nada:
+ * QUE ES ESTE ARCHIVO Y QUE NO ES
+ *
+ * Implementa un intervalo por GPQ (generalized pivotal quantity). El GPQ es un
+ * metodo estadistico publicado -inferencia generalizada, Weerahandi- y es una
+ * implementacion EXPERIMENTAL DE ESTA APLICACION.
+ *
+ * NO es "el metodo de Minitab". Minitab documenta, para los intervalos de
+ * razones de varianza, el metodo MLS (Modified Large Sample) como metodo
+ * principal, y utiliza Satterthwaite u otra aproximacion publicada cuando no
+ * se cumplen las condiciones del metodo principal. Este archivo no implementa
+ * ninguno de los dos. Una version anterior de este comentario afirmaba que el
+ * GPQ era el metodo de Minitab y que el 90 % era su nivel por omision: las dos
+ * afirmaciones eran falsas y estan retiradas. Ver docs/f07-validacion-gpq.md.
+ *
+ * POR QUE SIGUE EXISTIENDO UN INTERVALO
+ *
+ * Porque el %GRR puntual de un estudio de 90 mediciones tiene una
+ * incertidumbre grande y publicarlo solo invita a leerlo como exacto:
  *
  *   12 estudios simulados 10x3x3 del MISMO sistema (sigma_ms/sigma_pieza = 0.30)
  *     %GRR: 38.8 21.4 21.7 40.7 31.4 36.0 30.3 44.8 23.5 20.4 25.6 29.9
- *     rango 20.4 % a 44.8 %  ->  el mismo gage cae a los dos lados del 30 %
+ *     rango 20.4 % a 44.8 %  ->  el mismo gage a los dos lados del 30 %
  *
- *   300 estudios 3op x 5piezas x 2rep de un sistema BUENO (0.15)
- *     24/300 declarados "Inaceptable"  ->  8 % de rechazos falsos
+ * El intervalo se muestra para que esa nube se vea. Lo que NO hace es decidir.
  *
- * El punto no es que el calculo este mal: es que se publica un punto donde hay
- * una nube, y el veredicto se decide en el punto.
+ * QUE CAMBIO, Y POR QUE
  *
- * EL METODO, Y POR QUE ESTE
+ * Hasta F-07 este archivo clasificaba: si el intervalo entero caia en una
+ * banda emitia "Aceptable", "Marginal" o "Inaceptable", y si cruzaba un umbral
+ * emitia "No concluyente". Esa politica esta RETIRADA por dos motivos medidos:
  *
- * GPQ (generalized pivotal quantity), que es el que usa Minitab para los
- * intervalos de Gage R&R. La idea cabe en tres lineas:
+ *   1. La banda condicional [10 %, 30 %] mide 20 pp. Un intervalo mas ancho
+ *      que 20 pp no cabe en ella POR GEOMETRIA, con cualquier dato. Medido: un
+ *      10x3x3 con %GRR real 14.7 % tiene un IC medio de 20.8 pp y concluia el
+ *      10 % de las veces; un 5x3x2, 27.8 pp, y concluia el 0 %. La etiqueta
+ *      condicional era inalcanzable en los disenos que AIAG recomienda.
+ *   2. La conclusividad dependia de la distancia del gage al umbral, no de la
+ *      calidad del estudio. Medido a %GRR real 28.5 % (1.5 pp del umbral de
+ *      30 %), tres disenos muy distintos concluian igual de poco: 5x3x2 el
+ *      7 %, 10x3x3 el 8 %, 25x4x4 el 9 %. El mismo 25x4x4 concluia el 82 % a
+ *      %GRR 5.4 %. La regla premiaba la suerte del gage, no el rigor.
  *
- *   1. En un modelo balanceado de efectos aleatorios, cada cuadrado medio es
- *      independiente de los demas y cumple  MS_i * df_i / sigma2_i ~ chi2_df_i.
- *   2. Luego  MS_i * df_i / W_i,  con W_i ~ chi2_df_i simulada, es una
- *      cantidad pivotal generalizada para el sigma2_i que produjo ese MS_i.
- *   3. Se simulan muchos juegos de MS, se recalculan los componentes CON LAS
- *      MISMAS FORMULAS del motor -truncado de negativos incluido- y se toman
- *      los percentiles del %GRR resultante.
+ * Ademas, la razon que ese veredicto usaba no esta validada contra ninguna
+ * referencia externa. Un metodo sin validar no dictamina.
  *
- * La alternativa clasica es MLS (Graybill-Wang). GPQ se eligio porque no
- * necesita una formula distinta por cada cantidad derivada: %Study Variation,
- * %Contribucion y %Tolerance salen del mismo juego de simulaciones, y el
- * truncado de componentes negativos -que es parte del estimador y le mueve la
- * distribucion- queda dentro del pivote en vez de ignorarse.
+ * QUIEN DICTAMINA AHORA: la evaluacion puntual AIAG, en anova.js (`assess`).
+ * Este archivo solo aporta un intervalo informativo y, cuando cruza un limite
+ * de evaluacion, una advertencia de lectura. No emite categorias.
  *
- * COMO SE VALIDA
+ * UN SOLO INTERVALO, DOS ESCALAS
  *
- * No hay tabla publicada que copiar aqui, asi que no se copia ninguna: se
- * comprueba lo unico que un intervalo promete, que es su COBERTURA. En
- * tests-interval.js se simulan estudios de un sistema con %GRR verdadero
- * conocido y se cuenta cuantas veces el intervalo lo contiene. Si la formula
- * estuviera mal, la cobertura se iria del nominal y la prueba caeria. Es una
- * validacion mas fuerte que reproducir un numero suelto.
+ * Se simula la RAZON  R = V_GRR / V_Total  y de ella salen las dos metricas:
  *
- * DETERMINISTA
+ *     %Contribution   = 100 * R
+ *     %StudyVariation = 100 * sqrt(R)
  *
- * La semilla sale de los propios datos, asi que el mismo estudio da siempre el
- * mismo intervalo: dos personas con el mismo archivo leen el mismo reporte, y
- * la herramienta de regresion visual puede comparar pixel a pixel.
+ * No son dos pruebas independientes: son la misma razon en dos escalas, y por
+ * eso se derivan del mismo intervalo. Calcularlas por separado permitia que se
+ * contradijeran, que es exactamente lo que pasaba antes.
+ *
+ * %Tolerance NO tiene intervalo. Su denominador es la tolerancia de
+ * especificacion, no V_Total, asi que no es una transformacion de R y no se
+ * puede derivar de aqui. Queda su resultado puntual, y el intervalo pendiente
+ * de referencia validada.
+ *
+ * LO QUE FALTA PARA QUE ESTO DICTAMINE
+ *
+ * Implementar MLS como metodo principal y Satterthwaite como alternativa,
+ * siguiendo las formulas publicadas para el modelo correspondiente, y validar
+ * contra ellas. Mientras tanto este intervalo se rotula como experimental en
+ * pantalla y en el reporte, y no participa del dictamen ni sirve de respaldo
+ * silencioso de nada.
  *
  * Sin dependencias. Sin DOM. Reutilizable desde los tests.
  * ==========================================================================*/
 (function (global) {
   'use strict';
 
-  var DRAWS = 4000;          // suficiente para percentiles estables
-  /* 90 % es el valor por omision de Minitab para los intervalos de Gage R&R, y
-     es el que se usa aqui por lo mismo: al 95 % el intervalo de un estudio
-     10x3x3 tipico es tan ancho que casi ningun estudio concluye, y un veredicto
-     que nunca se emite no ayuda a nadie. Medido, sobre un gage excelente
-     (%GRR real 5.4 %): concluye el 18 % de las veces al 95 % y el 44 % al 90 %. */
-  var DEFAULT_CONF = 0.90;
+  var DRAWS = 4000;
 
-  /* Piso de tamano del estudio (F-07). NO es lo mismo que el intervalo, y por
-     eso existen los dos: el intervalo mide la incertidumbre de muestreo DENTRO
-     del modelo; este piso cubre una que el modelo no ve, la de haber elegido
-     5 piezas que probablemente no cubren el rango del proceso. Medido: con
-     solo el intervalo, un 5x3x2 sigue concluyendo el 24-51 % de las veces, asi
-     que el piso no es redundante. Bloquea el VEREDICTO, nunca el calculo. */
-  var MIN_MEASUREMENTS = 60;
+  /* 95 % es el valor por omision. Es el nivel convencional para intervalos de
+     confianza y el que la documentacion de Minitab describe como el que
+     normalmente funciona bien; no se elige por cuantas veces deja concluir,
+     que no es un criterio estadistico. */
+  var DEFAULT_CONF = 0.95;
+  var CONF_LEVELS = [0.90, 0.95, 0.99];
 
   /* --- Aleatoriedad reproducible ---------------------------------------- */
 
@@ -159,18 +176,14 @@
     }
   };
 
-  /** De componentes a las tres cifras que se publican. */
-  function metricsOf(c, k, tolerance) {
+  /** De componentes a la razon R = V_GRR / V_Total, acotada a [0, 1]. */
+  function ratioOf(c) {
     var part = Math.max(0, c.part);
-    var grr = c.rep + c.repro;
+    var grr = Math.max(0, c.rep + c.repro);
     var total = grr + part;
-    var sdGrr = Math.sqrt(Math.max(0, grr)), sdTotal = Math.sqrt(Math.max(0, total));
-    return {
-      pctStudyVar: sdTotal > 0 ? 100 * sdGrr / sdTotal : 0,
-      pctContribution: total > 0 ? 100 * grr / total : 0,
-      pctTolerance: tolerance ? 100 * (k * sdGrr * (tolerance.oneSided ? 0.5 : 1)) / tolerance.width
-                              : null
-    };
+    if (!(total > 0)) return 0;
+    var r = grr / total;
+    return r < 0 ? 0 : (r > 1 ? 1 : r);
   }
 
   function percentile(sorted, q) {
@@ -180,7 +193,7 @@
   }
 
   /* ------------------------------------------------------------------------
-   * forResult(result, options) -> { conf, draws, studyVar:{lo,hi}, ... } | null
+   * forResult(result, options) -> { conf, draws, ratio, contribution, studyVar }
    *
    * Lee la tabla ANOVA del propio resultado, asi que no hace falta tocar los
    * motores: cualquiera de los dos que publique `anova` y `design` sirve.
@@ -213,14 +226,12 @@
     };
     if (!(d.o > 1) || !(d.p > 1) || !(d.r > 1)) return null;
 
-    var k = result.studyVarMultiplier || 6;
-    var tol = result.toleranceInfo || null;
     var conf = options.conf || DEFAULT_CONF;
     var draws = options.draws || DRAWS;
     var alpha = (1 - conf) / 2;
 
     var u = rng(options.seed !== undefined ? options.seed : seedFrom(sources));
-    var sv = [], contrib = [], ptol = [];
+    var ratios = [];
     var ms = {};
     for (var b = 0; b < draws; b++) {
       var ok = true;
@@ -231,75 +242,58 @@
         ms[s.name] = s.ms * s.df / w;
       }
       if (!ok) continue;
-      var m = metricsOf(spec.build(ms, d), k, tol);
-      if (!isFinite(m.pctStudyVar)) continue;
-      sv.push(m.pctStudyVar);
-      contrib.push(m.pctContribution);
-      if (m.pctTolerance !== null) ptol.push(m.pctTolerance);
+      var r = ratioOf(spec.build(ms, d));
+      if (!isFinite(r)) continue;
+      ratios.push(r);
     }
-    if (sv.length < draws / 2) return null;      // demasiados descartes: no se publica
+    if (ratios.length < draws / 2) return null;      // demasiados descartes
 
-    var asc = function (a, b) { return a - b; };
-    sv.sort(asc); contrib.sort(asc); ptol.sort(asc);
+    ratios.sort(function (a, b2) { return a - b2; });
+    var lo = percentile(ratios, alpha), hi = percentile(ratios, 1 - alpha);
 
+    /* Las dos metricas salen de ESTE intervalo, no de dos simulaciones
+       distintas. La raiz es monotona creciente, asi que conserva el orden de
+       los limites y no hace falta reordenarlos. */
     return {
       method: 'GPQ',
+      experimental: true,
       conf: conf,
-      draws: sv.length,
-      studyVar:     { lo: percentile(sv, alpha),      hi: percentile(sv, 1 - alpha) },
-      contribution: { lo: percentile(contrib, alpha), hi: percentile(contrib, 1 - alpha) },
-      tolerance: ptol.length ? { lo: percentile(ptol, alpha), hi: percentile(ptol, 1 - alpha) } : null
+      draws: ratios.length,
+      ratio:        { lo: lo, hi: hi },
+      contribution: { lo: 100 * lo, hi: 100 * hi },
+      studyVar:     { lo: 100 * Math.sqrt(lo), hi: 100 * Math.sqrt(hi) }
     };
   }
 
   /* ------------------------------------------------------------------------
-   * classify(interval, thresholds) - el veredicto sale del INTERVALO
+   * crossings(iv, thresholds) - que limites de evaluacion cruza el intervalo
    *
-   * Es el cambio que pide F-07. Un %GRR de 26 % con intervalo [18, 44] no es
-   * "marginal": es un estudio que no alcanza a decidir, y decirlo cambia lo
-   * que hace quien lo lee -- repetir el estudio con mas piezas, en vez de
-   * firmar. Solo se publica un veredicto cuando el intervalo ENTERO cae en una
-   * banda; si cruza un umbral, el veredicto es "no concluyente" y se dice cual
-   * cruza.
+   * NO clasifica. No devuelve "Aceptable", "Marginal", "Inaceptable" ni "No
+   * concluyente": esa politica esta retirada (ver cabecera). Devuelve solo los
+   * limites que el intervalo cruza, para poder advertir al lector de que la
+   * clasificacion puntual cae cerca de una frontera.
+   *
+   * Devuelve null si no cruza ninguno.
    * ----------------------------------------------------------------------*/
-  function classify(iv, thresholds, n) {
+  function crossings(iv, thresholds) {
     if (!iv || iv.lo === null || iv.hi === null) return null;
-    if (n !== undefined && n !== null && n < MIN_MEASUREMENTS) {
-      return {
-        level: 'unknown', conclusive: false, tooSmall: true,
-        label: 'Sin veredicto: ' + n + ' mediciones, por debajo de las ' + MIN_MEASUREMENTS +
-               ' que hacen falta para firmar. El calculo y el intervalo siguen abajo; lo que no ' +
-               'se publica es la decision. Ademas del muestreo, con tan pocas piezas es dudoso ' +
-               'que cubran el rango del proceso, y eso el intervalo no lo mide.'
-      };
-    }
     var t = thresholds || { good: 10, bad: 30 };
-    var band = function (x) { return x < t.good ? 'ok' : (x <= t.bad ? 'warn' : 'bad'); };
-    var lo = band(iv.lo), hi = band(iv.hi);
-    var fmt = function (x) { return x.toFixed(2); };
-    var rango = '[' + fmt(iv.lo) + ' %, ' + fmt(iv.hi) + ' %]';
-
-    if (lo === hi) {
-      return {
-        level: lo, conclusive: true,
-        label: (lo === 'ok' ? 'Aceptable' : lo === 'warn' ? 'Marginal' : 'Inaceptable') +
-               ', con el intervalo entero en la banda ' + rango
-      };
-    }
     var cruza = [];
-    if (iv.lo < t.good && iv.hi >= t.good) cruza.push(t.good + ' %');
-    if (iv.lo <= t.bad && iv.hi > t.bad) cruza.push(t.bad + ' %');
+    if (iv.lo < t.good && iv.hi > t.good) cruza.push(t.good);
+    if (iv.lo < t.bad && iv.hi > t.bad) cruza.push(t.bad);
+    if (!cruza.length) return null;
     return {
-      level: 'unknown', conclusive: false,
       crosses: cruza,
-      label: 'No concluyente: el intervalo ' + rango + ' cruza el umbral de ' + cruza.join(' y ') +
-             '. El estudio no alcanza a decidir; repite con mas piezas o mas replicas.'
+      label: 'El intervalo de confianza cruza ' +
+             (cruza.length > 1 ? 'los limites de evaluacion de ' : 'el limite de evaluacion de ') +
+             cruza.map(function (x) { return x + ' %'; }).join(' y ') +
+             '. Interpreta la clasificacion puntual con precaucion.'
     };
   }
 
   global.MSAInterval = {
-    forResult: forResult, classify: classify,
-    DRAWS: DRAWS, DEFAULT_CONF: DEFAULT_CONF, MIN_MEASUREMENTS: MIN_MEASUREMENTS,
-    _rng: rng, _chi2: chi2, _percentile: percentile
+    forResult: forResult, crossings: crossings,
+    DRAWS: DRAWS, DEFAULT_CONF: DEFAULT_CONF, CONF_LEVELS: CONF_LEVELS,
+    _rng: rng, _chi2: chi2, _percentile: percentile, _seedFrom: seedFrom
   };
 })(typeof window !== 'undefined' ? window : globalThis);

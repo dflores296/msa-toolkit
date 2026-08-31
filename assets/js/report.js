@@ -182,15 +182,26 @@
       : NO_EVAL]);
     rows.push(['% Study Variation (GRR)',
       numOr(r.metrics && r.metrics.pctStudyVar, 2, ' %')]);
-    /* F-07. El intervalo va en el encabezado, no en una nota al pie: es la
-       cifra con la que se decide, y un reporte que solo imprime el punto
-       invita a tratarlo como exacto. Si no se pudo calcular, la fila
-       desaparece -- no se imprime un intervalo vacio. */
-    if (r.interval && r.interval.studyVar && r.interval.studyVar.lo !== null) {
-      rows.push(['IC ' + Math.round(100 * r.interval.conf) + ' % del %GRR (' + r.interval.method + ')',
-        numOr(r.interval.studyVar.lo, 2, ' %') + ' a ' + numOr(r.interval.studyVar.hi, 2, ' %')]);
+    /* F-07. Primero el dictamen, que sale de la ESTIMACION PUNTUAL, y despues
+       el intervalo, rotulado como experimental. El orden importa: un reporte
+       que abre con un intervalo invita a decidir con el, y este intervalo no
+       esta validado contra ninguna referencia externa. Si no se pudo calcular,
+       las filas desaparecen -- no se imprime un intervalo vacio. */
+    if (r.assessment && r.assessment.studyVar) {
+      rows.push(['Evaluacion AIAG basada en la estimacion puntual',
+        textOr(r.assessment.studyVar.label)]);
     }
-    if (r.intervalVerdict) rows.push(['Veredicto por el intervalo', textOr(r.intervalVerdict.label)]);
+    if (r.interval && r.interval.studyVar && r.interval.studyVar.lo !== null) {
+      rows.push(['IC ' + Math.round(100 * r.interval.conf) + ' % de la razon V_GRR / V_Total, ' +
+        'en % Study Variation',
+        numOr(r.interval.studyVar.lo, 2, ' %') + ' a ' + numOr(r.interval.studyVar.hi, 2, ' %')]);
+      rows.push(['Estado del intervalo',
+        'Intervalo GPQ experimental, en validacion. No utilizado para el dictamen.']);
+      if (r.intervalCross) rows.push(['Advertencia del intervalo', textOr(r.intervalCross.label)]);
+    }
+    rows.push(['% Contribucion equivalente',
+      numOr(r.metrics && r.metrics.pctContribution, 2, ' %')]);
+    rows.push(['Intervalo de % Tolerance', 'Pendiente de referencia validada']);
     rows.push(['Categorias distintas', textOr(r.ndcLabel)]);
     rows.push(['Discriminacion', textOr(r.discrimination && r.discrimination.label)]);
     if (r.inconclusive) rows.push(['Veredicto', 'Estudio no concluyente']);

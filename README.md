@@ -215,10 +215,20 @@ aplicación cablea ese modelo.
 
 El %GRR es una estimación, no un número exacto: doce estudios del **mismo**
 sistema dan entre 20 % y 45 %. `assets/js/interval.js` publica su intervalo por
-el método **GPQ** —el que usa Minitab—, con 90 % de confianza por omisión, y el
-veredicto sale del intervalo: solo se dictamina si el intervalo entero cae en
-una banda; si cruza un umbral, el estudio **no alcanza a decidir** y se dice.
-El punto sigue en la tarjeta como estimación, con su etiqueta AIAG debajo.
+el método **GPQ**, con 95 % de confianza por omisión (seleccionable entre 90, 95
+y 99).
+
+**El intervalo no dictamina.** Es una implementación **experimental de esta
+aplicación** y se rotula como tal en pantalla y en el reporte. Quien dictamina
+es la **estimación puntual** con las bandas AIAG. Cuando el intervalo cruza un
+límite de evaluación, lo único que se publica es una advertencia de lectura
+—«interpreta la clasificación puntual con precaución»—, nunca una categoría.
+
+El GPQ **no es el método de Minitab**: Minitab documenta MLS como método
+principal para los intervalos de razones de varianza, y usa Satterthwaite u otra
+aproximación publicada cuando no se cumplen las condiciones del método
+principal. Sustituir el GPQ por MLS/Satterthwaite es el trabajo pendiente de
+F-07; ver `docs/f07-validacion-gpq.md`.
 
 El intervalo es **determinista** —la semilla sale de los propios cuadrados
 medios—, así que el mismo estudio da siempre el mismo intervalo. Se valida por
@@ -350,7 +360,7 @@ assets/js/anova-nested.js motor anidado (pruebas destructivas)
 assets/js/attribute.js   motor de concordancia por atributos
 assets/js/design.js      identidad de la pieza y enrutado de método — sin DOM
 assets/js/report.js      encabezado del reporte impreso — sin DOM
-assets/js/interval.js    intervalo de confianza del %GRR (GPQ) — sin DOM
+assets/js/interval.js    intervalo de la razon V_GRR/V_Total (GPQ, experimental) — sin DOM
                          (design.js va ANTES que anova-nested.js: lo usa al cargar)
 assets/js/charts.js      las ocho gráficas (Chart.js)
 assets/js/app.js         interfaz y flujo

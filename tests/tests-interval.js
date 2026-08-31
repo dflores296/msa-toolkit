@@ -167,11 +167,14 @@
   test('F-07: el intervalo contiene al punto y esta ordenado', function () {
     var r = aiagResult(), iv = I.forResult(r);
     assert(iv !== null, 'se calcula sobre el dataset AIAG');
-    ['studyVar', 'contribution', 'tolerance'].forEach(function (k) {
+    ['ratio', 'studyVar', 'contribution'].forEach(function (k) {
       var b = iv[k];
       assert(b && b.lo <= b.hi, k + ': lo <= hi');
       assert(b.lo >= 0, k + ': ninguna cota es negativa');
     });
+    assert(iv.ratio.hi <= 1, 'la razon V_GRR/V_Total no pasa de 1: ' + iv.ratio.hi);
+    assert(iv.tolerance === undefined, '%Tolerance no publica intervalo: su denominador es la ' +
+      'tolerancia de especificacion, no V_Total, y no se deriva de la razon');
     assert(iv.studyVar.lo <= r.metrics.pctStudyVar && r.metrics.pctStudyVar <= iv.studyVar.hi,
       'el %StudyVar puntual (' + r.metrics.pctStudyVar.toFixed(2) + ') cae dentro de [' +
       iv.studyVar.lo.toFixed(2) + ', ' + iv.studyVar.hi.toFixed(2) + ']');
@@ -213,81 +216,133 @@
   });
 
   /* ---------------------------------------------------------------------- *
-   * 3. El veredicto sale del intervalo
+   * 3. El intervalo NO dictamina: dictamina la estimacion puntual
+   *
+   * La politica anterior -clasificar por el intervalo, y llamar "no
+   * concluyente" a todo lo que cruzara un umbral- esta retirada. Estas
+   * pruebas fijan que no vuelva por la puerta de atras.
    * ---------------------------------------------------------------------- */
-  test('F-07 veredicto: solo concluye si el intervalo entero cae en una banda', function () {
-    var N = 90;                                   // por encima del piso
-    var ok = I.classify({ lo: 2, hi: 8 }, null, N);
-    assert(ok.conclusive && ok.level === 'ok', 'entero bajo 10 %: aceptable');
-    var mal = I.classify({ lo: 35, hi: 60 }, null, N);
-    assert(mal.conclusive && mal.level === 'bad', 'entero sobre 30 %: inaceptable');
-    var marg = I.classify({ lo: 12, hi: 25 }, null, N);
-    assert(marg.conclusive && marg.level === 'warn', 'entero entre 10 y 30: marginal');
-
-    var cruza10 = I.classify({ lo: 8, hi: 15 }, null, N);
-    assert(!cruza10.conclusive && cruza10.level === 'unknown', 'cruzando el 10 %: no concluyente');
-    assert(cruza10.label.indexOf('10 %') >= 0, 'y dice cual cruza: ' + cruza10.label);
-    var cruza30 = I.classify({ lo: 25, hi: 40 }, null, N);
-    assert(!cruza30.conclusive && cruza30.label.indexOf('30 %') >= 0,
-      'cruzando el 30 %: ' + cruza30.label);
-    var cruzaAmbos = I.classify({ lo: 5, hi: 45 }, null, N);
-    assert(cruzaAmbos.crosses.length === 2, 'un intervalo enorme cruza los dos umbrales');
+  test('F-07: el intervalo ya no clasifica', function () {
+    assert(typeof I.classify === 'undefined',
+      'classify() no existe: la clasificacion por intervalo esta retirada');
+    assert(typeof I.MIN_MEASUREMENTS === 'undefined',
+      'el piso de 60 mediciones no existe: medía la dimension equivocada');
+    assert(typeof I.crossings === 'function', 'lo que queda es crossings(), que solo advierte');
   });
 
-  test('F-07 veredicto: el mensaje dice que hacer, no solo que pasa', function () {
-    var c = I.classify({ lo: 25, hi: 40 }, null, 90);
-    assert(/repite con mas piezas|mas replicas/i.test(c.label),
-      'propone la accion: ' + c.label);
+  test('F-07: crossings solo dice que limites cruza, sin emitir categoria', function () {
+    var dentro = I.crossings({ lo: 2, hi: 8 });
+    assert(dentro === null, 'un intervalo que no cruza nada no genera advertencia');
+    assert(I.crossings({ lo: 12, hi: 25 }) === null,
+      'y uno entero dentro de la banda condicional, tampoco: no hay nada que advertir');
+
+    var c10 = I.crossings({ lo: 8, hi: 15 });
+    assert(c10 && c10.crosses.length === 1 && c10.crosses[0] === 10, 'cruza el 10 %');
+    var c30 = I.crossings({ lo: 25, hi: 40 });
+    assert(c30 && c30.crosses[0] === 30, 'cruza el 30 %');
+    var ambos = I.crossings({ lo: 5, hi: 45 });
+    assert(ambos.crosses.length === 2, 'un intervalo enorme cruza los dos limites');
+
+    /* El texto es el aprobado en F-07, y NO contiene ninguna categoria. */
+    assert(/Interpreta la clasificacion puntual con precaucion/.test(c30.label),
+      'el mensaje remite al punto: ' + c30.label);
+    [c10, c30, ambos].forEach(function (c) {
+      assert(!/Aceptable|Marginal|Inaceptable|No concluyente/i.test(c.label),
+        'y no emite categoria: ' + c.label);
+    });
   });
 
-  test('F-07 veredicto: por debajo del piso de mediciones no se firma', function () {
-    /* El piso cubre una incertidumbre que el intervalo NO mide: con 5 piezas
-       es dudoso que cubran el rango del proceso, y eso no es error de
-       muestreo del modelo. Medido: solo con el intervalo, un 5x3x2 sigue
-       concluyendo el 24-51 % de las veces. */
-    var chico = I.classify({ lo: 2, hi: 8 }, null, 30);
-    assert(!chico.conclusive && chico.tooSmall, 'un intervalo limpio pero con N=30 no firma');
-    assert(chico.label.indexOf('30 mediciones') >= 0, 'dice cuantas hay: ' + chico.label);
-    assert(chico.label.indexOf(String(I.MIN_MEASUREMENTS)) >= 0, 'y cuantas hacen falta');
-    assert(chico.label.indexOf('El calculo y el intervalo siguen') >= 0,
-      'y deja claro que no bloquea el calculo: ' + chico.label);
-    /* Justo en el piso, si. */
-    var justo = I.classify({ lo: 2, hi: 8 }, null, I.MIN_MEASUREMENTS);
-    assert(justo.conclusive, 'con ' + I.MIN_MEASUREMENTS + ' mediciones si se firma');
+  test('F-07: las fronteras de las bandas AIAG son las aprobadas', function () {
+    /* 1.00, 9.00, 10.00 y 30.00 pertenecen a la banda CONDICIONAL. Solo lo
+       estrictamente mayor que 30.00 (y que 9.00 en contribucion) es no
+       aceptable. Antes de F-07 la contribucion usaba `< 9` y el criterio por
+       intervalo `<= 9`: en 9.00 exacto las dos tarjetas se contradecian. */
+    var A = MSAAnova.assess;
+    assert(A(9.99, null, 0.5, 5, 0.9).studyVar.level === 'ok', '9.99 % de StudyVar: aceptable');
+    assert(A(10.00, null, 0.5, 5, 0.9).studyVar.level === 'warn', '10.00 %: condicional');
+    assert(A(30.00, null, 0.5, 5, 0.9).studyVar.level === 'warn', '30.00 %: condicional');
+    assert(A(30.01, null, 0.5, 5, 0.9).studyVar.level === 'bad', '30.01 %: no aceptable');
+
+    assert(A(5, null, 0.99, 5, 0.9).contribution.level === 'ok', '0.99 % de contribucion: aceptable');
+    assert(A(5, null, 1.00, 5, 0.9).contribution.level === 'warn', '1.00 %: condicional');
+    assert(A(5, null, 9.00, 5, 0.9).contribution.level === 'warn', '9.00 %: condicional');
+    assert(A(5, null, 9.01, 5, 0.9).contribution.level === 'bad', '9.01 %: no aceptable');
+
+    /* Y %Tolerance usa exactamente las mismas fronteras que %StudyVar. */
+    assert(A(5, 30.00, 0.5, 5, 0.9).tolerance.level === 'warn', '30.00 % de tolerancia: condicional');
+    assert(A(5, 30.01, 0.5, 5, 0.9).tolerance.level === 'bad', '30.01 %: no aceptable');
+
+    /* El vocabulario tambien esta fijado: es el que se imprime. */
+    assert(/Condicional segun la aplicacion/.test(A(20, null, 4, 5, 0.9).studyVar.label),
+      'la banda intermedia se llama condicional, no marginal');
+    assert(/No aceptable/.test(A(40, null, 16, 5, 0.9).studyVar.label),
+      'y la alta, no aceptable');
   });
 
-  test('F-07: sobre el dataset AIAG el veredicto puntual se queda corto', function () {
-    /* El caso que resume el hallazgo. El punto dice "Marginal"; el intervalo
-       cruza el 30 %, asi que el estudio no alcanza a decidir. No es un fallo
-       del calculo: con 3 operadores la reproducibilidad tiene 2 grados de
-       libertad, y eso es una propiedad del diseno. */
+  test('F-07: una sola razon, dos escalas que no pueden contradecirse', function () {
+    /* %Contribution = 100*R y %StudyVar = 100*sqrt(R) salen del MISMO
+       intervalo de la razon. Antes se simulaban por separado y podian
+       discrepar; ahora la igualdad es exacta por construccion. */
+    var iv = I.forResult(aiagResult());
+    near(iv.contribution.lo, 100 * iv.ratio.lo, 1e-12, 'contribucion inferior = 100*R');
+    near(iv.contribution.hi, 100 * iv.ratio.hi, 1e-12, 'contribucion superior = 100*R');
+    near(iv.studyVar.lo, 100 * Math.sqrt(iv.ratio.lo), 1e-12, 'studyVar inferior = 100*sqrt(R)');
+    near(iv.studyVar.hi, 100 * Math.sqrt(iv.ratio.hi), 1e-12, 'studyVar superior = 100*sqrt(R)');
+    /* Y la relacion que la pantalla anuncia entre las dos tarjetas. */
+    near(iv.contribution.hi, Math.pow(iv.studyVar.hi / 100, 2) * 100, 1e-9,
+      '%Contribucion = (%StudyVar/100)^2 * 100');
+  });
+
+  test('F-07: el nivel de confianza por omision es 95 % y se puede cambiar', function () {
+    assert(I.DEFAULT_CONF === 0.95, 'por omision, 95 %');
+    assert(I.CONF_LEVELS.join(',') === '0.9,0.95,0.99', 'niveles ofrecidos: 90, 95, 99');
+    var r = aiagResult();
+    var a = I.forResult(r, { conf: 0.90 }), b = I.forResult(r, { conf: 0.99 });
+    assert((b.studyVar.hi - b.studyVar.lo) > (a.studyVar.hi - a.studyVar.lo),
+      'al 99 % el intervalo es mas ancho que al 90 %');
+    assert(I.forResult(r).conf === 0.95, 'y sin pedir nada, 95 %');
+  });
+
+  test('F-07: sobre el dataset AIAG dictamina el punto, y el intervalo advierte', function () {
+    /* El caso que resume el hallazgo, leido con la politica nueva: el punto
+       dice "Condicional" y ESO es el dictamen; el intervalo cruza el 30 % y lo
+       unico que hace es advertir que la clasificacion esta cerca del limite. */
     var r = aiagResult();
     var iv = I.forResult(r);
-    var c = I.classify(iv.studyVar, null, r.design.n);
     near(r.metrics.pctStudyVar, 27.86, 0.01, '%StudyVar publicado por Minitab');
-    assert(r.assessment.studyVar.level === 'warn', 'el punto solo dice "marginal"');
-    assert(!c.conclusive, 'el intervalo no alcanza a decidir: ' + c.label);
-    assert(iv.studyVar.lo < 30 && iv.studyVar.hi > 30, 'porque cruza el 30 %: [' +
+    assert(r.assessment.studyVar.level === 'warn', 'el punto dictamina: condicional');
+    assert(iv.studyVar.lo < 30 && iv.studyVar.hi > 30, 'y el intervalo cruza el 30 %: [' +
       iv.studyVar.lo.toFixed(2) + ', ' + iv.studyVar.hi.toFixed(2) + ']');
+    var c = I.crossings(iv.studyVar);
+    assert(c && c.crosses.indexOf(30) >= 0, 'asi que hay advertencia de cruce');
+    /* Lo que NO puede pasar: que el estudio se quede sin dictamen. */
+    assert(r.assessment.studyVar.label.length > 0, 'siempre hay un dictamen puntual');
   });
 
-  test('F-07: el intervalo baja los rechazos falsos del caso de la auditoria', function () {
-    /* 300 estudios de un sistema BUENO en un diseno 3op x 5piezas x 2rep daban
-       ~8 % de "Inaceptable" por el punto. Por el intervalo tiene que caer
-       muchisimo: no porque el intervalo sea indulgente, sino porque un estudio
-       asi no alcanza a rechazar nada. */
-    var g = maker(24680), puntoMal = 0, intervaloMal = 0, n = 120;
-    for (var t = 0; t < n; t++) {
-      var res = MSAAnova.compute(crossed(g, 5, 3, 2, 1, 0.075, 0.13),
+  test('F-07: el tamano del estudio ya no bloquea el veredicto, solo avisa', function () {
+    /* El piso de 60 mediciones esta retirado: medía el total de mediciones,
+       que no distingue estructuras. Un 2x15x2 de 60 da un intervalo mucho mas
+       ancho que un 3x10x2 de las mismas 60, y el piso los trataba igual.
+       Ahora un estudio chico se calcula, se dictamina y se avisa. */
+    var g = maker(99001);
+    var chico = MSAAnova.compute(crossed(g, 5, 3, 2, 1, 0.05, 0.14),
                                  { alpha: 0.25, interaction: 'auto' });
-      if (res.assessment.studyVar.level === 'bad') puntoMal++;
-      var iv = I.forResult(res, { draws: 900 });
-      var c = I.classify(iv.studyVar, null, res.design.n);
-      if (c.conclusive && c.level === 'bad') intervaloMal++;
-    }
-    assert(puntoMal > 0, 'el punto si produce rechazos falsos: ' + puntoMal + '/' + n);
-    assert(intervaloMal < puntoMal,
-      'y el intervalo produce menos: ' + intervaloMal + ' contra ' + puntoMal + ' de ' + n);
+    assert(chico.design.n === 30, 'son 30 mediciones, por debajo del piso viejo');
+    assert(chico.assessment.studyVar && chico.assessment.studyVar.level,
+      'y aun asi hay dictamen puntual: ' + chico.assessment.studyVar.label);
+    assert(I.forResult(chico) !== null, 'y hay intervalo');
+    var avisa = chico.warnings.some(function (w) { return /piezas|replicas|mediciones/i.test(w); });
+    assert(avisa, 'lo que hay es un aviso informativo sobre el diseno');
+  });
+
+  test('F-07: se avisa de la representatividad del rango de piezas', function () {
+    /* Es la incertidumbre que el intervalo NO mide y que justificaba el piso.
+       Sigue siendo un motivo legitimo para advertir; no para bloquear. */
+    var g = maker(70707);
+    var r = MSAAnova.compute(crossed(g, 10, 3, 3, 1, 0.05, 0.14),
+                             { alpha: 0.25, interaction: 'auto' });
+    assert(r.warnings.some(function (w) { return /cubrir el rango/i.test(w); }),
+      'el aviso de representatividad se emite siempre');
   });
 
   /* ---------------------------------------------------------------------- *

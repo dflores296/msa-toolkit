@@ -180,6 +180,16 @@
       warnings.push('Con ' + o + ' operadores la reproducibilidad se estima con poca precision; ' +
         'AIAG sugiere 3.');
     }
+    /* Avisos de suficiencia, informativos y sin bloquear nada: los mismos que
+       el cruzado, por replicas y por representatividad del rango de piezas.
+       F-07 retiro el piso de 60 mediciones que si bloqueaba el veredicto. */
+    if (rep < 3) {
+      warnings.push('Con ' + rep + ' replicas la repetibilidad se estima con pocos grados de ' +
+        'libertad; AIAG sugiere 3.');
+    }
+    warnings.push('Las piezas del estudio deben cubrir el rango de variacion esperado del proceso. ' +
+      'Si no lo cubren, el % Study Variation sale optimista y ningun calculo de esta pagina puede ' +
+      'detectarlo: es un juicio sobre como se eligieron las piezas, no sobre los datos.');
 
     /* Dos listas planas, y la distincion importa (punto 2 de F-02):
        `parts`   son los nombres TAL CUAL se capturaron. Es lo que se muestra

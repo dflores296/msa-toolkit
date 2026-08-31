@@ -251,14 +251,28 @@ funcionara dejó de funcionar.
 >   Total, validable numéricamente contra Minitab), el truncamiento y la regla
 >   de límites unilaterales. Todo confirmado verbatim o con ruta de validación
 >   clara.
-> - **Sigue bloqueado:** los coeficientes `A`, `B`, `C` de la ecuación
->   cuadrática que da el intervalo de la **razón** —el cálculo que
->   efectivamente reemplazaría al GPQ— no están en ninguna fuente de acceso
->   libre. Viven en imágenes (no texto) en Minitab y en tres fuentes de pago
->   (Burdick, Borror & Montgomery 2005; Gui, Graybill, Burdick & Ting 1995;
->   Burdick & Graybill 1992). El propio documento recomienda **no
->   reconstruirlos**: publicar una cuadrática inventada y llamarla «el método
->   de Minitab» repetiría el error exacto que F-07 existe para corregir.
+> - **Sigue bloqueado, con una corrección importante.** Los coeficientes `A`,
+>   `B`, `C` de la ecuación cuadrática de la **razón** —el cálculo que
+>   efectivamente reemplazaría al GPQ— siguen sin estar transcritos en este
+>   repositorio. El documento técnico decía que sólo existen como imágenes PNG
+>   en Minitab. **Es incorrecto, o incompleto**: el 31 de agosto, el
+>   responsable del producto abrió la página pública de Minitab en su propio
+>   navegador y las fórmulas se renderizan como **texto matemático real**, no
+>   como una captura de pantalla — confirmado visualmente para la razón
+>   parte/total, caso "con operador y con interacción" (`Limite inferior =
+>   (−B − √(B²−4AC))/2A`, con A, B, C en términos de `S1⁴..S4⁴` y los cruzados
+>   `G12, G13, H12, H13`...). **El bloqueo real era el egreso de red de este
+>   contenedor** (`support.minitab.com` da 403), no la ausencia de la fórmula
+>   en la web pública.
+>
+>   No se transcribió: la captura llegó cortada por scroll horizontal —
+>   términos de `A` y `B` se pierden a la mitad— y sólo cubre una de las tres
+>   variantes que hacen falta (falta "sin interacción" y el caso anidado). Un
+>   coeficiente con un término faltante da un intervalo silenciosamente
+>   incorrecto, así que no se transcribe nada parcial. **Acordado: el
+>   responsable del producto sube el texto completo de las tres variantes en la
+>   siguiente sesión.** Detalle completo, con lo que se alcanzó a leer, en el
+>   recuadro de corrección del §14 de `docs/f07-validacion-gpq.md`.
 >
 > **Plan para continuar, en dos etapas — ver §14 de `docs/f07-validacion-gpq.md`
 > para el detalle completo:**
@@ -268,11 +282,15 @@ funcionara dejó de funcionar.
 >    módulo nuevo que no reutiliza funciones del GPQ. No resuelve el intervalo
 >    de la razón, pero dejaría el terreno determinista y sin simulación donde
 >    sí hay fuente.
-> 2. **Etapa 2 (bloqueada):** requiere transcribir A, B, C verbatim de una
->    fuente de pago con acceso institucional, o decidir documentar
->    permanentemente el intervalo de la razón como «sin fuente primaria
->    verificable» y mantener el GPQ como único intervalo, ya rotulado
->    experimental — que es el estado actual.
+> 2. **Etapa 2 (a la espera del texto completo, no de acceso de pago):** en
+>    cuanto llegue la transcripción completa de las tres variantes, se cita con
+>    número de página/sección de la página de Minitab de donde salió y se
+>    implementa. Ruta alternativa si no llega: fuentes de pago con acceso
+>    institucional (Burdick, Borror & Montgomery 2005; Gui, Graybill, Burdick &
+>    Ting 1995; Burdick & Graybill 1992), o documentar permanentemente el
+>    intervalo de la razón como «sin fuente primaria verificable» y mantener el
+>    GPQ como único intervalo, ya rotulado experimental — que es el estado
+>    actual.
 >
 > **Hallazgo adicional del documento:** la sub-cobertura del motor anidado
 > (86–88 % contra 90 % nominal, medida en §12 limitación 3) puede no ser un

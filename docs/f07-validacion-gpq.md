@@ -689,14 +689,57 @@ Confirmado **verbatim** contra Minitab o contra un paper con ecuación citable:
 
 ### Lo que SIGUE bloqueado (Etapa 2 — el núcleo de F-07)
 
+> **CORRECCIÓN, 31 de agosto de 2026.** El documento técnico afirmaba que las
+> fórmulas de `A`, `B`, `C` "viven en imágenes PNG" en las páginas de Minitab.
+> **Es incorrecto, o al menos incompleto.** El responsable del producto abrió
+> la página `.../gage-study/crossed-gage-r-r-study/methods-and-formulas/
+> variance-ratios-in-confidence-intervals/` en su propio navegador, con sesión
+> iniciada, y las fórmulas se renderizan como **texto matemático real**
+> (tipografía vectorial con fracciones, exponentes y subíndices — no una
+> captura de pantalla). Confirmado visualmente para la razón parte/total, caso
+> "con operador y término de interacción":
+>
+> ```
+> Limite inferior = (−B − sqrt(B² − 4AC)) / 2A
+> A = a²(1−G1²)S1⁴ + b²(1−H2²)S2⁴ + c²(1−H3²)S3⁴ + d²(1−H4²)S4⁴
+>     + ab(2+G12)S1²S2² + ac(2+G13)S1²S3² + ad(2+G14)S1²S4² + ...   [CORTADO]
+> B = −2a(1−G1²)S1⁴ + 2c(1−H3²)S3⁴ − b(2+G12)S1²S2² + a(2+G13)S1²S3²
+>     − c(2+G13)S1²S3² − d(2+G14)S1²S4² + 2b...                    [CORTADO]
+> C = (1−G1²)S1⁴ + (1−H3²)S3⁴ − (2+G13)S1²S3²
+> Limite superior = (−B + sqrt(B² − 4AC)) / 2A   (con G y H intercambiados)
+> Si B² − 4AC < 0: no hay solucion, Minitab usa el segundo metodo (Satterthwaite).
+> ```
+>
+> Esto **coincide exactamente** con la estructura que el documento técnico ya
+> había confirmado por otra vía (cuadrática, `L`/`U` como raíces, caída a
+> Satterthwaite), y de paso trae los términos cruzados `G₁₂`, `G₁₃`, `H₁₂`,
+> `H₁₃`... que eran la parte peor verificada del documento (requería Burdick &
+> Graybill 1992). Buena corroboración cruzada entre dos fuentes independientes.
+>
+> **No es transcribible todavía.** La captura está cortada por scroll
+> horizontal — los términos `+ ad(2+G...` y `+ 2b...` se pierden a la mitad, y
+> falta la fórmula completa de `B` y de `A` en el límite superior. Un `A`, `B`
+> o `C` con un término faltante da un intervalo silenciosamente incorrecto, así
+> que no se transcribe nada parcial. **Además esta captura es sólo el caso
+> "con operador y con interacción"**; hacen falta también "sin interacción" y
+> el caso anidado, que Minitab documenta en páginas separadas.
+>
+> **Acordado con el responsable del producto: sube el texto completo de las
+> tres variantes en la próxima sesión** (las páginas de Minitab: *Variance
+> ratios in confidence intervals* — cruzado con/sin interacción — y su
+> equivalente para *Nested Gage R&R Study*). Con eso, la Etapa 2 deja de estar
+> bloqueada por fuente de pago: **el bloqueo real era el egreso de red de este
+> contenedor, no la ausencia de la fórmula en la web pública.**
+
 **Los coeficientes `A`, `B`, `C` de la ecuación cuadrática de la razón —el
-cálculo que de verdad reemplaza al GPQ— no están en ninguna fuente de acceso
-libre.** Viven en imágenes PNG en las páginas de Minitab (no texto, no MathML) y
-en texto sólo en tres fuentes de pago: Burdick, Borror & Montgomery (2005, ASA-
-SIAM, cap. 3-4), Gui, Graybill, Burdick & Ting (1995, *JSPI* 48:215-227) y
-Burdick & Graybill (1992, Marcel Dekker) para los términos cruzados `G_qq′`,
-`H_qq′` que hacen falta en las diferencias de cuadrados medios (σ²_P, σ²_O,
-σ²_PO).
+cálculo que de verdad reemplaza al GPQ— siguen sin estar transcritos en este
+repositorio**, aunque ahora se sabe que están disponibles en texto en la
+página pública de Minitab (no sólo en fuentes de pago). Ruta alternativa, si
+la próxima sesión prefiere no depender de la captura: Burdick, Borror &
+Montgomery (2005, ASA-SIAM, cap. 3-4), Gui, Graybill, Burdick & Ting (1995,
+*JSPI* 48:215-227) y Burdick & Graybill (1992, Marcel Dekker) para los
+términos cruzados `G_qq′`, `H_qq′` que hacen falta en las diferencias de
+cuadrados medios (σ²_P, σ²_O, σ²_PO).
 
 **La recomendación del propio documento es no reconstruirlos:** "no publique A,
 B, C reconstruidos […] esto es precisamente el tipo de atribución que el

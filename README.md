@@ -48,6 +48,38 @@ componentes de varianza. Sin estándar solo se puede saber si los evaluadores
 coinciden; pueden estar todos de acuerdo y todos equivocados, y la página lo
 dice.
 
+### Discriminación: qué significa un %GRR de 0 %
+
+`Var_GRR = 0` **no** significa «instrumento deficiente», y tampoco «instrumento
+perfecto». En un instrumento digital nunca se puede observar una repetibilidad
+menor que un escalón de lectura, así que un cero puede venir de tres sitios
+distintos que exigen respuestas opuestas. La aplicación los separa **sin pedir
+ningún campo nuevo**, mirando los propios datos:
+
+| Estado | Qué se observó | Qué hace la aplicación |
+|---|---|---|
+| **Resolución adecuada** | El escalón se midió y ocupa ≤ 10 % de la variación del estudio y de la tolerancia | Nada. Es el caso de casi todos los estudios y no debe estorbar |
+| **Repetibilidad no medible** | Ninguna réplica difirió de otra, pero hay varios valores distintos | Publica el veredicto **sin degradarlo**, marca el NDC como *No evaluable* y avisa de que el 0 % es una **cota**, no un estimado |
+| **Posible falta de resolución** | El escalón se midió y pasa del 10 % | Avisa, con el escalón y los dos porcentajes |
+| **No concluyente** | Un solo valor distinto en todo el estudio | Retira el veredicto y lo reporta como estudio no concluyente |
+
+**Cómo se infiere el escalón.** Es la **mínima diferencia no nula entre dos
+réplicas de la misma celda**: mismo operador, misma pieza, mismo momento, así
+que lo único que separa esas dos lecturas es el sistema de medición. La mínima
+diferencia entre mediciones *cualesquiera* no sirve: si ninguna celda varía, esa
+diferencia es la que hay entre dos **piezas**, que no dice nada del instrumento.
+Medido: en un estudio con micrómetro de 0.001 mm sobre piezas repartidas en
+2 mm, la mínima diferencia global es 0.222 —222 veces la resolución real— y
+usarla levantaría una alarma sobre un instrumento excelente. Cuando ninguna
+celda varía, el escalón simplemente **no es medible**, y eso es lo que se dice.
+
+**El NDC ya no imprime `inf`.** Con `Var_GRR` en cero o en el ruido del punto
+flotante, `1.41 × σ_pieza / σ_GRR` no significa nada: antes salía `inf` o un
+entero de quince cifras, y las dos cosas se leen como «separa infinitas
+categorías», que es lo contrario de lo que pasa. Ahora dice **No evaluable**, y
+por encima de 100 dice `> 100`, porque AIAG solo pide 5 y el número exacto sale
+de dividir entre una varianza prácticamente nula.
+
 **La categoría de rechazo se elige, no se adivina.** Con dos categorías y
 estándar, hay que decir cuál significa *pieza no conforme*: de esa elección
 depende cuál error es una **fuga** (dejar pasar una mala, le llega al cliente,

@@ -232,7 +232,9 @@ cobertura sola no detecta.
 
 De dónde salió cada fórmula, las diez erratas encontradas en la fuente y los
 puntos donde esta implementación se aparta de lo impreso —con el álgebra que lo
-justifica— están en **`docs/mls-transcripcion.md`**.
+justifica— están en **`docs/mls-transcripcion.md`**. Lo que le queda por rematar
+—el cotejo contra una corrida real de Minitab, sobre todo— está en
+**`docs/f07-cabos-sueltos.md`**.
 
 **El intervalo no dictamina**, y tener ya el método publicado no reabre esa
 política. Quien dictamina es la **estimación puntual** con las bandas AIAG.

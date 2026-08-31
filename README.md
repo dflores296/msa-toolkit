@@ -211,7 +211,18 @@ compartido, importación que conserva el método, reordenar filas y renombrar
 piezas— y `tests/prueba-diseno.js` comprueba en un navegador de verdad que la
 aplicación cablea ese modelo.
 
-155 pruebas de regresión entre los cuatro modelos puros —todas sobre el cálculo:
+### Orden de carga
+
+`tests/tests-carga.js` fija el contrato de dependencias entre los módulos:
+comprueba que los tres cargadores (`index.html`, `tests/index.html` y
+`run-node.js`) listen cada módulo **después** de sus dependencias, que cada
+módulo declare los globales que nombra, y —lo que le da valor— que cargar en el
+orden correcto funcione **y que cargar en el orden equivocado falle**. Existe
+porque `anova-nested.js` dereferencia `MSADesign` al evaluarse: es una
+precondición real, y se prueba en vez de disimularse con una degradación
+silenciosa.
+
+167 pruebas de regresión entre los cuatro modelos puros —todas sobre el cálculo:
 corren en Node, sin navegador, y no tocan la pantalla. Para correrlas:
 
 ```bash
@@ -249,6 +260,11 @@ otro método ni `undefined`/`null`/`NaN`, que no se cuelan los paneles del méto
 ajeno, que la interfaz se restaura **aunque la preparación falle**, y que
 imprimir no altera los cálculos ni el estado capturado. Necesita Playwright,
 que **no es dependencia del proyecto**, igual que `regresion-visual.js`.
+
+El recorrido de impresión cubre además los casos **sin haber calculado** en los
+tres métodos, importar-calcular-imprimir en atributos, y la categoría de rechazo
+pendiente: ahí no hay resultado del que deducir la familia del estudio, y era
+donde un estudio de atributos se imprimía con el encabezado de variables (F-03.1).
 
 **Diseño y enrutado.** `node tests/prueba-diseno.js` hace lo mismo con el camino
 de F-02: captura manual con las piezas numeradas 1..n en cada operador, importar
@@ -309,6 +325,7 @@ assets/js/anova-nested.js motor anidado (pruebas destructivas)
 assets/js/attribute.js   motor de concordancia por atributos
 assets/js/design.js      identidad de la pieza y enrutado de método — sin DOM
 assets/js/report.js      encabezado del reporte impreso — sin DOM
+                         (design.js va ANTES que anova-nested.js: lo usa al cargar)
 assets/js/charts.js      las ocho gráficas (Chart.js)
 assets/js/app.js         interfaz y flujo
 tests/                   suite de regresión + reimplementación del VBA original

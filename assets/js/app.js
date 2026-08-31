@@ -1726,7 +1726,11 @@
       countLabel: m.countLabel,
       spec: specLabel(),
       multiplier: $('svMultiplier').value,
-      alpha: $('alpha').value
+      alpha: $('alpha').value,
+      /* F-03.1: antes de calcular no hay resultado del que sacar la categoria
+         de rechazo, y el encabezado de un estudio de atributos sin calcular la
+         necesita. Se lee de la pantalla, como el resto de este contexto. */
+      rejectCategory: $('rejectCategory') ? $('rejectCategory').value : ''
     });
     /* El subtitulo sale del metodo activo, no del atributo data-method del
        documento: si ese atributo faltara, methodById cae al primer metodo y el

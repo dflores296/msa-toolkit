@@ -11,4 +11,5 @@ require('./tests-nested.js');
 require('./tests-design.js');
 require('./tests-attribute.js');
 require('./tests-report.js');
+require('./tests-carga.js');
 MSATestKit.report();

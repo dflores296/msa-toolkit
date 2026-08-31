@@ -19,7 +19,8 @@ commit, y lo que queda pendiente con su razonamiento.
 |---|---|---|---|
 | F-04 · Categoría de rechazo por orden de aparición | P0 | **Cerrado** | `04dc8d5` |
 | F-01 · `Var_GRR = 0` tratado como veredicto | P1 (era P0) | **Cerrado** | `3beef45`, `1fc0a3b` |
-| F-03 · El reporte de atributos lanza TypeError | P0 | **Cerrado** | este commit |
+| F-03 · El reporte de atributos lanza TypeError | P0 | **Cerrado** | `b1dffdf` |
+| F-03.1 · Impresión sin cálculo usa el encabezado de variables | P1 | **Cerrado** | este commit |
 | F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
 | F-05 · Reporte con datos nuevos y tablas viejas | P1 | Pendiente | — |
 | F-06 · Atributos 0/1 → ANOVA de variables | P1 | Pendiente | — |
@@ -42,7 +43,8 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-23 · `num(v, sig)` mal nombrado; escalas inconsistentes | P3 | Pendiente | — |
 | F-24 · Semáforo solo por color | P3 | Pendiente | — |
 | F-25 · `betaInv` 200 iteraciones; `getComputedStyle` en bucle | P3 | Pendiente | — |
-| F-26 · Ninguna suite tocaba el DOM | P3 | Parcial | este commit |
+| F-26 · Ninguna suite tocaba el DOM | P3 | Parcial | `b1dffdf`, `ad6cfce` |
+| F-27 · `design.js` es precondición de carga, no dependencia blanda | P2 | Anotado | — |
 
 ---
 
@@ -191,7 +193,59 @@ veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
 
-### F-03 y F-17 — El reporte impreso · este commit
+### F-03.1 — La impresión sin cálculo usaba el encabezado de variables · este commit
+
+**Encontrado revalidando F-03 sobre `develop` después de F-02**, no reportado en
+la auditoría original. **No es regresión de F-02:** el mismo recorrido da un
+encabezado carácter por carácter idéntico en `b1dffdf` (F-03 recién cerrada) y
+en `ad6cfce`. Es una brecha que la corrección de F-03 dejó abierta.
+
+**Causa raíz.** F-03 se cerró deduciendo el método de `result.model`, y solo de
+ahí. La página se puede imprimir **sin haber calculado**, y entonces
+`result === null`: no hay `model` del que deducir nada, así que un estudio de
+atributos caía en la rama de variables.
+
+```
+#atributos, importar el dataset, imprimir SIN calcular:
+
+  Attribute Agreement Analysis · MSA Toolkit      <- el subtitulo si acierta
+  Estudio        3 operadores x 30 piezas x 3 replicas = 270 mediciones
+  Especificacion Sin especificacion
+  Multiplicador  6 sigma
+  Modelo         Sin calcular
+```
+
+«operadores», «mediciones», `Especificacion` y `Multiplicador` en un estudio de
+concordancia: la **regla 1** que el propio `report.js` dice hacer cumplir, rota
+en el único caso que esa regla no miraba. En cruzado habría salido además
+`Alfa`.
+
+**Corregido** con una prioridad explícita en `studyKind(result, ctx)`, porque
+`result.model` y `ctx.method` son dos fuentes de la misma verdad y lo que
+faltaba era decir cuál manda cuando solo existe una:
+
+| | Fuente | Encabezado |
+|---|---|---|
+| a) | hay `result` | manda `result.model` — aunque `ctx.method` diga otra cosa |
+| b) | no hay `result` | manda `ctx.method`, el método activo en pantalla |
+| c) | ninguno de los dos | **neutral**: fecha, `3 x 10 x 3 = 90 celdas`, `Sin calcular` |
+
+Atributos sin calcular imprime ahora **evaluadores × piezas × réplicas =
+clasificaciones**, el método, la categoría de rechazo (o `No seleccionada`) y
+`Estado: Sin calcular`. Y **no** imprime especificación, multiplicador, alfa,
+modelo, NDC, %Study Variation, ni kappa, efectividad, fuga o falsa alarma: esas
+cuatro existen en el método, pero todavía no se han calculado, y ponerlas en
+blanco sería decir que fallaron.
+
+**Pruebas.** Seis en Node sobre el modelo puro (`tests/tests-report.js`,
+incluida la contradicción a) contra b)) y seis recorridos nuevos en
+`tests/prueba-impresion.js` (39 → 75 comprobaciones): los tres métodos sin
+calcular, importar-calcular-imprimir en atributos, categoría de rechazo
+pendiente y luego elegida, y la restauración de la interfaz en todos ellos.
+Verificado que tienen dientes: reinyectando el comportamiento viejo caen 3
+pruebas de Node y 6 comprobaciones del navegador.
+
+### F-03 y F-17 — El reporte impreso · `b1dffdf`
 
 `buildPrintHeader` daba por hecha la forma de respuesta de los métodos de
 variables: `r.metrics.pctStudyVar.toFixed(2)` sobre un resultado de atributos
@@ -234,6 +288,33 @@ permanente **«actualizado al escribir»**, que promete algo que la app no hace.
   21/300 declarados "Inaceptable"  -> 7 % de rechazos falsos
 ```
 
+### F-27 (P2) — `design.js` es una precondición de carga, no una dependencia blanda
+
+Anotado al revalidar F-03; **no** es un defecto de F-02 ni de F-03, es una
+propiedad de la integración que conviene tener escrita.
+
+`anova-nested.js` lee `global.MSADesign.KEY_SEP` **al evaluarse**, no dentro de
+una función, y `loadPayload` usa `MSADesign`. Medido sirviendo un 404 para cada
+archivo:
+
+```
+design.js 404 -> MSADesign:false MSANested:false | 2 pageerror
+                 el boton de ejemplo y toda importacion se caen en los TRES metodos
+stats.js  404 -> MSAStats:false, todo lo demas vivo | sin pageerror
+```
+
+Solo es alcanzable si un despliegue publica `index.html` sin `design.js`. El
+camino de F-03 (imprimir) sigue sin lanzar y sigue restaurando incluso así.
+
+**Decisión: no se degrada el motor anidado.** Un anidado que se apañara sin su
+dependencia calcularía con una clave de celda distinta de la que usa la
+pantalla, y eso es peor que no arrancar. Si la precondición es real, se prueba;
+no se disimula. `tests/tests-carga.js` fija el contrato: comprueba el orden en
+los tres cargadores (`index.html`, `tests/index.html`, `run-node.js`), que cada
+módulo declare los globales que nombra, que cargar en el orden bueno funcione
+**y que cargar en el orden malo falle** — lo último es lo que hace que lo
+primero valga algo.
+
 ### Los demás
 
 - **F-06:** `looksCategorical` exige >80 % de texto; atributos codificados 0/1
@@ -252,15 +333,15 @@ permanente **«actualizado al escribir»**, que promete algo que la app no hace.
 
 ## Calificaciones
 
-| Dimensión | 31-ago inicial | Tras F-01/03/04 | Tras F-02 |
-|---|---|---|---|
-| Exactitud estadística | 72 | 78 | 85 |
-| Calidad de código | 74 | 76 | 78 |
-| Arquitectura | 70 | 73 | 76 |
-| UX | 68 | 70 | 74 |
-| UI | 84 | 84 | 84 |
-| Seguridad | 68 | 68 | 68 |
-| Rendimiento | 82 | 82 | 82 |
+| Dimensión | 31-ago inicial | Tras F-01/03/04 | Tras F-02 | Tras F-03.1 |
+|---|---|---|---|---|
+| Exactitud estadística | 72 | 78 | 85 | 85 |
+| Calidad de código | 74 | 76 | 78 | 79 |
+| Arquitectura | 70 | 73 | 76 | 76 |
+| UX | 68 | 70 | 74 | 76 |
+| UI | 84 | 84 | 84 | 84 |
+| Seguridad | 68 | 68 | 68 | 68 |
+| Rendimiento | 82 | 82 | 82 | 82 |
 
 ## ¿Publicaría esta aplicación en producción para una planta de manufactura?
 

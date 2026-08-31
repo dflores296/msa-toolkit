@@ -24,6 +24,19 @@
  *      antes y despues.
  *   7. La restauracion ocurre AUNQUE la preparacion falle a mitad.
  *
+ * Y, desde F-03.1, los recorridos que el bloque de arriba no tocaba:
+ *
+ *   8. Imprimir SIN haber calculado, en los tres metodos. Ahi no hay
+ *      `result` del que deducir la familia del estudio, y atributos se
+ *      imprimia con el encabezado de variables ("3 operadores x 30 piezas =
+ *      270 mediciones", Especificacion, Multiplicador).
+ *   9. Importar un estudio de atributos, calcular e imprimir. Las
+ *      comprobaciones de arriba entran por el boton de ejemplo, asi que el
+ *      camino de importacion -- que F-02 reescribio -- no lo miraba nadie.
+ *  10. Categoria de rechazo pendiente: el encabezado tiene que decir que
+ *      falta, no inventarla ni callarla.
+ *  11. La interfaz se restaura tambien en todos esos recorridos.
+ *
  * USO
  *   node tests/prueba-impresion.js
  *
@@ -114,6 +127,42 @@ function diff(a, b) {
   return Object.keys(a).filter(function (k) { return a[k] !== b[k]; });
 }
 
+/* Imprimir de verdad: el boton dispara window.print(), que aqui se sustituye
+   por los dos eventos que el navegador emite alrededor -- que es exactamente
+   lo que la aplicacion escucha -- para no abrir el dialogo del sistema. */
+async function prepararImpresion(page) {
+  await page.evaluate(function () {
+    window.print = function () {
+      window.dispatchEvent(new Event('beforeprint'));
+      window.__imprimio = true;
+    };
+  });
+}
+
+/* Un recorrido completo de impresion sobre la pagina tal como este: imprime,
+   lee el encabezado, restaura y compara. Devuelve lo necesario para juzgar. */
+async function recorridoImpresion(page, errores) {
+  await prepararImpresion(page);
+  var antes = await snapshot(page);
+  errores.length = 0;
+  await page.click('#printBtn');
+  await page.waitForTimeout(250);
+  var hdr = await headerText(page);
+  await page.evaluate(function () { window.dispatchEvent(new Event('afterprint')); });
+  await page.waitForTimeout(250);
+  var despues = await snapshot(page);
+  return { errores: errores.slice(), hdr: hdr, cambios: diff(antes, despues) };
+}
+
+/* Lo que un encabezado de atributos NO puede traer: son campos del mundo de
+   la varianza, y en concordancia no existen. La lista es la de F-03.1. */
+var PROHIBIDO_ATRIBUTOS = ['Especificacion', 'Multiplicador', 'Alfa', 'Modelo',
+                           'Categorias distintas', '% Study Variation'];
+/* Y lo que no puede traer ANTES de calcular: existen, pero todavia no se han
+   calculado, y ponerlas en blanco seria decir que fallaron. */
+var PROHIBIDO_SIN_CALCULAR = ['Kappa', 'Efectividad', 'Error de fuga', 'Falsa alarma',
+                              'Entre evaluadores', 'Todos vs estandar', 'Discriminacion'];
+
 var METODOS = [
   { id: 'cruzado',   nombre: 'CRUZADO',
     prohibidos: ['Concordancia', 'Kappa'],
@@ -158,15 +207,7 @@ var METODOS = [
     errores.length = 0;
 
     /* --- 1. El boton Imprimir / PDF ------------------------------------- */
-    await page.evaluate(function () {
-      /* window.print() abriria el dialogo del sistema y bloquearia. Se
-         sustituye por un disparo de los dos eventos que el navegador emite
-         alrededor, que es exactamente lo que la aplicacion escucha. */
-      window.print = function () {
-        window.dispatchEvent(new Event('beforeprint'));
-        window.__imprimio = true;
-      };
-    });
+    await prepararImpresion(page);
     await page.click('#printBtn');
     await page.waitForTimeout(250);
 
@@ -251,6 +292,164 @@ var METODOS = [
 
     await page.close();
   }
+
+  /* ====================================================================== *
+   * F-03.1 - Imprimir SIN haber calculado, en los tres metodos.
+   *
+   * Aqui `state.result` es null, asi que la familia del estudio solo puede
+   * salir del metodo activo. Antes salia siempre "variables".
+   * ====================================================================== */
+  console.log('\n===== SIN CALCULAR =====');
+  var SIN_CALCULAR = [
+    { id: 'atributos', nombre: 'ATRIBUTOS sin calcular',
+      esperados: ['evaluadores', 'clasificaciones', 'Attribute Agreement Analysis',
+                  'Categoria de rechazo', 'Sin calcular'],
+      prohibidos: PROHIBIDO_ATRIBUTOS.concat(PROHIBIDO_SIN_CALCULAR, ['operadores', 'mediciones']) },
+    { id: 'cruzado', nombre: 'CRUZADO sin calcular',
+      esperados: ['operadores', 'mediciones', 'Especificacion', 'Multiplicador', 'Alfa', 'Sin calcular'],
+      prohibidos: ['evaluadores', 'clasificaciones', 'Kappa', '% Study Variation',
+                   'Categorias distintas', 'Discriminacion'] },
+    { id: 'anidado', nombre: 'ANIDADO sin calcular',
+      esperados: ['operadores', 'mediciones', 'Especificacion', 'Multiplicador', 'Sin calcular'],
+      prohibidos: ['evaluadores', 'clasificaciones', 'Kappa', 'Alfa', '% Study Variation',
+                   'Categorias distintas', 'Discriminacion'] }
+  ];
+
+  for (var j = 0; j < SIN_CALCULAR.length; j++) {
+    var sc = SIN_CALCULAR[j];
+    var pg = await browser.newPage();
+    var errs = [];
+    pg.on('pageerror', function (e) { errs.push(String(e)); });
+    await pg.goto(base + '#' + sc.id);
+    await pg.waitForFunction(function () { return !!document.getElementById('generateBtn'); });
+    // Se genera la tabla de captura pero NO se calcula: ese es el caso.
+    await pg.click('#generateBtn');
+    await pg.waitForTimeout(150);
+    var sinCalc = await pg.evaluate(function () {
+      return { hayResultado: !document.getElementById('resultsSection').hidden };
+    });
+    check(sc.nombre + ': el escenario es real (no hay resultado en pantalla)',
+          sinCalc.hayResultado === false);
+
+    var r = await recorridoImpresion(pg, errs);
+    check(sc.nombre + ': imprimir no lanza', r.errores.length === 0, r.errores.join(' | '));
+    check(sc.nombre + ': el encabezado se arma',
+          r.hdr.texto.trim().length > 20, r.hdr.html.slice(0, 200));
+    check(sc.nombre + ': sin undefined, null ni NaN',
+          !/undefined|null|NaN/.test(r.hdr.texto), r.hdr.texto.slice(0, 300));
+    check(sc.nombre + ': trae lo que corresponde',
+          sc.esperados.every(function (e) { return r.hdr.texto.indexOf(e) >= 0; }),
+          'faltan: ' + sc.esperados.filter(function (e) {
+            return r.hdr.texto.indexOf(e) < 0; }).join(', ') + '  ->  ' + r.hdr.texto);
+    check(sc.nombre + ': no trae campos que no aplican',
+          sc.prohibidos.every(function (e) { return r.hdr.texto.indexOf(e) < 0; }),
+          'presentes: ' + sc.prohibidos.filter(function (e) {
+            return r.hdr.texto.indexOf(e) >= 0; }).join(', ') + '  ->  ' + r.hdr.texto);
+    check(sc.nombre + ': la interfaz se restaura',
+          r.cambios.length === 0, 'cambio: ' + r.cambios.join(', '));
+    await pg.close();
+  }
+
+  /* ====================================================================== *
+   * F-03.1 - Categoria de rechazo pendiente, y luego elegida.
+   * ====================================================================== */
+  console.log('\n===== CATEGORIA DE RECHAZO PENDIENTE =====');
+  var pgRc = await browser.newPage();
+  var errsRc = [];
+  pgRc.on('pageerror', function (e) { errsRc.push(String(e)); });
+  await pgRc.goto(base + '#atributos');
+  await pgRc.waitForFunction(function () { return !!document.getElementById('generateBtn'); });
+  await pgRc.click('#generateBtn');
+  await pgRc.waitForTimeout(150);
+
+  var rPend = await recorridoImpresion(pgRc, errsRc);
+  check('RECHAZO: sin elegir, el encabezado lo dice',
+        rPend.hdr.texto.indexOf('No seleccionada') >= 0, rPend.hdr.texto);
+  check('RECHAZO: sin elegir, no se inventa una categoria',
+        !/Categoria de rechazo\s*"/.test(rPend.hdr.texto), rPend.hdr.texto);
+  check('RECHAZO: sin elegir, la interfaz se restaura',
+        rPend.cambios.length === 0, 'cambio: ' + rPend.cambios.join(', '));
+
+  await pgRc.evaluate(function () {
+    var sel = document.getElementById('rejectCategory');
+    sel.value = 'No pasa';
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  var rElegida = await recorridoImpresion(pgRc, errsRc);
+  check('RECHAZO: elegida, el encabezado la imprime',
+        rElegida.hdr.texto.indexOf('"No pasa"') >= 0, rElegida.hdr.texto);
+  check('RECHAZO: elegida, ya no dice No seleccionada',
+        rElegida.hdr.texto.indexOf('No seleccionada') < 0, rElegida.hdr.texto);
+  check('RECHAZO: elegida, la interfaz se restaura',
+        rElegida.cambios.length === 0, 'cambio: ' + rElegida.cambios.join(', '));
+  await pgRc.close();
+
+  /* ====================================================================== *
+   * F-03.1 - Importar atributos, calcular e imprimir.
+   *
+   * Las comprobaciones por metodo entran por el boton de ejemplo. El camino
+   * de importacion lo reescribio F-02 y no lo miraba ninguna suite hasta el
+   * reporte.
+   * ====================================================================== */
+  console.log('\n===== IMPORTAR ATRIBUTOS, CALCULAR E IMPRIMIR =====');
+  var pgImp = await browser.newPage();
+  var errsImp = [];
+  pgImp.on('pageerror', function (e) { errsImp.push(String(e)); });
+  await pgImp.goto(base + '#atributos');
+  await pgImp.waitForFunction(function () { return !!document.getElementById('importFile'); });
+  var datasetAtrib = fs.readFileSync(path.join(REPO, 'datasets/atributos-ejemplo.json'), 'utf8');
+  await pgImp.setInputFiles('#importFile', { name: 'atributos-ejemplo.json',
+    mimeType: 'application/json', buffer: Buffer.from(datasetAtrib, 'utf8') });
+  await pgImp.waitForFunction(function () {
+    return document.querySelectorAll('#dataTable tbody tr').length > 0;
+  }, null, { timeout: 15000 });
+  check('IMPORTAR: el archivo entra en el metodo de atributos',
+        await pgImp.evaluate(function () {
+          return document.documentElement.getAttribute('data-method'); }) === 'atributos');
+
+  /* Antes de calcular: el encabezado ya tiene que ser de atributos (F-03.1). */
+  var rImpSin = await recorridoImpresion(pgImp, errsImp);
+  check('IMPORTAR: sin calcular, el encabezado ya es de atributos',
+        rImpSin.hdr.texto.indexOf('evaluadores') >= 0 &&
+        rImpSin.hdr.texto.indexOf('clasificaciones') >= 0, rImpSin.hdr.texto);
+  check('IMPORTAR: sin calcular, sin campos de varianza',
+        PROHIBIDO_ATRIBUTOS.every(function (e) { return rImpSin.hdr.texto.indexOf(e) < 0; }),
+        'presentes: ' + PROHIBIDO_ATRIBUTOS.filter(function (e) {
+          return rImpSin.hdr.texto.indexOf(e) >= 0; }).join(', '));
+
+  await pgImp.evaluate(function () {
+    var sel = document.getElementById('rejectCategory');
+    if (sel && !sel.value) {
+      sel.value = 'No pasa';
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  });
+  await pgImp.waitForFunction(function () {
+    return !document.getElementById('calcBtn').disabled;
+  }, null, { timeout: 15000 });
+  await pgImp.click('#calcBtn');
+  await pgImp.waitForFunction(function () {
+    return !document.getElementById('resultBody').hidden;
+  }, null, { timeout: 15000 });
+  await pgImp.waitForTimeout(400);
+
+  var rImp = await recorridoImpresion(pgImp, errsImp);
+  check('IMPORTAR: calcular e imprimir no lanza', rImp.errores.length === 0, rImp.errores.join(' | '));
+  check('IMPORTAR: sin undefined, null ni NaN',
+        !/undefined|null|NaN/.test(rImp.hdr.texto), rImp.hdr.texto.slice(0, 300));
+  check('IMPORTAR: el encabezado trae las cifras de decision',
+        ['Entre evaluadores', 'Kappa', 'Categoria de rechazo', 'Error de fuga']
+          .every(function (e) { return rImp.hdr.texto.indexOf(e) >= 0; }), rImp.hdr.texto);
+  check('IMPORTAR: sin campos del mundo de la varianza',
+        PROHIBIDO_ATRIBUTOS.every(function (e) { return rImp.hdr.texto.indexOf(e) < 0; }),
+        'presentes: ' + PROHIBIDO_ATRIBUTOS.filter(function (e) {
+          return rImp.hdr.texto.indexOf(e) >= 0; }).join(', '));
+  check('IMPORTAR: el anexo se arma',
+        (await pgImp.evaluate(function () {
+          return document.getElementById('printAnnex').textContent || ''; })).indexOf('Anexo') >= 0);
+  check('IMPORTAR: la interfaz se restaura',
+        rImp.cambios.length === 0, 'cambio: ' + rImp.cambios.join(', '));
+  await pgImp.close();
 
   await browser.close();
   srv.close();

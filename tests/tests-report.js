@@ -265,4 +265,115 @@
            'kappa impresa con su fuente');
   });
 
+  /* ======================================================================== *
+   * F-03.1: imprimir SIN haber calculado
+   *
+   * La brecha que dejo abierta la correccion de F-03: el metodo se deducia
+   * solo de result.model, y sin resultado no hay model, asi que un estudio de
+   * atributos se imprimia con el encabezado de variables ("3 operadores x 30
+   * piezas = 270 mediciones", Especificacion, Multiplicador).
+   *
+   * Prioridad que se prueba aqui: (a) result manda, (b) si no hay result manda
+   * ctx.method, (c) si no hay ninguno, encabezado neutral.
+   * ======================================================================== */
+
+  var PROHIBIDO_EN_ATRIBUTOS = ['Especificacion', 'Multiplicador', 'Alfa', 'Modelo',
+                                'Categorias distintas', '% Study Variation (GRR)',
+                                'Discriminacion'];
+
+  test('F-03.1 a: con resultado, manda result.model aunque ctx.method mienta', function () {
+    /* Si las dos fuentes se contradicen, gana el resultado: es el que sabe que
+       se calculo de verdad. Un ctx.method desincronizado no puede convertir un
+       estudio de concordancia en uno de varianza. */
+    var rows = R.headerRows(attributeResult(), Object.assign({}, CTX_ATRIB, { method: 'cruzado' }));
+    assert(labels(rows).indexOf('Kappa (contra el estandar)') >= 0,
+           'sigue siendo un encabezado de atributos: ' + labels(rows).join(', '));
+    PROHIBIDO_EN_ATRIBUTOS.forEach(function (l) {
+      assert(labels(rows).indexOf(l) < 0, 'no debe aparecer "' + l + '"');
+    });
+    var v = R.headerRows(crossedResult(), Object.assign({}, CTX_CRUZADO, { method: 'atributos' }));
+    assert(labels(v).indexOf('% Study Variation (GRR)') >= 0,
+           'y al reves: un resultado de variables manda sobre ctx.method atributos');
+    assert(R.studyKind(attributeResult(), { method: 'cruzado' }) === 'atributos', 'studyKind (a)');
+  });
+
+  test('F-03.1 b: sin resultado, manda ctx.method = atributos', function () {
+    var rows = R.headerRows(null, CTX_ATRIB);
+    assert(R.studyKind(null, CTX_ATRIB) === 'atributos', 'studyKind (b)');
+    var l = labels(rows);
+    /* Lo que SI puede mostrar. */
+    assert(valueOf(rows, 'Estudio').indexOf('evaluadores') >= 0,
+           'evaluadores, no operadores: ' + valueOf(rows, 'Estudio'));
+    assert(valueOf(rows, 'Estudio').indexOf('clasificaciones') >= 0,
+           'clasificaciones, no mediciones: ' + valueOf(rows, 'Estudio'));
+    assert(valueOf(rows, 'Estudio').indexOf('3 evaluadores x 6 piezas x 2 replicas') === 0,
+           'evaluadores x piezas x replicas: ' + valueOf(rows, 'Estudio'));
+    assert(valueOf(rows, 'Metodo') === 'Attribute Agreement Analysis', 'declara el metodo');
+    assert(valueOf(rows, 'Estado') === 'Sin calcular', 'declara el estado');
+    /* Lo que NO puede mostrar. */
+    PROHIBIDO_EN_ATRIBUTOS.forEach(function (label) {
+      assert(l.indexOf(label) < 0, 'sin calcular no debe imprimir "' + label + '": ' + l.join(', '));
+    });
+    ['Kappa', 'Efectividad', 'Error de fuga', 'Falsa alarma', 'Entre evaluadores',
+     'Todos vs estandar'].forEach(function (frag) {
+      assert(!l.some(function (x) { return x.indexOf(frag) >= 0; }),
+             'no se anuncia "' + frag + '" antes de calcularla: ' + l.join(', '));
+    });
+  });
+
+  test('F-03.1 b: la categoria de rechazo sale de la pantalla, o dice que falta', function () {
+    var sin = R.headerRows(null, CTX_ATRIB);
+    assert(valueOf(sin, 'Categoria de rechazo') === 'No seleccionada',
+           'sin elegir se dice, no se inventa: ' + valueOf(sin, 'Categoria de rechazo'));
+    var con = R.headerRows(null, Object.assign({}, CTX_ATRIB, { rejectCategory: 'No pasa' }));
+    assert(valueOf(con, 'Categoria de rechazo') === '"No pasa"',
+           'elegida se imprime: ' + valueOf(con, 'Categoria de rechazo'));
+    /* Un valor en blanco de la pantalla es "no seleccionada", no "" ni NaN. */
+    var vacio = R.headerRows(null, Object.assign({}, CTX_ATRIB, { rejectCategory: '   ' }));
+    assert(valueOf(vacio, 'Categoria de rechazo') === 'No seleccionada', 'blancos = no seleccionada');
+  });
+
+  test('F-03.1 b: sin resultado, cruzado y anidado conservan su encabezado', function () {
+    var cru = R.headerRows(null, CTX_CRUZADO), ani = R.headerRows(null, CTX_ANIDADO);
+    assert(R.studyKind(null, CTX_CRUZADO) === 'variables', 'studyKind cruzado');
+    assert(R.studyKind(null, CTX_ANIDADO) === 'variables', 'studyKind anidado');
+    [cru, ani].forEach(function (rows, i) {
+      assert(valueOf(rows, 'Estudio').indexOf('operadores') >= 0, 'caso ' + i + ': operadores');
+      assert(valueOf(rows, 'Estudio').indexOf('mediciones') >= 0, 'caso ' + i + ': mediciones');
+      assert(valueOf(rows, 'Especificacion') !== undefined, 'caso ' + i + ': especificacion');
+      assert(valueOf(rows, 'Multiplicador') === '6 sigma', 'caso ' + i + ': multiplicador');
+      assert(valueOf(rows, 'Modelo') === 'Sin calcular', 'caso ' + i + ': modelo sin calcular');
+      /* Ni %SV ni NDC ni discriminacion: no hay de donde sacarlos. */
+      ['% Study Variation (GRR)', 'Categorias distintas', 'Discriminacion'].forEach(function (l) {
+        assert(labels(rows).indexOf(l) < 0, 'caso ' + i + ': no inventa "' + l + '"');
+      });
+    });
+    assert(labels(cru).indexOf('Alfa') >= 0, 'alfa en el cruzado');
+    assert(labels(ani).indexOf('Alfa') < 0, 'alfa NO en el anidado, tampoco sin calcular');
+  });
+
+  test('F-03.1 c: sin resultado y sin metodo reconocible, encabezado neutral', function () {
+    [undefined, {}, { method: '' }, { method: 'inventado' }].forEach(function (c, i) {
+      var ctx = Object.assign({ date: 'hoy', operators: 3, parts: 10, replicates: 3 }, c || {});
+      var rows = R.headerRows(null, ctx);
+      assert(R.studyKind(null, ctx) === null, 'caso ' + i + ': studyKind neutral');
+      var l = labels(rows);
+      assert(l.join(',') === 'Fecha,Estudio,Estado',
+             'caso ' + i + ': solo fecha, tamano y estado -> ' + l.join(','));
+      assert(valueOf(rows, 'Estudio') === '3 x 10 x 3 = 90 celdas',
+             'caso ' + i + ': el tamano no se adjetiva -> ' + valueOf(rows, 'Estudio'));
+      assert(valueOf(rows, 'Estado') === 'Sin calcular', 'caso ' + i + ': estado');
+    });
+  });
+
+  test('F-03.1: ningun encabezado sin calcular trae undefined, null ni NaN', function () {
+    [CTX_CRUZADO, CTX_ANIDADO, CTX_ATRIB, {}, { method: 'atributos' }].forEach(function (ctx, i) {
+      R.headerRows(null, ctx).forEach(function (row) {
+        assert(typeof row[1] === 'string' && row[1] !== '', 'caso ' + i + ': valor vacio en ' + row[0]);
+        assert(!/undefined|null|NaN/.test(row[1]),
+               'caso ' + i + ': "' + row[0] + '" = "' + row[1] + '"');
+      });
+    });
+  });
+
 })(typeof window !== 'undefined' ? window : globalThis);

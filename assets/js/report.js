@@ -28,6 +28,25 @@
  *      una fila ausente dice "aqui no hay tal cosa"; "No evaluable" dice
  *      "esto existe y este estudio no lo determina".
  *
+ * F-03.1 -- LA BRECHA QUE QUEDO ABIERTA
+ *
+ * La correccion de F-03 dedujo el metodo de `result.model`, y solo de ahi.
+ * Con `result === null` -- la pagina se puede imprimir sin haber calculado --
+ * no hay `model` del que deducirlo, asi que un estudio de ATRIBUTOS caia en
+ * la rama de variables y se imprimia "3 operadores x 30 piezas = 270
+ * mediciones", "Especificacion" y "Multiplicador". Es la regla 1 de arriba,
+ * incumplida en el unico caso que la regla 1 no miraba.
+ *
+ * Ahora el metodo se resuelve por prioridad, en `studyKind`:
+ *   a) si hay `result`, manda `result.model`;
+ *   b) si no lo hay, manda `ctx.method`, que es el metodo activo en pantalla;
+ *   c) si no hay ninguno de los dos, encabezado NEUTRAL: fecha, tamano sin
+ *      adjetivar y "Sin calcular". Nada que presuponga una familia de metodo.
+ *
+ * No es un `if` mas en el sitio de siempre: `result.model` y `ctx.method` son
+ * dos fuentes distintas de la misma verdad, y lo que faltaba era decir cual
+ * manda cuando solo existe una.
+ *
  * Sin dependencias. Sin DOM. Determinista. Reutilizable desde los tests.
  * ==========================================================================*/
 (function (global) {
@@ -64,22 +83,73 @@
    *             spec          etiqueta de la especificacion (solo variables)
    *             multiplier    '6' | '5.15'                (solo variables)
    *             alpha         '0.25' | '0.05' | '0.10'    (solo cruzado)
+   *             rejectCategory  categoria de rechazo elegida (solo atributos)
    * ----------------------------------------------------------------------*/
+
+  /* De que familia es este estudio, por prioridad (F-03.1).
+     Devuelve 'atributos', 'variables' o null (nada de lo que fiarse). */
+  function studyKind(result, c) {
+    if (result && result.model) {                    // a) manda el resultado
+      return result.model === 'attribute' ? 'atributos' : 'variables';
+    }
+    var m = c && c.method;                           // b) manda el metodo activo
+    if (m === 'atributos') return 'atributos';
+    if (m === 'cruzado' || m === 'anidado') return 'variables';
+    return null;                                     // c) neutral
+  }
+
+  /* Tamano del estudio. Las palabras cambian con la familia porque las cosas
+     son otras: no hay operadores midiendo, hay evaluadores clasificando, y lo
+     que sale de cada celda no es una medicion sino una clasificacion. Sin
+     familia conocida no se adjetiva: se cuentan celdas y ya. */
+  function sizeRow(c, kind) {
+    var nOp = Number(c.operators) || 0, nPt = Number(c.parts) || 0, nRep = Number(c.replicates) || 0;
+    var total = nOp * nPt * nRep;
+    if (kind === null) return ['Estudio', nOp + ' x ' + nPt + ' x ' + nRep + ' = ' + total + ' celdas'];
+    var attr = kind === 'atributos';
+    return ['Estudio',
+      nOp + (attr ? ' evaluadores x ' : ' operadores x ') + nPt + ' ' +
+      (c.countLabel || 'piezas') + ' x ' + nRep + ' replicas = ' + total + ' ' +
+      (attr ? 'clasificaciones' : 'mediciones')];
+  }
+
   function headerRows(result, ctx) {
     var c = ctx || {};
-    var attr = !!(result && result.model === 'attribute');
+    var kind = studyKind(result, c);
     var rows = [['Fecha', textOr(c.date)]];
+    rows.push(sizeRow(c, kind));
 
-    /* Tamano del estudio. En atributos las palabras cambian porque las cosas
-       son otras: no hay operadores midiendo, hay evaluadores clasificando, y
-       lo que sale de cada celda no es una medicion sino una clasificacion. */
-    var nOp = Number(c.operators) || 0, nPt = Number(c.parts) || 0, nRep = Number(c.replicates) || 0;
-    rows.push(['Estudio',
-      nOp + (attr ? ' evaluadores x ' : ' operadores x ') + nPt + ' ' +
-      (c.countLabel || 'piezas') + ' x ' + nRep + ' replicas = ' + (nOp * nPt * nRep) + ' ' +
-      (attr ? 'clasificaciones' : 'mediciones')]);
+    if (kind === 'atributos') {
+      return result ? attributeRows(rows, result) : attributePendingRows(rows, c);
+    }
+    if (kind === 'variables') return variableRows(rows, result, c);
+    return neutralRows(rows);
+  }
 
-    return attr ? attributeRows(rows, result) : variableRows(rows, result, c);
+  /* --- Atributos sin calcular (F-03.1) -----------------------------------
+   * Lo unico que se sabe antes de calcular es el tamano del estudio, que
+   * metodo esta activo y si ya se eligio la categoria de rechazo. Se imprime
+   * eso y nada mas: ni especificacion, ni multiplicador, ni alfa, ni modelo,
+   * ni NDC, ni %Study Variation -- no existen en concordancia -- y tampoco
+   * kappa, efectividad, fuga ni falsa alarma, que existen pero todavia no se
+   * han calculado y ponerlas en blanco seria decir que fallaron. */
+  function attributePendingRows(rows, c) {
+    rows.push(['Metodo', 'Attribute Agreement Analysis']);
+    /* Mismo estado que el "sin elegir" de un estudio ya calculado (F-04),
+       visto un momento antes: nadie la ha elegido todavia. */
+    var reject = (c.rejectCategory === null || c.rejectCategory === undefined)
+                 ? '' : String(c.rejectCategory).trim();
+    rows.push(['Categoria de rechazo', reject ? '"' + reject + '"' : 'No seleccionada']);
+    rows.push(['Estado', 'Sin calcular']);
+    return rows;
+  }
+
+  /* --- Ni resultado ni metodo (F-03.1, caso c) ---------------------------
+   * No se presupone familia: sin `result` y sin un `ctx.method` reconocible,
+   * cualquier fila especifica seria una invencion. */
+  function neutralRows(rows) {
+    rows.push(['Estado', 'Sin calcular']);
+    return rows;
   }
 
   /* --- Variables: cruzado y anidado -------------------------------------- */
@@ -145,6 +215,6 @@
     return rows;
   }
 
-  global.MSAReport = { headerRows: headerRows, NO_EVAL: NO_EVAL,
+  global.MSAReport = { headerRows: headerRows, studyKind: studyKind, NO_EVAL: NO_EVAL,
                        numOr: numOr, textOr: textOr };
 })(typeof window !== 'undefined' ? window : globalThis);

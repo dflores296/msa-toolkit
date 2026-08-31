@@ -442,9 +442,56 @@
       assert(/\?$/.test(String(routed.question).trim()), m + ': es una pregunta');
       assert(routed.question.indexOf('2 valores distintos') >= 0,
              m + ': la pregunta trae las cifras del archivo -> ' + routed.question);
-      assert(routed.codedNote && routed.codedNote.indexOf('no significa nada') >= 0,
-             m + ': cancelar deja dicho el supuesto -> ' + routed.codedNote);
+      assert(routed.codedNote && routed.codedNote.indexOf('compatible con una codificacion') >= 0,
+             m + ': cancelar deja constancia de la decision -> ' + routed.codedNote);
+      assert(routed.coded && MSADesign.codedSignature(routed.coded) === '2:0,1',
+             m + ': y devuelve la firma para poder recordar la respuesta');
     });
+  });
+
+  test('F-06: 10/11/12 pueden ser mediciones reales, y el usuario puede decirlo', function () {
+    /* El durometro que reporta 10, 11 y 12 no es un caso raro: es una escala
+       corta de unidad entera, y produce exactamente el mismo patron que un
+       pasa/dudoso/no-pasa codificado. `looksCoded` NO afirma que sea una
+       codificacion -- afirma que los datos son compatibles con una -- y por
+       eso el flujo pregunta. Esta prueba fija que la respuesta "son
+       mediciones" se puede dar Y se recuerda. */
+    var rows = rowsOf([10, 11, 12, 11, 10, 12, 11, 11, 12, 10]);
+    var coded = MSADesign.looksCoded(rows);
+    assert(coded !== null, 'la sospecha se levanta, que es lo correcto');
+    assert(coded.levels === 3 && coded.values.join(',') === '10,11,12',
+           'y describe lo que vio, sin calificarlo: ' + JSON.stringify(coded));
+
+    var routed = MSADesign.route({
+      activeMethod: 'cruzado', explicitMethod: null,
+      observed: MSADesign.observeRows(rows), categorical: false, coded: coded
+    });
+    /* 1. No decide: sigue en variables y pregunta. */
+    assert(routed.method === 'cruzado' && !routed.changed, 'no saca de variables solo');
+    assert(routed.proposal === 'atributos' && routed.question, 'pregunta');
+    /* 2. La pregunta no afirma que sean atributos. */
+    assert(routed.question.indexOf('COMPATIBLE con') >= 0,
+           'la pregunta dice "compatible", no "es": ' + routed.question);
+    assert(routed.question.indexOf('medicion real de escala corta') >= 0,
+           'y nombra la alternativa legitima: ' + routed.question);
+    /* 3. Al contestar "son mediciones", queda constancia y una firma con la
+          que quien llama puede no volver a preguntar. */
+    assert(routed.codedNote.indexOf('Confirmaste que son mediciones reales') >= 0,
+           'la nota registra la decision: ' + routed.codedNote);
+    assert(routed.codedNote.indexOf('no se vuelve a preguntar') >= 0,
+           'y promete no insistir: ' + routed.codedNote);
+    var firma = MSADesign.codedSignature(routed.coded);
+    assert(firma === '3:10,11,12', 'firma de estos datos: ' + firma);
+
+    /* 4. La firma distingue datos distintos: cambiar las mediciones vuelve a
+          preguntar, que es lo que hace que recordar sea seguro. */
+    var otros = MSADesign.looksCoded(rowsOf([20, 21, 20, 21, 20, 21]));
+    assert(MSADesign.codedSignature(otros) !== firma,
+           'otros datos, otra firma: ' + MSADesign.codedSignature(otros));
+    var mismos = MSADesign.looksCoded(rowsOf([11, 12, 10, 10, 12, 11]));
+    assert(MSADesign.codedSignature(mismos) === firma,
+           'los mismos valores en otro orden son los mismos datos: ' +
+           MSADesign.codedSignature(mismos));
   });
 
   test('F-06: un metodo declarado por el archivo sigue mandando sobre la sospecha', function () {

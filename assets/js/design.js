@@ -133,25 +133,39 @@
   }
 
   /* ------------------------------------------------------------------------
-   * looksCoded(rows) - ¿esto son categorias escritas como numeros? (F-06)
+   * looksCoded(rows) - ¿son estos datos COMPATIBLES con una codificacion
+   * categorica? (F-06)
    *
-   * Codificar pasa/no pasa como 1/0 o 1/2 es practica corriente en los
-   * registros de inspeccion. Para `looksCategorical`, que pide mas del 80 % de
-   * texto, un archivo asi da 0 % y pasa por mediciones: la aplicacion se
-   * cambiaba sola a cruzado y descomponia la varianza de una variable binaria.
-   * El resultado es un %GRR perfectamente plausible sobre datos donde la
-   * varianza no significa nada. No hay error, no hay aviso: hay un numero.
+   * LO QUE ESTA FUNCION DETECTA, Y LO QUE NO
    *
-   * Que se mira, y por que solo esto: pocos valores distintos, todos enteros.
-   * Es el patron que ninguna medicion continua produce -- un micrometro no
-   * devuelve exactamente dos valores en 90 lecturas -- y que toda escala
-   * ordinal corta produce siempre. No se mira si son "0 y 1" en concreto,
-   * porque 1/2, 1/3 y -1/1 son igual de comunes.
+   * Detecta: datos numericos con pocos valores distintos y todos enteros.
+   * NO detecta -- ni puede -- que sean atributos. "3 valores enteros" no es
+   * evidencia de que un pasa/no pasa este codificado; es evidencia de que la
+   * captura ADMITE esa lectura. La diferencia importa porque el mismo patron
+   * lo produce, con toda legitimidad:
    *
-   * Lo que esta funcion NO hace es decidir. Dos valores distintos tambien
-   * salen de un pasa/no pasa mal capturado, de un calibre de aguja con dos
-   * posiciones, o de un estudio real cuyas piezas resultaron casi identicas.
-   * Los datos no distinguen esos casos, asi que se pregunta.
+   *   - un pasa/no pasa codificado 1/0, que es el caso que motivo F-06;
+   *   - una medicion real de escala corta y unidad entera (un contador de
+   *     defectos, un durometro que reporta 10, 11 y 12, una cota en micras
+   *     leida en pasos de 1);
+   *   - un instrumento con resolucion gruesa frente a la variacion de las
+   *     piezas, que es el caso de F-01;
+   *   - un estudio real cuyas piezas resultaron casi identicas.
+   *
+   * Ninguna estadistica de los valores separa esos casos, porque la diferencia
+   * no esta en los numeros: esta en que MIDE el instrumento, y eso solo lo
+   * sabe quien hizo el estudio. Por eso la funcion devuelve una DESCRIPCION
+   * (cuantos niveles, cuales) y nunca un veredicto, y por eso quien la usa
+   * pregunta en vez de decidir. Un cambio de metodo que altera el modelo
+   * estadistico nunca deberia ser silencioso, en ninguna de las dos
+   * direcciones.
+   *
+   * Por que el umbral es "pocos niveles y enteros" y no otra cosa: es la
+   * condicion NECESARIA de una codificacion categorica -- toda codificacion la
+   * cumple -- lo bastante estrecha para no disparar sobre una medicion
+   * continua, que practicamente nunca da tres valores exactos en 90 lecturas.
+   * Es un filtro de sensibilidad alta y especificidad baja a proposito: se
+   * prefiere preguntar de mas a analizar de mas en silencio.
    * ----------------------------------------------------------------------*/
   var CODED_MAX_LEVELS = 3;          // pasa/no pasa, o pasa/dudoso/no pasa
 
@@ -172,15 +186,22 @@
       return a - b; }), n: n };
   }
 
+  /* Firma de la sospecha. Sirve para recordar la respuesta del usuario: si
+     vuelve a calcular los MISMOS datos no se le repite la pregunta ni el
+     aviso, y si los datos cambian, se vuelve a preguntar. */
+  function codedSignature(coded) {
+    return coded ? coded.levels + ':' + coded.values.join(',') : '';
+  }
+
   /** La pregunta que F-06 pide hacer, con las cifras del propio archivo. */
   function codedQuestion(coded, target) {
     return 'El archivo trae ' + coded.n + ' mediciones y solo ' + coded.levels +
       ' valores distintos, todos enteros (' + coded.values.join(', ') + ').\n\n' +
-      'Eso es lo que se ve cuando un pasa / no pasa se captura codificado como numero. ' +
-      'Analizado como variables, se descompone la varianza de una variable binaria y sale un ' +
-      '%GRR que parece razonable y no significa nada.\n\n' +
-      'Tambien puede ser una medicion real de escala muy corta, y los datos no distinguen los ' +
-      'dos casos.\n\n' +
+      'Eso es COMPATIBLE con un pasa / no pasa capturado como numero. Analizado como ' +
+      'variables, se descompondria la varianza de una variable categorica y saldria un %GRR ' +
+      'que parece razonable y no significa nada.\n\n' +
+      'Pero el mismo patron lo da una medicion real de escala corta y unidad entera. Los datos ' +
+      'no distinguen los dos casos: solo lo sabe quien hizo el estudio.\n\n' +
       (target === 'atributos'
         ? 'Cambiar al metodo de atributos (concordancia)?'
         : 'Son mediciones reales? Aceptar para analizarlas como variables.');
@@ -273,10 +294,12 @@
     if (coded && !ctx.explicitMethod && (active === 'cruzado' || active === 'anidado') &&
         available('atributos')) {
       out.proposal = 'atributos';
+      out.coded = coded;                    // quien llama lo necesita para recordar la respuesta
       out.question = codedQuestion(coded, 'atributos');
       out.codedNote = 'El archivo trae solo ' + coded.levels + ' valores distintos, todos enteros (' +
-        coded.values.join(', ') + '). Se analiza como mediciones porque asi lo confirmaste: si en ' +
-        'realidad es un pasa / no pasa codificado, el %GRR no significa nada.';
+        coded.values.join(', ') + '), que es compatible con una codificacion categorica. ' +
+        'Confirmaste que son mediciones reales, asi que se analizan como variables y no se ' +
+        'vuelve a preguntar por estos datos.';
     }
 
     // 2. Lo que el archivo DECLARA. Un cambio pedido por el archivo no es
@@ -319,7 +342,7 @@
     ID_SEP: ID_SEP, KEY_SEP: KEY_SEP,
     partIdOf: partIdOf, cellKey: cellKey,
     observe: observe, observeRows: observeRows,
-    looksCoded: looksCoded, codedQuestion: codedQuestion,
+    looksCoded: looksCoded, codedQuestion: codedQuestion, codedSignature: codedSignature,
     CODED_MAX_LEVELS: CODED_MAX_LEVELS,
     repeatedLabelNotes: repeatedLabelNotes,
     methodOfPayload: methodOfPayload,

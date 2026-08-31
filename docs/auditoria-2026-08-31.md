@@ -275,11 +275,21 @@ aviso: "El archivo trae mediciones numericas, asi que se salio del metodo de atr
 del 80 % de los valores no son numéricos. Codificar pasa/no pasa como `1/0` o
 `1/2` —práctica corriente en registros de inspección— da **0 % de texto**.
 
-**Lo que se mira, y por qué solo eso:** pocos valores distintos (≤ 3) y todos
-enteros. Es el patrón que ninguna medición continua produce —un micrómetro no
-devuelve exactamente dos valores en 90 lecturas— y que toda escala ordinal
-corta produce siempre. No se busca «0 y 1» en concreto, porque `1/2`, `1/3` y
-`-1/1` son igual de comunes.
+**Qué detecta, y qué no.** Detecta datos numéricos con pocos valores distintos
+(≤ 3) y todos enteros. **No detecta que sean atributos, ni puede.** «3 valores
+enteros» no prueba que haya una codificación: prueba que la captura **admite**
+esa lectura. El mismo patrón lo produce, con toda legitimidad, una medición
+real de escala corta y unidad entera —un durómetro que reporta 10, 11 y 12— o
+un instrumento de resolución gruesa frente a la variación de las piezas (F-01).
+Ninguna estadística de los valores separa esos casos, porque la diferencia no
+está en los números sino en qué mide el instrumento, y eso solo lo sabe quien
+hizo el estudio.
+
+El umbral es la condición **necesaria** de una codificación —toda codificación
+la cumple— y lo bastante estrecha para no dispararse sobre una medición
+continua. Es un filtro de sensibilidad alta y especificidad baja **a
+propósito**: se prefiere preguntar de más a analizar de más en silencio. No se
+busca «0 y 1» en concreto, porque `1/2`, `1/3` y `-1/1` son igual de comunes.
 
 **Y no decide.** Dos niveles también salen de un calibre de aguja o de un
 estudio real cuyas piezas resultaron casi idénticas; los datos no distinguen
@@ -292,8 +302,11 @@ el modelo estadístico nunca es silencioso.**
 | cruzado / anidado | analizaba en silencio | **pregunta**, con las cifras del archivo delante |
 | el archivo declara método | — | manda el archivo, sin preguntar |
 
-Cancelar es una respuesta, no un silencio: queda escrito con qué supuesto se
-sigue y qué pasa si es el equivocado.
+Cancelar es una respuesta, no un silencio: queda constancia de la decisión **y
+se recuerda**. Quien confirma que su durómetro de 10/11/12 mide de verdad no
+vuelve a ver el aviso sobre esos datos — un aviso que no se puede resolver deja
+de leerse, incluido el día que sí importa. La memoria guarda la **firma de los
+datos**, no un «ya avisé»: editar las mediciones vuelve a preguntar.
 
 **Cubre también la captura manual.** Escribir 0/1 en la rejilla no pasa por la
 importación, y el ANOVA de una variable binaria es igual de vacío: al calcular,

@@ -24,7 +24,7 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
 | F-05 · Reporte con datos nuevos y tablas viejas | P1 | **Cerrado** | este commit |
 | F-06 · Atributos 0/1 → ANOVA de variables | P1 | **Cerrado** | este commit |
-| F-07 · %GRR sin intervalo de confianza | P1 | **Cerrado** | este commit |
+| F-07 · %GRR sin intervalo de confianza | P1 | **REABIERTO — en validación** | `0105a08` |
 | F-14 · Inyección de fórmulas en el CSV exportado | P1 | Pendiente | — |
 | F-15 · «Validado contra AIAG» afirmado para los tres métodos | P1 | Pendiente | — |
 | F-08 · `__proto__` como nombre → NaN silencioso | P2 | Pendiente | — |
@@ -193,7 +193,30 @@ veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
 
-### F-07 — Un punto sin intervalo decidía la aceptación · este commit
+### F-07 — Un punto sin intervalo decidía la aceptación · `0105a08` · **EN VALIDACIÓN**
+
+> **F-07 NO está cerrada.** La revisión metodológica está en
+> [`docs/f07-validacion-gpq.md`](f07-validacion-gpq.md), con estado **`C`**:
+> el método es válido y concuerda con dos referencias independientes, pero la
+> política de veredicto debe modificarse antes de usarse para liberar o
+> rechazar instrumentos. Tres afirmaciones de la entrada de abajo quedan
+> **corregidas** por ese documento:
+>
+> 1. **«GPQ, el que usa Minitab» es FALSO.** Minitab usa MLS con respaldo
+>    Satterthwaite. La descripción correcta es «método GPQ implementado por la
+>    aplicación».
+> 2. **La justificación del 90 % era circular** («concluye más» no es un
+>    criterio estadístico).
+> 3. **El piso de 60 mediciones mide la cosa equivocada:** no distingue
+>    estructuras de diseño, y bloquea estudios de 30 mediciones mejores que
+>    otros de 60 que deja pasar.
+>
+> Lo que la revisión **confirmó**: el intervalo concuerda con la referencia
+> analítica exacta dentro del error Monte Carlo, concuerda con MLS sobre
+> σ²_grr con una discrepancia explicada por el truncado, el intervalo usa
+> siempre el mismo modelo que el punto, y en 6 000 estudios simulados no hubo
+> **ni una** aceptación ni un rechazo incorrectos.
+
 
 **Reproducido** con el motor en vivo, y confirma el hallazgo:
 

@@ -61,7 +61,12 @@
       atLoad: ['MSADesign'] },
     { file: 'attribute.js',   provides: 'MSAAttribute', needs: ['MSAStats'],                atLoad: [] },
     { file: 'report.js',      provides: 'MSAReport',    needs: [],                          atLoad: [] },
-    { file: 'interval.js',    provides: 'MSAInterval',  needs: [],                          atLoad: [] }
+    { file: 'mls.js',         provides: 'MSAMls',       needs: ['MSAStats'],                atLoad: [] },
+    /* interval.js nombra MSAMls, pero solo dentro de una funcion y sabiendo
+       apanarselas sin el: sin mls.js cargado, el cruzado cae al GPQ en vez de
+       reventar. Va en `needs` -y por tanto obliga a que mls.js se pida antes-
+       pero no en `atLoad`, que es justo la distincion que este contrato hace. */
+    { file: 'interval.js',    provides: 'MSAInterval',  needs: ['MSAMls'],                  atLoad: [] }
   ];
   var PROVIDER = {};
   MODULES.forEach(function (m) { PROVIDER[m.provides] = m.file; });

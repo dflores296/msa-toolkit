@@ -845,6 +845,22 @@
       state.result = null; state.stamp = null; refreshStale();
       return;
     }
+    /* F-06 tambien por la via manual: escribir 0/1 en la rejilla no pasa por
+       la importacion, y el ANOVA de una variable binaria es igual de vacio.
+       Aqui ya no se puede preguntar -- el calculo se pidio -- asi que se
+       avisa junto al resultado, que es donde alguien lo va a leer. */
+    if (!isAttribute()) {
+      var coded = MSADesign.looksCoded(rows);
+      if (coded) {
+        result.warnings = result.warnings.concat([
+          'Los datos traen solo ' + coded.levels + ' valores distintos, todos enteros (' +
+          coded.values.join(', ') + '). Si son un pasa / no pasa codificado, este %GRR no ' +
+          'significa nada: la varianza de una variable binaria no mide dispersion de medicion. ' +
+          'Para ese caso el metodo es Atributos (concordancia). Si de verdad son mediciones de ' +
+          'escala corta, revisa ademas la resolucion del instrumento.']);
+      }
+    }
+
     state.result = result;
     /* El sello se toma DESPUES de calcular y de las mismas fuentes que
        alimentaron el calculo: a partir de aqui, cualquier edicion lo rompe. */
@@ -1518,6 +1534,9 @@
       explicitMethod: MSADesign.methodOfPayload(p),
       observed: MSADesign.observe(partsByOp),
       categorical: categorical,
+      /* F-06: numeros con dos o tres niveles enteros tienen la forma de un
+         pasa / no pasa codificado. No decide nada: hace que se pregunte. */
+      coded: categorical ? null : MSADesign.looksCoded(rows),
       isAvailable: function (id) { return methodById(id).available; }
     });
     var notes = routed.notes.slice();
@@ -1527,7 +1546,10 @@
       notes.push('Metodo cambiado a ' + routed.proposal + ' porque lo confirmaste al importar. ' +
                  'El archivo no declaraba metodo.');
     } else if (routed.question) {
-      notes.push('Se conservo el metodo ' + state.method + ': el archivo no declara metodo y los ' +
+      /* Cancelar es una respuesta, no un silencio: queda dicho con que
+         supuesto se sigue y que pasa si el supuesto es el equivocado. */
+      notes.push(routed.codedNote ||
+                 'Se conservo el metodo ' + state.method + ': el archivo no declara metodo y los ' +
                  'nombres de las piezas no bastan para deducirlo.');
     }
 

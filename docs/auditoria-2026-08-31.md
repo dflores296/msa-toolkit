@@ -23,7 +23,7 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-03.1 · Impresión sin cálculo usa el encabezado de variables | P1 | **Cerrado** | este commit |
 | F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
 | F-05 · Reporte con datos nuevos y tablas viejas | P1 | **Cerrado** | este commit |
-| F-06 · Atributos 0/1 → ANOVA de variables | P1 | Pendiente | — |
+| F-06 · Atributos 0/1 → ANOVA de variables | P1 | **Cerrado** | este commit |
 | F-07 · %GRR sin intervalo de confianza | P1 | Pendiente | — |
 | F-14 · Inyección de fórmulas en el CSV exportado | P1 | Pendiente | — |
 | F-15 · «Validado contra AIAG» afirmado para los tres métodos | P1 | Pendiente | — |
@@ -192,6 +192,50 @@ validación pasa exactamente igual, sin avisos nuevos, y
 veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
+
+### F-06 — Un pasa/no pasa codificado 0/1 se analizaba como variables · este commit
+
+**Reproducido** importando un archivo `1/0` estando en **atributos**:
+
+```
+metodo activo era "atributos"; tras importar 0/1 -> cruzado
+aviso: "El archivo trae mediciones numericas, asi que se salio del metodo de atributos."
+%GRR sobre una variable binaria: 99.54 %   con veredicto "Inaceptable"
+```
+
+**Causa raíz.** `looksCategorical` declara categórico un archivo solo si más
+del 80 % de los valores no son numéricos. Codificar pasa/no pasa como `1/0` o
+`1/2` —práctica corriente en registros de inspección— da **0 % de texto**.
+
+**Lo que se mira, y por qué solo eso:** pocos valores distintos (≤ 3) y todos
+enteros. Es el patrón que ninguna medición continua produce —un micrómetro no
+devuelve exactamente dos valores en 90 lecturas— y que toda escala ordinal
+corta produce siempre. No se busca «0 y 1» en concreto, porque `1/2`, `1/3` y
+`-1/1` son igual de comunes.
+
+**Y no decide.** Dos niveles también salen de un calibre de aguja o de un
+estudio real cuyas piezas resultaron casi idénticas; los datos no distinguen
+los casos. Se aplica la misma regla de F-02: **un cambio de método que altera
+el modelo estadístico nunca es silencioso.**
+
+| Método activo | Antes | Ahora |
+|---|---|---|
+| atributos | se iba a cruzado | **se queda**, y dice por qué |
+| cruzado / anidado | analizaba en silencio | **pregunta**, con las cifras del archivo delante |
+| el archivo declara método | — | manda el archivo, sin preguntar |
+
+Cancelar es una respuesta, no un silencio: queda escrito con qué supuesto se
+sigue y qué pasa si es el equivocado.
+
+**Cubre también la captura manual.** Escribir 0/1 en la rejilla no pasa por la
+importación, y el ANOVA de una variable binaria es igual de vacío: al calcular,
+el aviso aparece junto al resultado. Los motores no se tocaron; la detección
+vive en `design.js`, que es puro.
+
+**Pruebas.** Seis en Node (`tests-design.js`) más 13 comprobaciones de
+navegador en `prueba-diseno.js`. La de navegador usa el caso **peligroso**, no
+el llamativo: tres evaluadores que casi siempre coinciden dan un %GRR bajo y un
+veredicto «Aceptable» sobre datos donde la varianza no mide nada.
 
 ### F-05 — El reporte podía mezclar resultados viejos con mediciones nuevas · este commit
 

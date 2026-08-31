@@ -365,4 +365,110 @@
     assert(val.meta.partsPerOperator === 2, 'dos piezas cada uno');
   });
 
+  /* ---------------------------------------------------------------------- *
+   * F-06: categorias escritas como numeros
+   *
+   * `looksCategorical` pide mas del 80 % de texto. Un pasa/no pasa codificado
+   * 1/0 da 0 % de texto, asi que la app se cambiaba sola a cruzado y
+   * descomponia la varianza de una variable binaria: un %GRR plausible sobre
+   * datos donde la varianza no significa nada.
+   * ---------------------------------------------------------------------- */
+  function rowsOf(values) {
+    return values.map(function (v, i) {
+      return { operator: 'Op' + (i % 3), part: 'P' + (i % 5), value: v };
+    });
+  }
+
+  test('F-06: looksCoded reconoce la codificacion y no confunde una medicion', function () {
+    var si = [[0, 1, 1, 0, 1, 0, 0, 1], [1, 2, 2, 1, 1, 2], [-1, 1, 1, -1, 1],
+              [1, 2, 3, 1, 2, 3, 1]];
+    si.forEach(function (v, i) {
+      var c = MSADesign.looksCoded(rowsOf(v));
+      assert(c !== null, 'caso ' + i + ': deberia reconocerse como codificado');
+      assert(c.levels >= 2 && c.levels <= MSADesign.CODED_MAX_LEVELS, 'caso ' + i + ': niveles');
+      assert(c.n === v.length, 'caso ' + i + ': cuenta las mediciones');
+    });
+
+    var no = [
+      [0.29, 0.41, 0.64, 0.08, 0.25],          // continuo: hay decimales
+      [1, 2, 3, 4, 5, 6],                      // enteros, pero demasiados niveles
+      ['Pasa', 'No pasa', 'Pasa'],             // texto: es el caso de looksCategorical
+      [1, 1, 1, 1],                            // una sola constante: no hay dos niveles
+      [1, 2, 1, 2.5],                          // basta un decimal para descartarlo
+      []                                       // sin datos
+    ];
+    no.forEach(function (v, i) {
+      assert(MSADesign.looksCoded(rowsOf(v)) === null,
+             'caso ' + i + ' NO deberia darse por codificado: ' + JSON.stringify(v));
+    });
+  });
+
+  test('F-06: en atributos, un archivo 0/1 ya no saca del metodo', function () {
+    var rows = rowsOf([0, 1, 1, 0, 1, 0]);
+    var routed = MSADesign.route({
+      activeMethod: 'atributos', explicitMethod: null,
+      observed: MSADesign.observeRows(rows), categorical: false,
+      coded: MSADesign.looksCoded(rows)
+    });
+    assert(routed.method === 'atributos' && !routed.changed,
+           'se conserva atributos, se obtuvo ' + routed.method);
+    var n = routed.notes.join(' | ');
+    assert(n.indexOf('pasa / no pasa codificado') >= 0, 'dice que forma tienen los datos: ' + n);
+    assert(n.indexOf('Se conserva el metodo de atributos') >= 0, 'y que no se movio: ' + n);
+    assert(n.indexOf('mediciones reales') >= 0, 'y ofrece la salida si eran mediciones: ' + n);
+  });
+
+  test('F-06: un archivo numerico de verdad SI sale de atributos, como antes', function () {
+    var rows = rowsOf([0.29, 0.41, 0.64, 0.08, 0.25, 1.34]);
+    var routed = MSADesign.route({
+      activeMethod: 'atributos', explicitMethod: null,
+      observed: MSADesign.observeRows(rows), categorical: false,
+      coded: MSADesign.looksCoded(rows)
+    });
+    assert(routed.method === 'cruzado' && routed.changed,
+           'mediciones reales salen de atributos: ' + routed.method);
+  });
+
+  test('F-06: en variables, un archivo 0/1 se PREGUNTA, no se decide', function () {
+    ['cruzado', 'anidado'].forEach(function (m) {
+      var rows = rowsOf([0, 1, 1, 0, 1, 0]);
+      var routed = MSADesign.route({
+        activeMethod: m, explicitMethod: null,
+        observed: MSADesign.observeRows(rows), categorical: false,
+        coded: MSADesign.looksCoded(rows)
+      });
+      assert(routed.method === m && !routed.changed, m + ': no se cambia solo');
+      assert(routed.proposal === 'atributos', m + ': propone atributos');
+      assert(/\?$/.test(String(routed.question).trim()), m + ': es una pregunta');
+      assert(routed.question.indexOf('2 valores distintos') >= 0,
+             m + ': la pregunta trae las cifras del archivo -> ' + routed.question);
+      assert(routed.codedNote && routed.codedNote.indexOf('no significa nada') >= 0,
+             m + ': cancelar deja dicho el supuesto -> ' + routed.codedNote);
+    });
+  });
+
+  test('F-06: un metodo declarado por el archivo sigue mandando sobre la sospecha', function () {
+    /* Si alguien exporta un estudio de escala corta y lo declara cruzado, se
+       respeta: el archivo dice mas que la forma de los numeros. */
+    var rows = rowsOf([1, 2, 2, 1, 1, 2]);
+    var routed = MSADesign.route({
+      activeMethod: 'cruzado', explicitMethod: 'cruzado',
+      observed: MSADesign.observeRows(rows), categorical: false,
+      coded: MSADesign.looksCoded(rows)
+    });
+    assert(routed.question === null, 'no se pregunta lo que el archivo ya declaro');
+    assert(routed.method === 'cruzado', 'se queda donde el archivo dice');
+  });
+
+  test('F-06: texto sigue yendo a atributos sin preguntar', function () {
+    var rows = rowsOf(['Pasa', 'No pasa', 'Pasa', 'No pasa']);
+    var routed = MSADesign.route({
+      activeMethod: 'cruzado', explicitMethod: null,
+      observed: MSADesign.observeRows(rows), categorical: true,
+      coded: null
+    });
+    assert(routed.method === 'atributos' && routed.changed, 'texto no admite ANOVA de variables');
+    assert(routed.question === null, 'y ahi no hay ambiguedad que consultar');
+  });
+
 })(typeof window !== 'undefined' ? window : globalThis);

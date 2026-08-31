@@ -26,6 +26,14 @@
  *   6. Reordenar las filas del archivo no cambia el metodo ni los resultados.
  *   7. En cruzado, repetir un nombre de pieza sigue siendo un error.
  *
+ * Y, desde F-06, el enrutado por TIPO de dato:
+ *
+ *   8. Un pasa / no pasa codificado 0/1 importado estando en atributos NO
+ *      saca del metodo (antes si, y corria un ANOVA de variables).
+ *   9. Estando en variables, ese mismo archivo se pregunta, no se decide.
+ *  10. Escribir 0/1 a mano en la rejilla -- que no pasa por la importacion --
+ *      avisa junto al resultado.
+ *
  * USO
  *   node tests/prueba-diseno.js
  *
@@ -313,6 +321,115 @@ function screenState(page) {
   check('el anidado rechaza repetir un nombre dentro del mismo operador', ani.configError, ani.configMsg);
   check('y lo dice con esas palabras',
     ani.configMsg.indexOf('dentro de un mismo operador') >= 0, ani.configMsg);
+
+  /* ---------------------------------------------------------------------- */
+  console.log('\n===== F-06: PASA / NO PASA CODIFICADO COMO 0 / 1 =====');
+
+  /* El caso peligroso no es el que da 99 %: es el que da un numero creible.
+     Aqui los tres evaluadores casi siempre coinciden, asi que analizado como
+     variables sale un %GRR bajo y un veredicto "Aceptable" sobre datos donde
+     la varianza no mide nada. */
+  function csvCodificado() {
+    var out = 'operador,pieza,replica,medicion\n';
+    for (var p = 1; p <= 10; p++) {
+      var verdad = p <= 5 ? 1 : 0;
+      ['Ana', 'Beto', 'Cruz'].forEach(function (op, oi) {
+        for (var k = 1; k <= 3; k++) {
+          // un solo desacuerdo en todo el estudio: acuerdo casi perfecto
+          var v = (p === 6 && oi === 1 && k === 2) ? 1 - verdad : verdad;
+          out += [op, 'Pieza ' + p, k, v].join(',') + '\n';
+        }
+      });
+    }
+    return out;
+  }
+
+  await open(page, base + '#atributos');
+  confirms = [];
+  await importText(page, 'codificado.csv', csvCodificado());
+  await page.waitForFunction(function () {
+    return document.querySelectorAll('#dataTable tbody tr').length > 0;
+  });
+  var cod = await screenState(page);
+  check('F-06: importar 0/1 en atributos NO saca del metodo',
+        cod.metodo === 'atributos', 'metodo = ' + cod.metodo);
+  check('F-06: y explica por que se queda',
+        cod.configMsg.indexOf('pasa / no pasa codificado') >= 0, cod.configMsg);
+  check('F-06: sin preguntar (el metodo activo ya era el correcto)',
+        confirms.length === 0, confirms.join(' // '));
+  check('F-06: ya no dice "se salio del metodo de atributos"',
+        cod.configMsg.indexOf('se salio del metodo de atributos') < 0, cod.configMsg);
+
+  /* Estando en cruzado, el mismo archivo tiene que preguntar. */
+  await open(page, base + '#cruzado');
+  confirms = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', function (d) { confirms.push(d.message()); d.dismiss(); });   // cancelar
+  await importText(page, 'codificado.csv', csvCodificado());
+  await page.waitForFunction(function () {
+    return document.querySelectorAll('#dataTable tbody tr').length > 0;
+  });
+  var codCru = await screenState(page);
+  check('F-06: en cruzado, el archivo 0/1 pregunta',
+        confirms.length === 1, 'dialogos: ' + confirms.length);
+  check('F-06: la pregunta trae las cifras del archivo',
+        confirms.join(' ').indexOf('2 valores distintos') >= 0, confirms.join(' // '));
+  check('F-06: cancelar conserva el metodo elegido',
+        codCru.metodo === 'cruzado', 'metodo = ' + codCru.metodo);
+  check('F-06: y deja dicho el supuesto con el que se sigue',
+        codCru.configMsg.indexOf('no significa nada') >= 0, codCru.configMsg);
+
+  /* Y al calcular, el aviso vuelve a estar junto al resultado. */
+  await page.click('#calcBtn');
+  await page.waitForTimeout(400);
+  var codCalc = await screenState(page);
+  check('F-06: el aviso acompana al resultado, no solo a la importacion',
+        codCalc.resultMsg.indexOf('pasa / no pasa codificado') >= 0,
+        codCalc.resultMsg.slice(0, 400));
+
+  /* Aceptar la propuesta lleva a atributos. */
+  await open(page, base + '#cruzado');
+  confirms = [];
+  page.removeAllListeners('dialog');
+  page.on('dialog', function (d) { confirms.push(d.message()); d.accept(); });
+  await importText(page, 'codificado.csv', csvCodificado());
+  await page.waitForFunction(function () {
+    return document.querySelectorAll('#dataTable tbody tr').length > 0;
+  });
+  var codOk = await screenState(page);
+  check('F-06: aceptar la propuesta lleva a atributos',
+        codOk.metodo === 'atributos', 'metodo = ' + codOk.metodo);
+
+  /* Captura MANUAL: escribir 0/1 a mano no pasa por la importacion. */
+  await open(page, base + '#cruzado');
+  await page.fill('#numOperators', '3');
+  await page.fill('#numParts', '5');
+  await page.fill('#numReplicates', '2');
+  await page.click('#generateBtn');
+  await page.evaluate(function () {
+    [].slice.call(document.querySelectorAll('#dataTable input')).forEach(function (inp, i) {
+      inp.value = String(Math.floor(i / 2) % 2);
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  });
+  await page.click('#calcBtn');
+  await page.waitForTimeout(400);
+  var manual = await screenState(page);
+  check('F-06: escribir 0/1 a mano tambien avisa',
+        manual.resultMsg.indexOf('pasa / no pasa codificado') >= 0,
+        manual.resultMsg.slice(0, 400));
+  check('F-06: y el aviso nombra el metodo que si corresponde',
+        manual.resultMsg.indexOf('Atributos') >= 0, manual.resultMsg.slice(0, 400));
+
+  /* Un estudio de mediciones de verdad no debe recibir ninguno de estos avisos. */
+  await open(page, base + '#cruzado');
+  await page.click('#demoBtn');
+  await page.waitForFunction(function () { return !document.getElementById('calcBtn').disabled; });
+  await page.click('#calcBtn');
+  await page.waitForTimeout(400);
+  var real = await screenState(page);
+  check('F-06: el ejemplo AIAG no recibe el aviso de codificacion',
+        real.resultMsg.indexOf('codificado') < 0, real.resultMsg.slice(0, 300));
 
   await browser.close();
   srv.close();

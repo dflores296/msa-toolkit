@@ -303,6 +303,33 @@
     return seq.map(function (p) { return p.slice(prefix.length).trim(); });
   }
 
+  /* Cuantas etiquetas de pieza se dejan visibles POR BLOQUE en las cartas R y
+     X-barra. Con el tamano que sugiere AIAG (10 piezas) el paso sale en 1 y
+     no cambia nada; el limite solo actua en estudios mas grandes. */
+  var TARGET_LABELS_PER_BLOCK = 10;
+
+  /* Rotulos del eje x de las cartas R y X-barra, agrupadas por operador
+     (operatorGroups). Mostrar CADA pieza amontona el eje en cuanto un
+     operador trae mas de ~10 (con 6 operadores x 20 piezas son 120 rotulos
+     encimados). Se calcula un paso y se aplica IGUAL en todos los bloques
+     -no el autoSkip corriente de Chart.js, que reparte por todo el eje sin
+     saber donde empieza cada operador y deja bloques desalineados entre si-,
+     siempre dejando ver la primera y la ultima pieza del bloque para que se
+     note donde empieza y donde acaba. */
+  function blockTickLabels(groups, labels) {
+    var maxSize = groups.reduce(function (m, g) { return Math.max(m, g.to - g.from + 1); }, 1);
+    var step = Math.max(1, Math.ceil(maxSize / TARGET_LABELS_PER_BLOCK));
+    return function (value) {
+      var idx = Math.round(value);
+      var label = labels[idx];
+      if (label === undefined) return '';
+      if (step === 1) return label;
+      var g = groups.filter(function (grp) { return idx >= grp.from && idx <= grp.to; })[0];
+      if (!g) return label;
+      return (idx - g.from) % step === 0 || idx === g.to ? label : '';
+    };
+  }
+
   /** Titulo del eje x, con el mismo estilo en todas las graficas. */
   function axisTitle(text) {
     return { display: true, text: text, font: { size: 10 }, color: TICK() };
@@ -408,11 +435,16 @@
       plugins: { operatorBands: { groups: ch.operatorGroups } },
       scales: { x: {
         title: axisTitle('Pieza'),
-        // Sin autoSkip: con el numero de pieza a secas caben las 10 de cada
-        // bloque, y saltarse la mitad haria dudar de que punto es cual.
+        // autoSkip queda apagado: el paso lo decide blockTickLabels (igual en
+        // todos los bloques), no el reparto parejo de Chart.js sobre todo el
+        // eje, que no sabe donde empieza cada operador.
         ticks: { maxRotation: 0, autoSkip: false }
       } }
     };
+    // blockTickLabels() devuelve una funcion, y clone() -mas abajo- clona
+    // bandOptions por JSON, que no conserva funciones: se agrega aparte,
+    // igual que ya se hace con el callback del eje y.
+    var partTickCallback = blockTickLabels(ch.operatorGroups, partAxis);
     if (ch.rChart.available) {
       var n = ch.labels.length;
       make('chartR', {
@@ -430,8 +462,11 @@
           // El tooltip si nombra al operador: el eje ya no lo repite.
           plugins: { tooltip: { callbacks: { title: function (items) {
             return ch.labels[items[0].dataIndex]; } } } },
-          scales: { y: { ticks: { callback: tickFormatter(
-            ch.rChart.values.concat([ch.rChart.ucl, ch.rChart.lcl])) } } }
+          scales: {
+            x: { ticks: { callback: partTickCallback } },
+            y: { ticks: { callback: tickFormatter(
+              ch.rChart.values.concat([ch.rChart.ucl, ch.rChart.lcl])) } }
+          }
         }, clone(bandOptions)))
       });
     }
@@ -453,8 +488,11 @@
         options: baseOptions(merge({
           plugins: { tooltip: { callbacks: { title: function (items) {
             return ch.labels[items[0].dataIndex]; } } } },
-          scales: { y: { ticks: { callback: tickFormatter(
-            ch.xbarChart.values.concat([ch.xbarChart.ucl, ch.xbarChart.lcl])) } } }
+          scales: {
+            x: { ticks: { callback: partTickCallback } },
+            y: { ticks: { callback: tickFormatter(
+              ch.xbarChart.values.concat([ch.xbarChart.ucl, ch.xbarChart.lcl])) } }
+          }
         }, clone(bandOptions)))
       });
     }

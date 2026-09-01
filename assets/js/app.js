@@ -9,8 +9,18 @@
   /* parts        - metodo cruzado: la lista de piezas que miden todos.
      partsByOperator - metodo anidado: las piezas propias de cada operador.
      Los dos viven a la vez para no perder la captura al cambiar de metodo. */
+  /* `stamp` es la huella de TODO lo que entro en `result`: las celdas, el
+     estandar, el metodo y los campos de opciones. Se compara con la huella de
+     lo que hay ahora en pantalla para saber si el resultado sigue siendo de
+     estos datos (F-05). null = no hay resultado del que dudar. */
+  /* `codedOk` guarda la firma de unos datos que el usuario YA confirmo como
+     mediciones reales (F-06). Sin esto, quien tiene un durometro que reporta
+     10, 11 y 12 recibiria el mismo aviso en cada calculo, para siempre; y un
+     aviso que no se puede resolver deja de leerse, incluido el dia que si
+     importa. Se guarda la FIRMA de los datos, no un "ya avise": si los datos
+     cambian, se vuelve a preguntar. */
   var state = { method: 'cruzado', operators: [], parts: [], partsByOperator: [],
-                replicates: 2, result: null, standard: {} };
+                replicates: 2, result: null, stamp: null, standard: {}, codedOk: '' };
 
   /* ------------------------------------------------------------------ *
    * Tema claro / oscuro - manual, se recuerda en localStorage.
@@ -69,7 +79,9 @@
       partsLabel: 'Piezas por operador', partNamesLabel: 'Nombres de las piezas, por operador',
       countLabel: 'piezas por operador',
       help: 'Gage R&R anidado, para pruebas destructivas: cada operador mide sus propias piezas, ' +
-            'tomadas de un lote homogeneo. El diseno no separa la interaccion operador x pieza.' },
+            'tomadas de un lote homogeneo. La pieza se identifica por el par operador + pieza, asi ' +
+            'que los numeros se pueden repetir entre operadores. El diseno no separa la interaccion ' +
+            'operador x pieza.' },
     { id: 'atributos', badge: 'Attribute Agreement Analysis', available: true,
       engine: function () { return MSAAttribute; },
       partsLabel: 'Piezas', partNamesLabel: 'Nombres de las piezas',
@@ -164,18 +176,22 @@
     selectFirstVisibleTab();
 
     if (changed && isUserAction) {
-      // Al pasar al anidado, unos nombres de pieza que venian repetidos entre
-      // operadores (lo normal en el cruzado) no sirven: se renumeran de cero.
-      if (m.id === 'anidado' && firstDuplicate(allPartNames())) state.partsByOperator = [];
+      /* Antes, al pasar al anidado se tiraban los nombres de pieza si alguno
+         se repetia entre operadores. Ya no hace falta (F-02): en el anidado
+         la identidad es el par operador|pieza, asi que repetir "1" es legal.
+         Tirarlos era ademas la unica parte del cambio de metodo que ocurria
+         en silencio, sin decir que se perdia. */
       state.standard = {};
+      state.codedOk = '';             // otro metodo, otra pregunta
       renderNameInputs();
       if (!$('captureSection').hidden) {
         buildDataTable(false);          // sin preservar: la tabla nace vacia
         validateLive();
         showMessages($('configMsg'), [], [methodSwitchNote(m)]);
-        state.result = null;
+        state.result = null; state.stamp = null;
         $('resultsSection').hidden = true;
         resetResultViz();
+        refreshStale();
       }
     }
     return m.id;
@@ -204,8 +220,9 @@
   function methodSwitchNote(m) {
     if (m.id === 'anidado') {
       return 'Metodo cambiado a anidado y tabla vaciada. El anidado supone que cada operador midio ' +
-        'SUS PROPIAS piezas, tomadas de un lote homogeneo, porque medirlas las destruye. Por eso las ' +
-        'piezas se renumeran corridas y ningun nombre puede repetirse entre operadores.';
+        'SUS PROPIAS piezas, tomadas de un lote homogeneo, porque medirlas las destruye. La pieza se ' +
+        'identifica por el par operador + pieza, asi que puedes numerar las de cada operador 1..n: ' +
+        'la "1" de uno y la "1" de otro se analizan como piezas distintas.';
     }
     if (m.id === 'atributos') {
       return 'Metodo cambiado a atributos y tabla vaciada. Aqui la celda no es un numero sino una ' +
@@ -287,22 +304,16 @@
   function partsPerOperator() {
     return isNested() ? (state.partsByOperator[0] || []).length : state.parts.length;
   }
-  /** Todos los nombres de pieza, en el orden de la tabla de captura. */
-  function allPartNames() {
-    if (!isNested()) return state.parts.slice();
-    var out = [];
-    state.partsByOperator.forEach(function (g) { out = out.concat(g); });
-    return out;
-  }
 
   function renderNameInputs() {
     var nOp = clamp(parseInt($('numOperators').value, 10), 2, 20, 3);
     var nPart = clamp(parseInt($('numParts').value, 10), 2, 50, 10);
     state.operators = defaultNames('Operador', nOp, state.operators);
     state.parts = defaultNames('Pieza', nPart, state.parts);
-    /* En el anidado el nombre de la pieza no se puede repetir entre operadores:
-       la numeracion corre de largo (1..30), que es como se etiqueta un lote del
-       que se van sacando piezas. */
+    /* La numeracion por omision corre de largo (1..30), que es como se etiqueta
+       un lote del que se van sacando piezas. Es una SUGERENCIA, no un
+       requisito: numerar 1..n dentro de cada operador tambien es valido, y es
+       la convencion mas comun en destructivas. Ver F-02 y assets/js/design.js. */
     var prevByOperator = state.partsByOperator || [];
     state.partsByOperator = [];
     for (var o = 0; o < nOp; o++) {
@@ -408,19 +419,41 @@
 
   /* El desplegable de "categoria de rechazo" se rearma cuando cambian las
      categorias, conservando la eleccion si sigue existiendo. Solo tiene
-     sentido con dos: con tres o mas no hay una decision binaria que juzgar. */
+     sentido con dos: con tres o mas no hay una decision binaria que juzgar.
+
+     La primera opcion va VACIA y es la que queda mientras nadie elija. Antes
+     se preseleccionaba cats[1] -la segunda categoria de la lista-, asi que un
+     archivo importado, cuyas categorias salen en orden de aparicion en los
+     datos, podia dejar elegido el lado equivocado sin decir nada: la fuga y
+     la falsa alarma salian intercambiadas. No se adivina. */
   function renderRejectOptions() {
     var sel = $('rejectCategory');
     if (!sel) return;
     var cats = parseCategories(), prev = sel.value;
-    sel.innerHTML = cats.map(function (c) {
-      return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
-    }).join('');
-    sel.value = cats.indexOf(prev) >= 0 ? prev : (cats[1] || cats[0] || '');
+    sel.innerHTML = '<option value="">(elige cual es no conforme)</option>' +
+      cats.map(function (c) {
+        return '<option value="' + esc(c) + '">' + esc(c) + '</option>';
+      }).join('');
+    sel.value = cats.indexOf(prev) >= 0 ? prev : '';
     sel.disabled = cats.length !== 2;
     sel.title = cats.length === 2
-      ? 'Cual de las dos categorias significa pieza no conforme.'
+      ? 'Cual de las dos categorias significa pieza no conforme. Define que error es una fuga ' +
+        '(dejarla pasar) y cual una falsa alarma (rechazar una buena). Sin esta eleccion no se ' +
+        'calculan efectividad, fuga ni falsa alarma.'
       : 'Solo aplica con dos categorias: con mas no hay decision binaria que juzgar.';
+    markRejectNeeded();
+  }
+
+  /* Marca el desplegable solo cuando la eleccion de verdad hace falta: metodo
+     de atributos, dos categorias y estandar capturado. Sin estandar no hay
+     efectividad ni errores que calcular, asi que pedirla seria ruido. */
+  function markRejectNeeded() {
+    var sel = $('rejectCategory');
+    if (!sel) return;
+    var need = isAttribute() && parseCategories().length === 2 && !sel.value &&
+               Object.keys(readStandard()).length > 0;
+    sel.classList.toggle('invalid', need);
+    sel.setAttribute('aria-invalid', need ? 'true' : 'false');
   }
 
   /* El estandar es una propiedad de la pieza, asi que se captura una vez por
@@ -476,15 +509,30 @@
     } else {
       state.parts = state.parts.map(trimOrDefault('Pieza'));
     }
-    var dup = firstDuplicate(ops) || firstDuplicate(allPartNames());
+    /* Nombres repetidos. Que cuenta como repetido depende del metodo, y ahi
+       estaba F-02: en el anidado la identidad de una pieza es el par
+       operador|pieza, asi que "1" bajo Ana y "1" bajo Beto son dos piezas
+       distintas y la captura es legal. Solo repetir un nombre DENTRO del
+       mismo operador es un error, porque ahi si serian la misma celda.
+       En el cruzado, en cambio, la lista de piezas es una sola y compartida:
+       cualquier repeticion es un error. */
+    var dup = firstDuplicate(ops) ||
+              (isNested() ? firstDuplicateWithin(state.partsByOperator)
+                          : firstDuplicate(state.parts));
     if (dup) {
       showMessages($('configMsg'), [isNested()
-        ? 'Hay nombres repetidos ("' + dup + '"). En un estudio anidado cada operador mide piezas ' +
-          'distintas, asi que ningun nombre de pieza puede repetirse, ni siquiera entre operadores.'
+        ? 'Hay nombres repetidos ("' + dup + '") dentro de un mismo operador. Cada operador tiene ' +
+          'que poder distinguir sus propias piezas; entre operadores si se pueden repetir.'
         : 'Hay nombres repetidos ("' + dup + '"). Cada operador y cada pieza debe tener un nombre unico.'], []);
       return false;
     }
     clearMessages($('configMsg'));
+    /* Repetidos ENTRE operadores: legal, y se dice lo que significa antes de
+       capturar, no despues de calcular. Los dos textos salen de design.js. */
+    if (isNested()) {
+      var notes = MSADesign.repeatedLabelNotes(MSADesign.observe(state.partsByOperator));
+      if (notes.length) showMessages($('configMsg'), [], notes);
+    }
 
     // Clases explicitas por columna. No dependemos de :first-child, que alineaba
     // distinto la primera fila de cada operador: ahi la celda de pieza es el
@@ -544,6 +592,14 @@
     for (var i = 0; i < arr.length; i++) {
       if (seen[arr[i]]) return arr[i];
       seen[arr[i]] = true;
+    }
+    return null;
+  }
+  /** El primer nombre repetido DENTRO de algun grupo. Entre grupos no mira. */
+  function firstDuplicateWithin(groups) {
+    for (var i = 0; i < groups.length; i++) {
+      var d = firstDuplicate(groups[i] || []);
+      if (d) return d;
     }
     return null;
   }
@@ -609,6 +665,72 @@
     });
   }
 
+  /* ------------------------------------------------------------------ *
+   * F-05 - Un resultado deja de valer en cuanto cambian sus datos
+   *
+   * Editar una celda disparaba validateLive(), que solo movia el contador y
+   * el boton. `state.result` seguia ahi, el panel seguia visible y el rotulo
+   * decia "actualizado al escribir". Al imprimir, el encabezado y las tablas
+   * salian del resultado VIEJO mientras el anexo se armaba leyendo el DOM
+   * ACTUAL, y el anexo cerraba afirmando que "los calculos de este reporte
+   * salen exactamente de estos datos". En ese escenario la frase es falsa, en
+   * un documento que sirve para liberar un instrumento.
+   *
+   * Los campos de opciones (alfa, LSL/USL, multiplicador...) si recalculaban
+   * al cambiar; las celdas de medicion no. La huella cubre los dos, para que
+   * no haya una tercera cosa que se olvide manana.
+   * ------------------------------------------------------------------ */
+  var STAMP_FIELDS = ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator',
+                      'lsl', 'usl', 'tolerance', 'processMean', 'historicalSigma',
+                      'categories', 'rejectCategory', 'confLevel'];
+
+  /** Huella de lo que hay AHORA en pantalla. Barata: solo lee valores. */
+  function captureStamp() {
+    var parts = [state.method];
+    inputs().forEach(function (i) {
+      parts.push(i.dataset.op + '\u0001' + i.dataset.part + '\u0001' + i.dataset.rep +
+                 '\u0001' + i.value.trim());
+    });
+    if (isAttribute()) {
+      var std = readStandard();
+      Object.keys(std).sort().forEach(function (k) { parts.push('std:' + k + '\u0001' + std[k]); });
+    }
+    STAMP_FIELDS.forEach(function (id) {
+      var el = $(id);
+      if (el) parts.push(id + '\u0001' + el.value);
+    });
+    return parts.join('\u0002');
+  }
+
+  /** true si hay un resultado publicado y ya no corresponde a lo capturado. */
+  function resultIsStale() {
+    return !!(state.result && state.stamp !== null && captureStamp() !== state.stamp);
+  }
+
+  /* Se dice, se atenua y se bloquea la impresion. No se borra el resultado:
+     esconder unos numeros que alguien acaba de mirar confunde mas que
+     atenuarlos, y recalcular esta a un clic dentro del propio aviso. */
+  function refreshStale() {
+    var stale = resultIsStale();
+    var banner = $('resultStale'), body = $('resultBody'), live = $('resultsLive');
+    if (banner) banner.hidden = !stale;
+    if (body) body.classList.toggle('stale', stale);
+    if (live) {
+      live.classList.toggle('stale', stale);
+      live.textContent = stale ? 'resultados desactualizados - pulsa Recalcular'
+                               : 'se recalcula al pulsar Calcular';
+    }
+    var print = $('printBtn');
+    if (print) {
+      print.disabled = stale;
+      print.title = stale
+        ? 'Los datos cambiaron despues de calcular. Recalcula antes de imprimir: el reporte ' +
+          'mezclaria el resultado viejo con las mediciones nuevas.'
+        : '';
+    }
+    return stale;
+  }
+
   function validateLive() {
     /* En atributos no hay nada que validar como numero: la celda solo puede
        tener una de las categorias, porque es un desplegable. Lo unico que se
@@ -635,8 +757,12 @@
       var std = readStandard(), n = Object.keys(std).length;
       if (n > 0 && n < state.parts.length) {
         msg = 'Datos completos, estandar a medias (' + n + ' de ' + state.parts.length + ')';
+      } else if (n > 0 && parseCategories().length === 2 && !$('rejectCategory').value) {
+        msg = 'Datos completos, falta elegir la categoria de rechazo';
       }
     }
+    if (attr) markRejectNeeded();
+    refreshStale();                 // F-05: el resultado publicado puede haber caducado
     $('captureStatus').textContent = msg;
     $('captureStatus').style.color = (bad || empty) ? 'var(--warn)' : 'var(--ok)';
   }
@@ -691,7 +817,7 @@
       showMessages($('resultMsg'), specs.errors, []);
       $('resultBody').hidden = true;
       resetResultViz();
-      state.result = null;
+      state.result = null; state.stamp = null; refreshStale();
       return;
     }
     var opts;
@@ -723,13 +849,58 @@
       showMessages($('resultMsg'), e.details || [e.message], []);
       resetResultViz();
       $('resultBody').hidden = true;
-      state.result = null;
+      state.result = null; state.stamp = null; refreshStale();
       return;
     }
+    /* F-06 tambien por la via manual: escribir 0/1 en la rejilla no pasa por
+       la importacion, y el ANOVA de una variable binaria es igual de vacio.
+       Aqui ya no se puede preguntar -- el calculo se pidio -- asi que se
+       avisa junto al resultado, que es donde alguien lo va a leer. */
+    if (!isAttribute()) {
+      var coded = MSADesign.looksCoded(rows);
+      /* Si el usuario ya confirmo que ESTOS datos son mediciones reales, no se
+         insiste. La firma incluye los valores, asi que un archivo distinto
+         -o los mismos datos editados- vuelve a avisar. */
+      if (coded && MSADesign.codedSignature(coded) === state.codedOk) coded = null;
+      if (coded) {
+        result.warnings = result.warnings.concat([
+          'Los datos traen solo ' + coded.levels + ' valores distintos, todos enteros (' +
+          coded.values.join(', ') + '), lo que es COMPATIBLE con un pasa / no pasa capturado ' +
+          'como numero. No quiere decir que lo sea: una medicion real de escala corta y unidad ' +
+          'entera da el mismo patron, y los datos no distinguen los dos casos. Si fuera una ' +
+          'codificacion, este %GRR no significaria nada y el metodo seria Atributos ' +
+          '(concordancia); si son mediciones reales, el aviso sobra y conviene revisar la ' +
+          'resolucion del instrumento frente a la variacion de las piezas.']);
+      }
+    }
+
+    /* F-07: el intervalo del %GRR. Se calcula fuera de los motores, leyendo su
+       tabla ANOVA, asi que ningun motor cambia por esto. Es determinista: la
+       semilla sale de los propios cuadrados medios. */
+    if (result.model !== 'attribute') {
+      result.interval = MSAInterval.forResult(result, { conf: readConfLevel() });
+      /* El intervalo NO clasifica. Lo unico que aporta ademas del rango es una
+         advertencia cuando cruza un limite de evaluacion, para que nadie lea
+         una clasificacion puntual fronteriza como si fuera holgada. La
+         advertencia se calcula sobre %StudyVar; %Contribution es la misma
+         razon en otra escala, asi que cruzar 10/30 y cruzar 1/9 es el mismo
+         hecho y no hace falta comprobarlo dos veces. */
+      result.intervalCross = result.interval && !result.inconclusive
+        ? MSAInterval.crossings(result.interval.studyVar, null) : null;
+    }
+
     state.result = result;
+    /* El sello se toma DESPUES de calcular y de las mismas fuentes que
+       alimentaron el calculo: a partir de aqui, cualquier edicion lo rompe. */
+    state.stamp = captureStamp();
     $('resultsSection').hidden = false;
     $('resultBody').hidden = false;
-    showMessages($('resultMsg'), [], result.warnings);
+    /* El aviso va con el resultado, que es donde alguien decide. No se
+       sustituye a los avisos del motor: se suma a ellos. */
+    /* La advertencia de cruce del intervalo NO va aqui: vive en la seccion
+       "R&R total", junto al numero al que se refiere. Repetirla arriba la
+       convertiria en un segundo dictamen, que es justo lo que F-07 retira. */
+    showMessages($('resultMsg'), [], result.warnings.slice());
     /* Cada familia de metodos trae su propia vista de resultados, porque no
        publican la misma forma de respuesta: variables dan componentes de
        varianza, atributos da concordancias. El resto de la pantalla -pasos,
@@ -744,46 +915,127 @@
       renderTables(result);
     }
     MSACharts.render(result);
+    refreshStale();                 // deja el panel y el boton de imprimir en su sitio
   }
 
   /* Que significa cada tarjeta. Se muestra al pasar el cursor: el numero solo
      no dice contra que se compara ni de donde sale. */
   var VERDICT_HELP = {
     sv: 'Cuanta de la variacion del estudio se debe al sistema de medicion, en desviacion estandar ' +
-        '(6 sigma del Gage R&R / 6 sigma total). Criterio AIAG: menos de 10 % aceptable, 10 a 30 % ' +
-        'marginal, mas de 30 % inaceptable.',
+        '(6 sigma del Gage R&R / 6 sigma total). Criterio AIAG sobre la estimacion puntual: menos de ' +
+        '10 % aceptable, 10 a 30 % condicional segun la aplicacion, mas de 30 % no aceptable.',
     contrib: 'Que fraccion de la varianza total aporta el sistema de medicion. Es aditivo: todas las ' +
-        'fuentes suman 100 %, por eso sirve para comparar fuentes entre si. Minitab considera menos ' +
-        'de 1 % excelente y mas de 9 % pobre.',
+        'fuentes suman 100 %, por eso sirve para comparar fuentes entre si. Es la MISMA razon que el ' +
+        '% Study Variation en otra escala: %Contribution = (%StudyVar / 100)^2 x 100. Bandas: menos ' +
+        'de 1 % aceptable, 1 a 9 % condicional segun la aplicacion, mas de 9 % no aceptable.',
     tol: 'Que parte de la tolerancia se come el sistema de medicion: (multiplicador x sigma del Gage R&R) ' +
         '/ (USL - LSL). No depende de las piezas que elegiste, pero si de la tolerancia. Solo se calcula ' +
         'si diste LSL y USL o la tolerancia directa.',
     ndc: 'Cuantos grupos distintos de piezas alcanza a separar el sistema de medicion. AIAG pide 5 o mas. ' +
         'Si sale bajo con piezas representativas, el problema es el instrumento; si las piezas eran casi ' +
-        'identicas, el problema es la muestra.',
+        'identicas, el problema es la muestra. "No evaluable" significa que la varianza del sistema de ' +
+        'medicion salio cero o indistinguible de cero: el cociente no se puede calcular, y eso NO quiere ' +
+        'decir que separe infinitas categorias.',
     icc: 'Fraccion de la varianza total que aporta el producto y no la medicion. Wheeler: 0.80 o mas es ' +
         'un monitor de primera clase, 0.50 a 0.80 de segunda, 0.20 a 0.50 de tercera. Lectura ' +
         'complementaria al criterio AIAG, no sustituto.'
   };
 
+  /* F-07. QUIEN DICTAMINA ES LA ESTIMACION PUNTUAL, con las bandas AIAG de
+     `assess`. El intervalo acompana y no emite ninguna categoria: la politica
+     que clasificaba por el intervalo esta retirada (el porque, en la cabecera
+     de interval.js). La coletilla "(experimental)" la lleva solo el metodo que
+     lo es -el GPQ del anidado-, no el MLS del cruzado. */
+  function intervalLine(iv) {
+    var full = state.result.interval;
+    if (!iv || iv.lo === null || iv.hi === null || !full) return '';
+    return '<div class="ci">IC ' + Math.round(100 * full.conf) + ' %: ' +
+      iv.lo.toFixed(2) + ' - ' + iv.hi.toFixed(2) + ' %' +
+      (full.experimental ? ' <em>(experimental)</em>' : '') + '</div>';
+  }
+
+  /* Umbrales de %Contribucion: son varianzas, no desviaciones, asi que la
+     escala es otra. Menos de 1 % aceptable, mas de 9 % no aceptable; son los
+     mismos que usa `assess`, escritos una sola vez alli. */
+  var CONTRIB_THRESHOLDS = { good: 1, bad: 9 };
+
+  /* Nivel de confianza elegido en pantalla. Entra en la huella (STAMP_FIELDS),
+     asi que cambiarlo marca el resultado como desactualizado y obliga a
+     recalcular, igual que cambiar alfa o el multiplicador. */
+  function readConfLevel() {
+    var el = $('confLevel');
+    var v = el ? parseFloat(el.value) : NaN;
+    return isFinite(v) && v > 0 && v < 1 ? v : MSAInterval.DEFAULT_CONF;
+  }
+
   function renderVerdict(r) {
-    var a = r.assessment;
+    var a = r.assessment, iv = r.interval;
     var cards = [
-      card('% Study Variation (GRR)', r.metrics.pctStudyVar.toFixed(2) + ' %', a.studyVar, VERDICT_HELP.sv),
-      card('% Contribucion (GRR)', r.metrics.pctContribution.toFixed(2) + ' %', a.contribution, VERDICT_HELP.contrib),
+      card('% Study Variation (GRR)', r.metrics.pctStudyVar.toFixed(2) + ' %',
+           a.studyVar, VERDICT_HELP.sv, iv && intervalLine(iv.studyVar)),
+      card('% Contribucion (GRR)', r.metrics.pctContribution.toFixed(2) + ' %',
+           a.contribution, VERDICT_HELP.contrib, iv && intervalLine(iv.contribution)),
+      /* %Tolerance conserva su resultado puntual y NO lleva intervalo: su
+         denominador es la tolerancia de especificacion, no la varianza total,
+         asi que no es una transformacion de la razon V_GRR/V_Total y no se
+         puede derivar del intervalo de arriba. Pendiente de referencia
+         validada; no se inventa uno. */
       r.metrics.pctTolerance === null
         ? card('% Tolerance (P/T)', 'sin LSL/USL', null, VERDICT_HELP.tol)
-        : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %', a.tolerance, VERDICT_HELP.tol),
-      card('Categorias distintas', r.ndc === null ? 'inf' : String(r.ndc), a.ndc, VERDICT_HELP.ndc),
+        : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %',
+               a.tolerance, VERDICT_HELP.tol),
+      card('Categorias distintas', r.ndcLabel, a.ndc, VERDICT_HELP.ndc),
       card('ICC (EMP, Wheeler)', r.icc.toFixed(3), a.emp, VERDICT_HELP.icc)
     ];
     $('verdicts').innerHTML = cards.join('');
+    renderGrr(r);
   }
 
-  function card(k, v, t, help) {
+  function card(k, v, t, help, extra) {
     return '<div class="verdict"' + (help ? ' title="' + esc(k + ': ' + help) + '"' : '') + '>' +
       '<div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' +
-      (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') + '</div>';
+      (extra || '') +
+      (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') +
+      '</div>';
+  }
+
+  /* ---------------------------------------------------------------------
+   * "R&R total": la seccion que reune en un solo sitio lo que antes estaba
+   * repartido entre tarjetas contiguas que podian leerse como dictamenes
+   * independientes. El orden es deliberado: primero el punto y su evaluacion
+   * -que es la que dictamina-, y despues el intervalo, rotulado como
+   * experimental, con la advertencia de cruce si la hay. La %Contribucion
+   * aparece como equivalencia, no como una segunda prueba.
+   * ------------------------------------------------------------------- */
+  function renderGrr(r) {
+    var box = $('grrSummary');
+    if (!box) return;
+    if (!r.metrics || r.model === 'attribute') { box.hidden = true; return; }
+    var a = r.assessment, iv = r.interval, h = [];
+
+    h.push('<div class="grr-row"><span class="grr-k">% Study Variation</span>' +
+           '<span class="grr-v">' + r.metrics.pctStudyVar.toFixed(2) + ' %</span></div>');
+    if (a.studyVar) {
+      h.push('<div class="grr-row"><span class="grr-k">Evaluacion AIAG basada en la estimacion ' +
+             'puntual</span><span class="t ' + a.studyVar.level + '">' +
+             esc(a.studyVar.label) + '</span></div>');
+    }
+    if (iv && iv.studyVar && iv.studyVar.lo !== null) {
+      h.push('<div class="grr-row"><span class="grr-k">IC ' +
+             Math.round(100 * iv.conf) + ' % de la razon V_GRR / V_Total, en % Study Variation' +
+             '</span><span class="grr-v">' + iv.studyVar.lo.toFixed(2) + ' % a ' +
+             iv.studyVar.hi.toFixed(2) + ' %</span></div>');
+      h.push('<p class="grr-note">' + esc(iv.statusLabel || '') + '</p>');
+      if (r.intervalCross) h.push('<p class="grr-warn">' + esc(r.intervalCross.label) + '</p>');
+    }
+    h.push('<div class="grr-row"><span class="grr-k">% Contribucion equivalente</span>' +
+           '<span class="grr-v">' + r.metrics.pctContribution.toFixed(2) + ' %</span></div>');
+    h.push('<p class="grr-note">% Contribucion y % Study Variation son dos escalas de la misma ' +
+           'razon: %Contribucion = (%StudyVar / 100)<sup>2</sup> x 100. No son dos pruebas ' +
+           'independientes.</p>');
+
+    box.innerHTML = h.join('');
+    box.hidden = false;
   }
 
   /* Barras de "Evaluacion de la variacion": mismos dos datos que mostraba
@@ -792,6 +1044,16 @@
      marcas de 10 % y 30 % del criterio AIAG en vez del canvas heredado
      del Excel. Es un cambio de presentacion, no de datos. */
   function renderEvalBars(r) {
+    /* Sobre datos degenerados no se pintan barras. Un 0.00 % en verde con la
+       leyenda "bueno" es la lectura mas enganosa que puede dar la pantalla
+       cuando lo que hay detras es un estudio sin informacion. */
+    if (r.inconclusive) {
+      $('evalBars').innerHTML = '<div class="msg warn" style="margin:0">' +
+        '<strong>Estudio no concluyente.</strong> Los datos no contienen informacion suficiente ' +
+        'para estimar la repetibilidad: las ' + r.design.n + ' mediciones son el mismo valor. ' +
+        'No se emite veredicto porque no hay nada que juzgar; revisa las notas.</div>';
+      return;
+    }
     var rows = [];
     if (r.metrics.pctTolerance !== null) {
       rows.push({
@@ -908,10 +1170,39 @@
       'El % Contribucion se calcula sobre la varianza y suma 100 %.',
       'El % Study Variation se calcula sobre la desviacion estandar y NO suma 100 %.',
       'La variacion del estudio es la desviacion estandar multiplicada por ' + k + '.',
-      'NDC = parte entera de 1.41 x (sigma_pieza / sigma_GageR&R) = ' +
-        (isFinite(r.ndcRaw) ? r.ndcRaw.toFixed(3) : 'infinito') +
-        ' -> ' + (r.ndc === null ? 'infinito' : r.ndc) + '.'
+      r.ndc === null
+        ? 'NDC = parte entera de 1.41 x (sigma_pieza / sigma_GageR&R). No evaluable: la varianza ' +
+          'del sistema de medicion salio cero o indistinguible de cero, y ese cociente no significa ' +
+          'nada. No es que el sistema separe infinitas categorias.'
+        : 'NDC = parte entera de 1.41 x (sigma_pieza / sigma_GageR&R) = ' +
+          r.ndcRaw.toFixed(3) + ' -> ' + r.ndcLabel + '.'
     ];
+    /* Escalon observado en los datos. Es un dato del estudio, no un aviso: se
+       publica siempre que se pueda medir, y el aviso solo aparece si pasa del
+       criterio. Se le llama "observado" y no "resolucion del instrumento" a
+       proposito: los datos demuestran con que finura se ANOTARON las lecturas,
+       no cuanto resuelve el equipo. */
+    var d = r.discrimination;
+    if (d) {
+      var lim = (100 * d.limit).toFixed(0);
+      if (d.step !== null) {
+        notes.push('Escalon observado en los datos (resolucion aparente) = ' + num(d.step, 8) +
+          ', tomado como la ' + d.stepSource + '. Equivale a ' +
+          (d.overStudyVar === null ? '-' : (100 * d.overStudyVar).toFixed(2) + ' % de la variacion del estudio') +
+          (d.overTolerance === null
+            ? ' (sin tolerancia capturada, ese segundo criterio no se evalua)'
+            : ' y a ' + (100 * d.overTolerance).toFixed(2) + ' % de la tolerancia') +
+          '. La regla de discriminacion AIAG pide que no pase del ' + lim + ' % de ninguno de los ' +
+          'dos, y basta con rebasar uno para marcarlo. No es la resolucion nominal del instrumento: ' +
+          'es la finura con que se anotaron estas lecturas. Valores distintos en el estudio: ' +
+          d.distinctValues + ' de ' + d.measurements + '.');
+      } else {
+        notes.push('Escalon observado en los datos: ' + d.stepSource + '. En ' + d.zeroRangeCells +
+          ' de las ' + d.cells + ' celdas operador-pieza todas las replicas dieron la misma lectura, ' +
+          'asi que ningun escalon se puede deducir de estos datos. Valores distintos en el estudio: ' +
+          d.distinctValues + ' de ' + d.measurements + '.');
+      }
+    }
     if (showTol) {
       var ti = r.toleranceInfo;
       if (ti.oneSided) {
@@ -972,9 +1263,13 @@
     effective: 'Porcentaje de piezas que el evaluador clasifico correctamente en todas sus replicas. ' +
         'AIAG: 90 % o mas aceptable, menos de 80 % inaceptable. Se reporta el peor evaluador.',
     miss: 'De todas las decisiones tomadas sobre piezas NO conformes, que porcentaje las dejo pasar. ' +
-        'Es el error que llega al cliente, por eso su umbral es el mas estricto: 2 %.',
+        'Es el error que llega al cliente, por eso su umbral es el mas estricto: 2 %. Se reporta el ' +
+        'peor evaluador. Cual categoria es el rechazo lo eliges tu en la configuracion: de esa ' +
+        'eleccion depende cual de los dos errores es cual.',
     falseAlarm: 'De todas las decisiones tomadas sobre piezas conformes, que porcentaje las rechazo. ' +
-        'Cuesta scrap y retrabajo, pero no sale de la planta: umbral 5 %.'
+        'Cuesta scrap y retrabajo, pero no sale de la planta: umbral 5 %. Se reporta el peor ' +
+        'evaluador. Cual categoria es el rechazo lo eliges tu en la configuracion: de esa eleccion ' +
+        'depende cual de los dos errores es cual.'
   };
 
   function renderAttributeVerdict(r) {
@@ -992,9 +1287,15 @@
     if (m.worstEffectiveness !== null) {
       cards.push(card('Efectividad (peor)', pc(m.worstEffectiveness), a.effectiveness, ATTR_HELP.effective));
     }
+    /* Las dos tarjetas de error llevan en el titulo LA CATEGORIA, no solo el
+       nombre del error. Un "Error de fuga: 6.7 %" a secas obliga a bajar hasta
+       la nota de la Tabla 4 para saber que lado del proceso es cual, y esas
+       dos tarjetas son justamente las que se leen para decidir. */
     if (m.worstMiss !== null) {
-      cards.push(card('Error de fuga (peor)', pc(m.worstMiss), a.missRate, ATTR_HELP.miss));
-      cards.push(card('Falsa alarma (peor)', pc(m.worstFalseAlarm), a.falseAlarmRate, ATTR_HELP.falseAlarm));
+      cards.push(card('Fuga: dejar pasar "' + r.meta.rejectCategory + '"',
+                      pc(m.worstMiss), a.missRate, ATTR_HELP.miss));
+      cards.push(card('Falsa alarma: rechazar "' + r.meta.acceptCategory + '"',
+                      pc(m.worstFalseAlarm), a.falseAlarmRate, ATTR_HELP.falseAlarm));
     }
     $('verdicts').innerHTML = cards.join('');
   }
@@ -1298,11 +1599,6 @@
     return out;
   }
 
-  /* Que diseno trae el archivo, leido de los datos y no del metodo activo:
-     si todos los operadores midieron las mismas piezas es cruzado; si ninguna
-     pieza se repite entre operadores es anidado. Cualquier otra cosa (unas
-     compartidas y otras no) no es ninguno de los dos y se deja como esta para
-     que el motor lo diga con su propio mensaje. */
   /* Antes de mirar el diseno hay que mirar el TIPO de dato: si las mediciones
      no son numeros, no es un estudio de variables por mucho que las piezas se
      repartan como cruzado. Se pide mayoria clara para no confundir un archivo
@@ -1316,23 +1612,6 @@
       if (!isFinite(Number(v.replace(',', '.')))) text++;
     });
     return n > 0 && text / n > 0.8;
-  }
-
-  function detectDesign(partsByOp) {
-    if (partsByOp.length < 2) return null;
-    var owner = {}, shared = 0, own = 0;
-    partsByOp.forEach(function (g, oi) {
-      g.forEach(function (pt) {
-        if (owner[pt] === undefined) { owner[pt] = oi; own++; }
-        else if (owner[pt] !== oi) shared++;
-      });
-    });
-    if (shared === 0) return 'anidado';
-    var first = partsByOp[0];
-    var same = partsByOp.every(function (g) {
-      return g.length === first.length && g.every(function (pt) { return first.indexOf(pt) >= 0; });
-    });
-    return same ? 'cruzado' : null;
   }
 
   function loadPayload(p) {
@@ -1352,22 +1631,42 @@
     });
     var maxRep = Math.max.apply(null, Object.keys(counts).map(function (k) { return counts[k]; }));
 
-    /* El archivo manda sobre el metodo activo. Importar un estudio anidado
-       estando en cruzado daria un error de piezas incompletas que no dice nada
-       del problema real, asi que se cambia el metodo y se avisa. */
-    var notes = [];
+    /* A que metodo va este archivo. La decision entera vive en design.js, sin
+       DOM, y aqui solo se aplica: era estar pegada al DOM lo que hacia que la
+       unica manera de ver F-02 fuera abrir el navegador e importar.
 
-    /* El tipo de dato manda sobre el metodo activo, igual que el diseno: un
-       archivo de categorias importado estando en cruzado daria "no es un
-       numero valido" en cada celda, que no dice nada del problema real. */
+       Lo que cambio con F-02: el metodo que el archivo DECLARA (campo
+       `method`, o su `format`) manda sobre lo que sugieran los nombres de las
+       piezas, y ningun cambio de metodo se deduce ya en silencio de esos
+       nombres. Lo que se deduce, se pregunta. */
     var categorical = looksCategorical(rows);
-    if (categorical && !isAttribute()) {
-      applyMethod('atributos', false);
-      notes.push('El archivo trae clasificaciones y no mediciones numericas, asi que se cambio al ' +
-                 'metodo de atributos.');
-    } else if (!categorical && isAttribute()) {
-      applyMethod('cruzado', false);
-      notes.push('El archivo trae mediciones numericas, asi que se salio del metodo de atributos.');
+    var routed = MSADesign.route({
+      activeMethod: state.method,
+      explicitMethod: MSADesign.methodOfPayload(p),
+      observed: MSADesign.observe(partsByOp),
+      categorical: categorical,
+      /* F-06: numeros con dos o tres niveles enteros tienen la forma de un
+         pasa / no pasa codificado. No decide nada: hace que se pregunte. */
+      coded: categorical ? null : MSADesign.looksCoded(rows),
+      isAvailable: function (id) { return methodById(id).available; }
+    });
+    var notes = routed.notes.slice();
+    if (routed.changed) applyMethod(routed.method, false);
+    if (routed.question && confirm(routed.question)) {
+      applyMethod(routed.proposal, false);
+      notes.push('Metodo cambiado a ' + routed.proposal + ' porque lo confirmaste al importar. ' +
+                 'El archivo no declaraba metodo.');
+    } else if (routed.question) {
+      /* Cancelar es una respuesta, no un silencio: queda constancia de la
+         decision. Y si la pregunta era la de F-06, la respuesta se recuerda:
+         "son mediciones reales" no hay que contestarlo dos veces. */
+      if (routed.codedNote) {
+        state.codedOk = MSADesign.codedSignature(routed.coded);
+        notes.push(routed.codedNote);
+      } else {
+        notes.push('Se conservo el metodo ' + state.method + ': el archivo no declara metodo y los ' +
+                   'nombres de las piezas no bastan para deducirlo.');
+      }
     }
 
     /* Las categorias y el estandar salen del propio archivo. El estandar es
@@ -1384,18 +1683,19 @@
         }
       });
       if (cats.length) $('categories').value = cats.join(', ');
-      renderRejectOptions();
       state.standard = std;
+      renderRejectOptions();
+      /* Las categorias del archivo salen en orden de aparicion, que no dice
+         nada de cual es el no conforme. Antes se preseleccionaba la segunda y
+         se calculaba con ella; ahora se pide, porque de esa eleccion depende
+         cual error es la fuga y cual la falsa alarma. */
+      if (cats.length === 2 && Object.keys(std).length && !$('rejectCategory').value) {
+        notes.push('El archivo trae estandar y dos categorias ("' + cats.join('" y "') + '"). ' +
+          'Elige arriba cual significa pieza NO CONFORME: de esa eleccion dependen la efectividad, ' +
+          'el error de fuga y la falsa alarma, y el orden de las filas del archivo no lo dice.');
+      }
     }
 
-    var design = categorical ? null : detectDesign(partsByOp);
-    if (design && design !== state.method && methodById(design).available) {
-      applyMethod(design, false);
-      notes.push('El archivo trae un diseno ' + design + ' (' + (design === 'anidado'
-        ? 'ninguna pieza la miden dos operadores'
-        : 'todos los operadores midieron las mismas piezas') +
-        '), asi que se cambio a ese metodo.');
-    }
     var perOp = partsByOp.map(function (g) { return g.length; });
     if (isNested() && Math.min.apply(null, perOp) !== Math.max.apply(null, perOp)) {
       notes.push('Los operadores no traen el mismo numero de piezas (entre ' +
@@ -1417,9 +1717,10 @@
     }
 
     state.operators = ops;
-    // Cada metodo se queda con la estructura que le toca. La del otro no se
-    // pisa con nombres que ahi serian invalidos (en un archivo cruzado las
-    // piezas se repiten entre operadores, y el anidado no lo admite).
+    /* Cada metodo se queda con la estructura que le toca, y no se pisa la del
+       otro: en el cruzado la lista de piezas es una sola y compartida; en el
+       anidado cada operador trae la suya, y ahi los nombres si pueden
+       coincidir entre operadores porque la identidad es el par. */
     if (isNested()) state.partsByOperator = partsByOp.map(function (g) { return g.slice(); });
     else state.parts = parts;
     $('numOperators').value = ops.length;
@@ -1537,13 +1838,14 @@
     validateLive();
     $('resultsSection').hidden = true;
     resetResultViz();
-    state.result = null;
+    state.result = null; state.stamp = null;
+    refreshStale();
   }
 
   function resetAll() {
     if (!confirm('Se reiniciara el estudio completo (configuracion y datos). Continuar?')) return;
     state = { method: state.method, operators: [], parts: [], partsByOperator: [],
-              replicates: 2, result: null, standard: {} };
+              replicates: 2, result: null, stamp: null, standard: {}, codedOk: '' };
     $('numOperators').value = 3; $('numParts').value = 10; $('numReplicates').value = 3;
     $('studyName').value = ''; renderStudyName();
     $('lsl').value = ''; $('usl').value = '';
@@ -1574,53 +1876,90 @@
   function preparePrint() {
     if (printRestore) return;                       // ya preparado (Ctrl+P sobre el boton)
     var theme = currentTheme();
-    // Los paneles ocultos hay que revelarlos ANTES de imprimir: un lienzo que
-    // nunca estuvo visible se dibujo en 0x0 y saldria en blanco.
-    /* Se revelan los paneles del metodo ACTIVO, no todos: los del otro metodo
-       existen en el mismo HTML y saldrian impresos con sus tablas vacias. */
-    var method = state.method;
-    var hiddenPanels = [].slice.call(document.querySelectorAll('.tab-panel[hidden]'))
-      .filter(function (el) { return appliesToMethod(el, method); });
-    hiddenPanels.forEach(function (el) { el.hidden = false; });
-    // El tema oscuro se imprimiria con fondos negros; los lienzos son mapas de
-    // bits, asi que no basta con CSS: hay que redibujar en claro.
-    if (theme === 'dark') applyTheme('light', false);
-    buildPrintHeader();
-    buildPrintAnnex();
-    void document.body.offsetHeight;                // fuerza el reflujo antes de medir
-    MSACharts.resizeAll();
+    var revealed = [];
+
+    /* EL RESTAURADOR SE REGISTRA ANTES DE TOCAR LA PANTALLA.
+       Antes se armaba al final, asi que si la preparacion fallaba a mitad --
+       y F-03 era exactamente eso: el encabezado lanzaba TypeError en
+       atributos -- la pantalla se quedaba rota y sin manera de volver:
+       paneles del otro metodo revelados, tema claro forzado sobre un usuario
+       que tenia el oscuro, y ningun printRestore que el evento afterprint
+       pudiera llamar. Registrar primero cuesta nada y quita ese modo de fallo
+       entero: pase lo que pase despues, la pantalla vuelve a su sitio. */
     printRestore = function () {
-      hiddenPanels.forEach(function (el) { el.hidden = true; });
+      revealed.forEach(function (el) { el.hidden = true; });
       if (theme === 'dark') applyTheme('dark', false);
       MSACharts.resizeAll();
       printRestore = null;
     };
+
+    try {
+      /* Los paneles ocultos hay que revelarlos ANTES de imprimir: un lienzo
+         que nunca estuvo visible se dibujo en 0x0 y saldria en blanco. Solo
+         los del metodo ACTIVO: los del otro existen en el mismo HTML y
+         saldrian impresos con sus tablas vacias. */
+      var method = state.method;
+      [].slice.call(document.querySelectorAll('.tab-panel[hidden]'))
+        .filter(function (el) { return appliesToMethod(el, method); })
+        .forEach(function (el) { el.hidden = false; revealed.push(el); });
+      // El tema oscuro se imprimiria con fondos negros; los lienzos son mapas
+      // de bits, asi que no basta con CSS: hay que redibujar en claro.
+      if (theme === 'dark') applyTheme('light', false);
+      buildPrintHeader();
+      buildPrintAnnex();
+      void document.body.offsetHeight;              // fuerza el reflujo antes de medir
+      MSACharts.resizeAll();
+    } catch (e) {
+      /* Que el reporte salga incompleto es malo; que la aplicacion se quede
+         rota despues de imprimir es peor. Se deja constancia visible en el
+         propio encabezado -- para que nadie firme un reporte creyendo que
+         esta completo -- y se sigue: el restaurador ya esta puesto. */
+      try {
+        $('printHeader').innerHTML =
+          '<h1 class="rep-title">' + esc(studyName() || 'Estudio') + '</h1>' +
+          '<p class="rep-sub">No se pudo armar el encabezado de este reporte: ' +
+          esc(e.message) + '. Revisa el resultado en pantalla antes de usarlo.</p>';
+      } catch (e2) { /* ni eso: mejor un reporte sin encabezado que una app rota */ }
+    }
   }
 
   function restoreAfterPrint() { if (printRestore) printRestore(); }
 
+  /* Capa fina sobre MSAReport.headerRows: aqui solo se lee la pantalla y se
+     pinta. Que filas van en cada metodo lo decide el modelo puro, que se
+     prueba en Node contra los tres resultados reales (tests/tests-report.js).
+     Mientras esa decision vivio aqui dentro, la unica manera de descubrir que
+     estaba rota era abrir el navegador e imprimir. */
   function buildPrintHeader() {
-    var r = state.result;
-    var name = studyName() || 'Estudio Gage R&R';
-    var meta = [
-      ['Fecha', new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' })],
-      ['Estudio', state.operators.length + ' operadores x ' + partsPerOperator() + ' ' +
-        activeMethod().countLabel + ' x ' + state.replicates + ' replicas = ' +
-        (state.operators.length * partsPerOperator() * state.replicates) + ' mediciones'],
-      ['Especificacion', specLabel()],
-      ['Multiplicador', $('svMultiplier').value + ' sigma'],
-      ['Alfa', isNested() ? 'no aplica' : $('alpha').value],
-      ['Modelo', r ? (r.model === 'nested' ? 'Anidado (sin interaccion estimable)'
-                    : r.model === 'with-interaction' ? 'Con interaccion' : 'Sin interaccion (agrupada)') : '-'],
-      ['% Study Variation (GRR)', r ? r.metrics.pctStudyVar.toFixed(2) + ' %' : '-'],
-      ['Categorias distintas', r ? (r.ndc === null ? 'inf' : String(r.ndc)) : '-']
-    ];
+    var m = activeMethod();
+    var rows = MSAReport.headerRows(state.result, {
+      date: new Date().toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' }),
+      method: state.method,
+      operators: state.operators.length,
+      parts: partsPerOperator(),
+      replicates: state.replicates,
+      countLabel: m.countLabel,
+      spec: specLabel(),
+      multiplier: $('svMultiplier').value,
+      alpha: $('alpha').value,
+      /* F-05. El boton queda deshabilitado cuando el resultado caduco, pero
+         Ctrl+P dispara beforeprint igual, asi que la regla vive tambien aqui:
+         un resultado que ya no es de estos datos no se imprime como si lo
+         fuera. El modelo lo trata como "sin calcular" y lo dice. */
+      stale: resultIsStale(),
+      /* F-03.1: antes de calcular no hay resultado del que sacar la categoria
+         de rechazo, y el encabezado de un estudio de atributos sin calcular la
+         necesita. Se lee de la pantalla, como el resto de este contexto. */
+      rejectCategory: $('rejectCategory') ? $('rejectCategory').value : ''
+    });
+    /* El subtitulo sale del metodo activo, no del atributo data-method del
+       documento: si ese atributo faltara, methodById cae al primer metodo y el
+       reporte de un estudio de atributos se encabezaria "Crossed ANOVA". */
     $('printHeader').innerHTML =
-      '<h1 class="rep-title">' + esc(name) + '</h1>' +
-      '<p class="rep-sub">' + esc(methodById(document.documentElement.getAttribute('data-method')).badge) +
-        ' &middot; MSA Toolkit</p>' +
-      '<div class="rep-meta">' + meta.map(function (m) {
-        return '<div><span>' + esc(m[0]) + '</span><strong>' + esc(m[1]) + '</strong></div>';
+      '<h1 class="rep-title">' + esc(studyName() || 'Estudio MSA') + '</h1>' +
+      '<p class="rep-sub">' + esc(m.badge) + ' &middot; MSA Toolkit</p>' +
+      '<div class="rep-meta">' + rows.map(function (row) {
+        return '<div><span>' + esc(row[0]) + '</span><strong>' + esc(row[1]) + '</strong></div>';
       }).join('') + '</div>';
   }
 
@@ -1659,7 +1998,12 @@
     });
     h += '</tbody></table><p class="annex-note">' + n +
       (attr ? ' clasificaciones capturadas. ' : ' mediciones capturadas. ') +
-      'Los calculos de este reporte salen exactamente de estos datos.</p>';
+      (resultIsStale()
+        /* F-05: la frase de siempre seria falsa aqui. Se dice lo contrario,
+           en el mismo sitio donde el lector la buscaria. */
+        ? 'ATENCION: los datos cambiaron despues del ultimo calculo, asi que los resultados de ' +
+          'este reporte NO salen de estas mediciones. Recalcula antes de usarlo.'
+        : 'Los calculos de este reporte salen exactamente de estos datos.') + '</p>';
     $('printAnnex').innerHTML = h;
   }
 
@@ -1696,6 +2040,7 @@
     $('generateBtn').addEventListener('click', function () { buildDataTable(true); });
     $('calcBtn').addEventListener('click', calculate);
     $('recalcBtn').addEventListener('click', calculate);
+    $('staleRecalcBtn').addEventListener('click', calculate);
     $('demoBtn').addEventListener('click', loadDemo);
     $('clearDataBtn').addEventListener('click', clearData);
     $('resetBtn').addEventListener('click', resetAll);
@@ -1709,7 +2054,7 @@
       if (e.target.files && e.target.files[0]) importFile(e.target.files[0]);
       e.target.value = '';
     });
-    ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator', 'lsl', 'usl', 'tolerance', 'processMean', 'historicalSigma']
+    ['alpha', 'interactionMode', 'svMultiplier', 'fDenominator', 'lsl', 'usl', 'tolerance', 'processMean', 'historicalSigma', 'confLevel']
       .forEach(function (id) {
         $(id).addEventListener('change', function () { if (state.result) calculate(); });
       });

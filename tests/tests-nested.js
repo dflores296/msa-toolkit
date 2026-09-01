@@ -276,12 +276,39 @@
       (what || '') + ': el mensaje no menciona "' + fragment + '" -> ' + v.errors.join(' | '));
   }
 
-  test('validacion anidada: una pieza compartida entre operadores manda al metodo cruzado', function () {
+  /* Esta prueba afirmaba lo contrario hasta F-02: un nombre repetido entre
+     operadores era un ERROR y el mensaje mandaba al metodo cruzado. Era el
+     bug. En un estudio destructivo la pieza "1" de A y la "1" de B son dos
+     objetos que ya no existen, y ningun dato de la captura puede demostrar
+     que fueran el mismo. Asi que se acepta y se avisa, que es lo unico que
+     los datos sostienen. Los escenarios completos estan en tests-design.js. */
+  test('validacion anidada: un nombre repetido entre operadores se acepta y se avisa', function () {
     var rows = nestedRows();
     rows.forEach(function (r) { if (r.operator === 'B' && r.part === 'Pieza 11') r.part = 'Pieza 1'; });
-    expectError(rows, 'usa el metodo Cruzado', 'pieza compartida');
-    // Y el dataset cruzado completo cae entero en el mismo error.
-    expectError(crossedRows(), 'usa el metodo Cruzado', 'dataset cruzado');
+    var v = MSANested.validate(rows);
+    assert(v.ok, 'ya no es un error: ' + v.errors.join(' | '));
+    assert(v.warnings.join(' | ').indexOf(MSADesign.REPEATED_LABEL_NOTICE) >= 0,
+      'pero se avisa: ' + v.warnings.join(' | '));
+    assert(v.errors.join(' | ').indexOf('usa el metodo Cruzado') < 0,
+      'y no se ordena cambiar de metodo');
+
+    /* El dataset cruzado entero tambien pasa la validacion anidada, y tiene
+       que pasarla: los datos no distinguen los dos disenos. Lo que separa un
+       estudio cruzado de uno anidado es lo que se hizo en la planta, no la
+       forma de la matriz, asi que la eleccion es del usuario y la app solo
+       puede decirle que supone cada metodo. */
+    var vc = MSANested.validate(crossedRows());
+    assert(vc.ok, 'la matriz cruzada es un anidado valido en forma: ' + vc.errors.join(' | '));
+    assert(vc.warnings.join(' | ').indexOf(MSADesign.CROSSED_HINT) >= 0,
+      'y ahi el aviso ofrece justamente el cruzado: ' + vc.warnings.join(' | '));
+  });
+
+  test('validacion anidada: el aviso no afirma que las piezas sean las mismas', function () {
+    var w = MSANested.compute(crossedRows(), {}).warnings.join(' | ');
+    assert(w.indexOf('midieron las mismas piezas') < 0,
+      'no se afirma identidad fisica desde la coincidencia de nombres: ' + w);
+    assert(w.indexOf('se consideran objetos fisicos distintos') >= 0,
+      'se dice como los trata el modelo: ' + w);
   });
 
   test('validacion anidada: rechaza distinto numero de piezas por operador', function () {
@@ -459,4 +486,74 @@
       seen[p] = true;
     });
   });
+
+  /* --- F-01 en el anidado: misma funcion, mismo trato ---------------------
+   * El anidado reutiliza discrimination() del cruzado. Estas pruebas fijan que
+   * de verdad la use y que sus tres estados salgan igual, para que un dia no
+   * queden los dos metodos clasificando distinto el mismo instrumento. */
+
+  function anidadoPlano(valor) {
+    var rows = [];
+    ['A', 'B', 'C'].forEach(function (op, oi) {
+      for (var p = 1; p <= 5; p++) for (var k = 0; k < 3; k++) {
+        rows.push({ operator: op, part: 'Pieza ' + (oi * 5 + p), value: valor });
+      }
+    });
+    return rows;
+  }
+
+  /* Cada operador destruye SUS piezas; el instrumento lee de paso en paso. */
+  function anidadoResolucion(lo, hi, sigmaMs, delta) {
+    var seed = 20260831;
+    var rnd = function () { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    var nrm = function (m, sd) {
+      return m + sd * Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
+    };
+    /* Cada operador cubre el MISMO rango: sus piezas salen de un lote
+       homogeneo, que es el supuesto del anidado. Repartir las 15 piezas de
+       corrido dejaria a cada operador en un tramo distinto y eso es un efecto
+       de operador enorme por construccion, no un problema de resolucion. */
+    var rows = [];
+    ['A', 'B', 'C'].forEach(function (op, oi) {
+      for (var p = 0; p < 5; p++) {
+        var pv = lo + (hi - lo) * p / 4;
+        for (var k = 0; k < 3; k++) {
+          rows.push({ operator: op, part: 'Pieza ' + (oi * 5 + p + 1),
+                      value: Math.round(nrm(pv, sigmaMs) / delta) * delta });
+        }
+      }
+    });
+    return rows;
+  }
+
+  test('F-01 anidado: datos degenerados dan no concluyente y retiran el veredicto', function () {
+    var r = MSANested.compute(anidadoPlano(7), {});
+    assert(r.discrimination.state === 'degenerado', 'estado degenerado, se obtuvo ' + r.discrimination.state);
+    assert(r.inconclusive === true, 'se marca como no concluyente');
+    assert(r.ndcLabel === 'No evaluable', 'NDC no evaluable, se obtuvo "' + r.ndcLabel + '"');
+    assert(r.assessment.studyVar === null, 'no se califica sobre cero informacion');
+    var dice = r.warnings.some(function (w) { return w.indexOf('Estudio no concluyente') === 0; });
+    assert(dice, 'reporta el caso degenerado');
+  });
+
+  test('F-01 anidado: instrumento muy preciso queda censurado, no degradado', function () {
+    var r = MSANested.compute(anidadoResolucion(9, 11, 0.00002, 0.001), { tolerance: 2.0 });
+    assert(r.discrimination.state === 'censurado', 'estado censurado, se obtuvo ' + r.discrimination.state);
+    assert(r.inconclusive === false, 'no es no concluyente');
+    assert(r.assessment.studyVar && r.assessment.studyVar.level === 'ok', 'conserva el veredicto');
+    assert(!r.warnings.some(function (w) { return w.indexOf('resolucion insuficiente') >= 0; }),
+           'no levanta alarma de resolucion sobre un instrumento excelente');
+  });
+
+  test('F-01 anidado: el ejemplo de referencia no cambia ni gana avisos', function () {
+    var r = MSANested.compute(nestedRows(), { lsl: -5, usl: 5 });
+    assert(r.discrimination.state === 'ok', 'discriminacion ok, se obtuvo ' + r.discrimination.state);
+    assert(r.ndcLabel === String(r.ndc), 'la etiqueta del NDC es su numero');
+    assert(!/inf/i.test(r.ndcLabel) && !/\d{4,}/.test(r.ndcLabel), 'NDC legible: "' + r.ndcLabel + '"');
+    var nuevos = r.warnings.filter(function (w) {
+      return /no concluyente|no es medible|resolucion insuficiente/.test(w);
+    });
+    assert(nuevos.length === 0, 'sin avisos nuevos: ' + nuevos.join(' | '));
+  });
+
 })(typeof window !== 'undefined' ? window : globalThis);

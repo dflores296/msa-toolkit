@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20260830h">
+<link rel="stylesheet" href="assets/css/style.css?v=20260831e">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>&#128207;</text></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -58,6 +58,7 @@
   <nav class="toolbar-nav">
     <a href="tests/">Pruebas de validacion</a>
     <a href="docs/auditoria-motor-excel.md">Auditoria del motor</a>
+    <a href="docs/auditoria-2026-08-31.md">Auditoria 2026-08-31</a>
     <a href="docs/estandar-de-diseno.md">Estandar de diseno</a>
   </nav>
 </header>
@@ -77,7 +78,10 @@
         las mismas piezas. AIAG sugiere 10 piezas, 3 operadores y 3 replicas.</p>
       <p class="hint" data-methods="anidado">Define el tamano del estudio y los nombres. Cada operador mide
         <strong>sus propias</strong> piezas, tomadas del mismo lote. AIAG sugiere 10 piezas por operador,
-        3 operadores y 3 replicas.</p>
+        3 operadores y 3 replicas.<br>
+        La pieza se identifica por el par <strong>operador + pieza</strong>, asi que puedes numerar 1..n
+        las de cada operador: la &laquo;1&raquo; de uno y la &laquo;1&raquo; de otro se analizan como dos
+        piezas fisicas distintas.</p>
 
       <p class="hint" data-methods="atributos">Define el tamano del estudio y los nombres. Cada evaluador
         clasifica <strong>las mismas piezas</strong> varias veces. AIAG sugiere alrededor de 50 piezas,
@@ -105,7 +109,7 @@
       <div class="grid cols-4" data-methods="atributos" style="margin-bottom:14px">
         <label class="field" title="Las categorias en que se clasifica cada pieza, separadas por coma. Con dos (lo normal: pasa / no pasa) se calculan ademas efectividad, fuga y falsa alarma; con tres o mas solo concordancia y kappa."><span>Categorias</span>
           <input type="text" id="categories" value="Pasa, No pasa" placeholder="Pasa, No pasa"></label>
-        <label class="field" title="Cual de las dos categorias significa pieza no conforme. Define que error es una fuga (dejarla pasar) y cual una falsa alarma (rechazar una buena). Solo aplica con dos categorias."><span>Categoria de rechazo</span>
+        <label class="field" title="Cual de las dos categorias significa pieza no conforme. Define que error es una fuga (dejarla pasar) y cual una falsa alarma (rechazar una buena), que tienen umbrales distintos (2 % y 5 %) porque uno le llega al cliente y el otro se queda en la planta. No se elige por ti: sin esta eleccion no se calculan efectividad, fuga ni falsa alarma. Solo aplica con dos categorias."><span>Categoria de rechazo</span>
           <select id="rejectCategory"></select></label>
       </div>
 
@@ -188,6 +192,12 @@
             <option value="0.05">0.05 (default de Minitab)</option>
             <option value="0.10">0.10</option>
           </select></label>
+        <label class="field" data-methods="cruzado anidado" title="Nivel de confianza del intervalo del %GRR. Cambia solo el intervalo, que es informativo: el dictamen sale de la estimacion puntual y no depende de este valor."><span>Confianza del intervalo</span>
+          <select id="confLevel">
+            <option value="0.90">90 %</option>
+            <option value="0.95" selected>95 %</option>
+            <option value="0.99">99 %</option>
+          </select></label>
       </div>
 
       <div class="grid cols-4" style="margin-top:12px" data-methods="cruzado">
@@ -214,18 +224,33 @@
         <span class="step">3</span>
         <div class="results-title">Resultados en vivo</div>
         <span class="spacer"></span>
-        <div class="results-live">actualizado al escribir</div>
+        <div class="results-live" id="resultsLive">se recalcula al pulsar Calcular</div>
       </div>
 
       <div id="resultsSection" hidden>
+      <!-- F-05: los datos cambiaron despues de calcular. El panel de abajo
+           sigue mostrando el resultado viejo, asi que se dice, se atenua y se
+           bloquea la impresion hasta recalcular. -->
+      <div id="resultStale" class="msg stale-banner" hidden>
+        <strong>Resultados desactualizados.</strong>
+        Los datos cambiaron despues de calcular: lo que se ve abajo salio de la captura anterior.
+        <button type="button" class="primary" id="staleRecalcBtn">Recalcular</button>
+      </div>
       <div id="resultMsg"></div>
 
       <div id="resultBody" hidden>
         <div class="verdicts" id="verdicts"></div>
 
+        <!-- F-07. Todo lo que se dice del R&R total, en un solo sitio y en un
+             orden explicito: primero el punto y su evaluacion AIAG -que es la
+             que dictamina-, despues el intervalo, rotulado como experimental.
+             Antes esto vivia repartido en tarjetas contiguas que podian leerse
+             como dictamenes independientes y contradecirse. -->
+        <div class="card grr-card" id="grrSummary" data-methods="cruzado anidado" hidden></div>
+
         <div class="card eval-card" data-methods="cruzado anidado">
           <h3 class="eval-title">Evaluacion de la variacion</h3>
-          <p class="chart-subcap">&lt;10 % bueno &middot; 10&ndash;30 % marginal &middot; &gt;30 % malo</p>
+          <p class="chart-subcap">&lt;10 % aceptable &middot; 10&ndash;30 % condicional &middot; &gt;30 % no aceptable</p>
           <div class="eval-bars" id="evalBars"></div>
         </div>
 
@@ -423,12 +448,16 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20260830h"></script>
-<script src="assets/js/stats.js?v=20260830h"></script>
-<script src="assets/js/anova.js?v=20260830h"></script>
-<script src="assets/js/anova-nested.js?v=20260830h"></script>
-<script src="assets/js/attribute.js?v=20260830h"></script>
-<script src="assets/js/charts.js?v=20260830h"></script>
-<script src="assets/js/app.js?v=20260830h"></script>
+<script src="assets/vendor/chart.umd.js?v=20260831e"></script>
+<script src="assets/js/design.js?v=20260831e"></script>
+<script src="assets/js/stats.js?v=20260831e"></script>
+<script src="assets/js/anova.js?v=20260831e"></script>
+<script src="assets/js/anova-nested.js?v=20260831e"></script>
+<script src="assets/js/attribute.js?v=20260831e"></script>
+<script src="assets/js/report.js?v=20260831e"></script>
+<script src="assets/js/mls.js?v=20260831e"></script>
+<script src="assets/js/interval.js?v=20260831e"></script>
+<script src="assets/js/charts.js?v=20260831e"></script>
+<script src="assets/js/app.js?v=20260831e"></script>
 </body>
 </html>

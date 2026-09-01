@@ -43,6 +43,255 @@
     });
     return rows;
   }
+  /* ==========================================================================
+   * F-01: Var_GRR = 0 no es un veredicto, es tres situaciones distintas.
+   *
+   * Las tres daban la misma pantalla ("%GRR 0.00 %, Aceptable, NDC inf") y
+   * exigen respuestas opuestas. Estas pruebas fijan que se separen, y sobre
+   * todo que el caso 1 -- instrumento excelente -- NO se degrade.
+   * ========================================================================*/
+
+  /* Cuantiza al paso del instrumento, que es lo que hace una lectura digital. */
+  function quant(x, d) { return Math.round(x / d) * d; }
+
+  /* Estudio 3 x 10 x 3 con piezas repartidas linealmente y ruido determinista. */
+  function estudioResolucion(lo, hi, sigmaMs, delta) {
+    var seed = 20260831;
+    var rnd = function () { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+    var nrm = function (m, sd) {
+      return m + sd * Math.sqrt(-2 * Math.log(rnd() || 1e-9)) * Math.cos(2 * Math.PI * rnd());
+    };
+    var partTrue = [], i;
+    for (i = 0; i < 10; i++) partTrue.push(lo + (hi - lo) * i / 9);
+    var rows = [];
+    ['A', 'B', 'C'].forEach(function (op) {
+      partTrue.forEach(function (pv, p) {
+        for (var k = 0; k < 3; k++) {
+          rows.push({ operator: op, part: 'P' + (p + 1), value: quant(nrm(pv, sigmaMs), delta) });
+        }
+      });
+    });
+    return rows;
+  }
+
+  function estudioPlano(valor) {
+    var rows = [];
+    ['A', 'B', 'C'].forEach(function (op) {
+      for (var p = 1; p <= 10; p++) for (var k = 0; k < 3; k++) {
+        rows.push({ operator: op, part: 'P' + p, value: valor });
+      }
+    });
+    return rows;
+  }
+
+  test('F-01 caso 1: instrumento muy preciso -> censurado, NO degradado', function () {
+    /* Micrometro de 0.001 mm cuyo error real (0.00002) esta 50 veces por
+       debajo de su propia resolucion: ninguna replica se mueve. El veredicto
+       de aceptable es correcto y tiene que sobrevivir. */
+    var r = MSAAnova.compute(estudioResolucion(9, 11, 0.00002, 0.001), { tolerance: 2.0 });
+    var d = r.discrimination;
+    assert(d.state === 'censurado', 'estado censurado, se obtuvo ' + d.state);
+    assert(d.zeroRangeCells === d.cells, 'ninguna celda debe variar');
+    assert(d.step === null, 'el escalon NO es medible con estos datos');
+    assert(r.inconclusive === false, 'no es un estudio no concluyente: hay senal de pieza');
+    /* Requisito 6: no se degrada ni se bloquea. */
+    assert(r.assessment.studyVar && r.assessment.studyVar.level === 'ok',
+           'el veredicto de aceptable se conserva');
+    /* Requisito 5: no se levanta alarma de resolucion sobre un equipo del que
+       no hay evidencia en contra. */
+    var acusa = r.warnings.some(function (w) { return w.indexOf('resolucion insuficiente') >= 0; });
+    assert(!acusa, 'no debe levantar alarma de resolucion sobre un instrumento excelente');
+    /* Pero si se dice que el 0 % es una cota y no un estimado. */
+    var dice = r.warnings.some(function (w) { return w.indexOf('no es medible') >= 0; });
+    assert(dice, 'debe avisar que la repetibilidad no es medible');
+  });
+
+  test('F-01 caso 1: el min-diff GLOBAL sobreestimaria el escalon, por eso no se usa', function () {
+    /* Es la razon de que el escalon se busque DENTRO de la celda y no entre
+       mediciones cualesquiera: aqui la minima diferencia global es la que hay
+       entre dos piezas (~0.22), 222 veces la resolucion real de 0.001, y
+       usarla levantaria una alarma falsa sobre un instrumento excelente. */
+    var rows = estudioResolucion(9, 11, 0.00002, 0.001);
+    var vals = rows.map(function (x) { return x.value; }).sort(function (a, b) { return a - b; });
+    var minGlobal = Infinity;
+    for (var i = 1; i < vals.length; i++) {
+      var g = vals[i] - vals[i - 1];
+      if (g > 1e-12 && g < minGlobal) minGlobal = g;
+    }
+    assert(minGlobal > 0.2, 'la minima diferencia global es de escala de PIEZA (' + minGlobal + ')');
+    assert(MSAAnova.compute(rows, {}).discrimination.step === null,
+           'el motor no la confunde con un escalon de instrumento');
+  });
+
+  test('F-01 caso 2: cuantizacion gruesa -> se mide el escalon y se avisa', function () {
+    /* Vernier de 0.02 mm sobre piezas repartidas en 0.03 mm. Aqui algunas
+       celdas SI varian, asi que el escalon es medible y es un dato duro. */
+    var r = MSAAnova.compute(estudioResolucion(10.00, 10.03, 0.002, 0.02), { tolerance: 0.05 });
+    var d = r.discrimination;
+    assert(d.state === 'gruesa', 'estado gruesa, se obtuvo ' + d.state);
+    near(d.step, 0.02, 1e-9, 'el escalon medido es la resolucion real del vernier');
+    assert(d.overTolerance > 0.10, 'el escalon pasa del 10 % de la tolerancia');
+    assert(d.quantizationShare > 0, 'publica cuanto explicaria la cuantizacion por si sola');
+    assert(d.exceeds.indexOf('tolerancia') >= 0, 'nombra contra que criterio se rebaso el 10 %');
+    near(d.limit, 0.10, 0, 'el criterio publicado es el 10 % de AIAG');
+    /* El aviso es PRUDENTE: nombra las dos causas posibles y no concluye
+       nada del equipo, porque los datos no demuestran su resolucion nominal. */
+    var aviso = r.warnings.filter(function (w) { return w.indexOf('resolucion insuficiente') >= 0; })[0];
+    assert(aviso, 'debe avisar');
+    assert(aviso.indexOf('Posible resolucion insuficiente o redondeo excesivo de los datos') === 0,
+           'el aviso arranca con la formula prudente');
+    assert(aviso.indexOf('tolerancia') >= 0, 'nombra contra que criterio se rebaso');
+  });
+
+  test('F-01 caso 3: datos degenerados -> no concluyente y sin veredicto', function () {
+    var r = MSAAnova.compute(estudioPlano(10), { tolerance: 0.5 });
+    var d = r.discrimination;
+    assert(d.state === 'degenerado', 'estado degenerado, se obtuvo ' + d.state);
+    assert(d.distinctValues === 1, 'un solo valor distinto');
+    assert(r.inconclusive === true, 'el estudio se marca como no concluyente');
+    /* Requisito 7: el mensaje, tal cual. */
+    var dice = r.warnings.some(function (w) {
+      return w.indexOf('Estudio no concluyente: los datos no contienen informacion suficiente ' +
+                       'para estimar la repetibilidad.') === 0;
+    });
+    assert(dice, 'debe reportar el caso degenerado con su mensaje');
+    /* Y no se emite veredicto sobre cero informacion. */
+    ['studyVar', 'tolerance', 'contribution', 'ndc', 'emp'].forEach(function (key) {
+      assert(r.assessment[key] === null, 'no se califica ' + key + ' sobre datos degenerados');
+    });
+  });
+
+  test('F-01 caso 4: el estudio normal no se entera de nada de esto', function () {
+    /* Requisito 5 y 6: un instrumento fino con error real medible no debe
+       recibir ningun aviso nuevo. Es el caso de casi todos los estudios. */
+    var r = MSAAnova.compute(estudioResolucion(9, 11, 0.05, 0.001), { tolerance: 2.0 });
+    assert(r.discrimination.state === 'ok', 'estado ok, se obtuvo ' + r.discrimination.state);
+    assert(r.discrimination.zeroRangeCells === 0, 'todas las celdas varian');
+    var nuevos = r.warnings.filter(function (w) {
+      return /no concluyente|no es medible|resolucion insuficiente/.test(w);
+    });
+    assert(nuevos.length === 0, 'no debe agregar avisos: ' + nuevos.join(' | '));
+  });
+
+  test('F-01: equipo fino con datos REDONDEADOS -> el aviso habla de los datos', function () {
+    /* El caso que separa "escalon observado" de "resolucion del instrumento":
+       un equipo que resuelve 0.0001 pero cuyas lecturas se anotaron -- o se
+       exportaron desde otro sistema -- redondeadas a 0.01. Los datos son
+       identicos a los de un instrumento grueso de verdad, y el modulo no
+       puede distinguirlos: lo unico que ve es con que finura se anotaron.
+
+       Asi que el aviso tiene que hablar de LOS DATOS y nombrar las dos causas,
+       no dictaminar sobre el equipo. */
+    var rows = estudioResolucion(10.00, 10.04, 0.0003, 0.0001);   // equipo fino de verdad
+    var redondeadas = rows.map(function (r) {
+      return { operator: r.operator, part: r.part, value: Math.round(r.value / 0.01) * 0.01 };
+    });
+
+    var fino = MSAAnova.compute(rows, { tolerance: 0.06 });
+    var burdo = MSAAnova.compute(redondeadas, { tolerance: 0.06 });
+
+    /* Sin redondear, el mismo equipo no dispara nada. */
+    assert(fino.discrimination.state === 'ok',
+           'el equipo fino sin redondear no dispara nada, se obtuvo ' + fino.discrimination.state);
+
+    /* Redondeadas, el escalon observado es el del REDONDEO, no el del equipo. */
+    assert(burdo.discrimination.state === 'gruesa',
+           'las lecturas redondeadas si disparan, se obtuvo ' + burdo.discrimination.state);
+    near(burdo.discrimination.step, 0.01, 1e-9, 'el escalon observado es el del redondeo (0.01)');
+    assert(burdo.discrimination.step > fino.discrimination.step * 50,
+           'y es mucho mas grueso que el del equipo, que era 0.0001');
+
+    var aviso = burdo.warnings.filter(function (w) { return w.indexOf('resolucion insuficiente') >= 0; })[0];
+    assert(aviso, 'debe avisar');
+    /* Lo que el aviso SI tiene que decir. */
+    assert(aviso.indexOf('Posible resolucion insuficiente o redondeo excesivo de los datos') === 0,
+           'arranca nombrando las dos causas posibles');
+    assert(aviso.indexOf('escalon mas fino observado entre replicas') >= 0,
+           'atribuye el escalon a lo observado, no al instrumento');
+    assert(aviso.indexOf('anotado o exportado redondeadas') >= 0,
+           'menciona explicitamente el redondeo de los datos como causa');
+    assert(aviso.indexOf('antes de concluir nada del equipo') >= 0,
+           'pide comprobar antes de concluir sobre el equipo');
+    /* Y lo que NO tiene que decir: ningun dictamen sobre el instrumento. */
+    ['el instrumento no resuelve', 'instrumento deficiente', 'gage inadecuado'].forEach(function (frase) {
+      assert(aviso.indexOf(frase) < 0, 'el aviso no debe afirmar "' + frase + '"');
+    });
+  });
+
+  test('F-01: el 10 % se evalua contra los dos denominadores, y basta con uno', function () {
+    /* Requisito 3. Escalon que se come el 25 % de una tolerancia estrecha pero
+       solo el 2 % de la variacion de un estudio con piezas muy dispersas: uno
+       de los dos criterios basta para marcarlo. */
+    var rows = estudioResolucion(9, 11, 0.02, 0.01);
+    var sinTol = MSAAnova.compute(rows, {});
+    assert(sinTol.discrimination.overTolerance === null,
+           'sin tolerancia capturada, ese criterio no se evalua');
+    assert(sinTol.discrimination.overStudyVar !== null, 'el de variacion del estudio siempre se evalua');
+    assert(sinTol.discrimination.state === 'ok', 'contra la variacion del estudio no se rebasa');
+
+    var conTol = MSAAnova.compute(rows, { tolerance: 0.04 });   // escalon = 25 % de la tolerancia
+    assert(conTol.discrimination.overTolerance > 0.10, 'contra la tolerancia si se rebasa');
+    assert(conTol.discrimination.overStudyVar < 0.10, 'contra la variacion del estudio no');
+    assert(conTol.discrimination.state === 'gruesa', 'basta con que UNO de los dos se rebase');
+    near(conTol.discrimination.exceeds.length, 1, 0, 'y se nombra solo el que fallo');
+    assert(conTol.discrimination.exceeds[0] === 'tolerancia', 'que es la tolerancia');
+  });
+
+  test('F-01: las constantes numericas estan nombradas y no son criterios AIAG', function () {
+    /* Requisito 5. El 10 % SI sale del manual; los dos 1e-12 son proteccion
+       contra el punto flotante y no deben leerse como umbrales de calidad. */
+    near(MSAAnova.DISCRIMINATION_LIMIT, 0.10, 0, 'criterio de discriminacion AIAG');
+    near(MSAAnova.ZERO_VARIANCE_RATIO, 1e-12, 0, 'guardia numerica de varianza cero');
+    near(MSAAnova.compute(aiagRows(), {}).discrimination.limit, 0.10, 0,
+         'el criterio viaja en el resultado, para que la pantalla no lo repita a mano');
+  });
+
+  test('F-01: ndcOf se comparte, para que los dos metodos no clasifiquen distinto', function () {
+    /* V_part, V_grr y V_total son VARIANZAS; ndcOf hace la raiz por dentro. */
+    var n = MSAAnova.ndcOf(4, 1, 5);
+    near(n.raw, 1.41 * 2 / 1, 1e-12, 'NDC crudo = 1.41 x sigma_pieza / sigma_GRR');
+    near(n.ndc, 2, 0, 'parte entera');
+    assert(n.label === '2', 'etiqueta');
+    assert(MSAAnova.ndcOf(1, 0, 1).label === 'No evaluable', 'Var_GRR cero -> No evaluable');
+    assert(MSAAnova.ndcOf(1, 1e-30, 1).label === 'No evaluable', 'Var_GRR en el ruido -> No evaluable');
+    assert(MSAAnova.ndcOf(1, 1e-8, 1).label === '> 100', 'NDC enorme -> cota, no quince cifras');
+  });
+
+  test('F-01: NDC nunca imprime "inf" ni un numero absurdo', function () {
+    /* Requisitos 1, 2 y 3. Antes: Var_GRR exactamente 0 daba ndc null y la
+       tarjeta imprimia "inf"; Var_GRR en el ruido del punto flotante (2e-30,
+       lo que deja una cancelacion de sumas de cuadrados) daba un entero de
+       quince cifras. Las dos cosas se leen como "separa infinitas
+       categorias", que es lo contrario de lo que pasa. */
+    var casos = [
+      estudioPlano(10),                                  // Var_GRR = 0 exacto
+      estudioResolucion(9, 11, 0.00002, 0.001),          // Var_GRR = 2.1e-30
+      estudioResolucion(10.00, 10.03, 0.002, 0.02),      // Var_GRR normal chico
+      aiagRows()                                         // Var_GRR normal
+    ];
+    casos.forEach(function (rows, i) {
+      var r = MSAAnova.compute(rows, {});
+      assert(typeof r.ndcLabel === 'string' && r.ndcLabel.length > 0, 'caso ' + i + ': falta ndcLabel');
+      assert(!/inf/i.test(r.ndcLabel), 'caso ' + i + ': ndcLabel dice "' + r.ndcLabel + '"');
+      assert(!/\d{4,}/.test(r.ndcLabel), 'caso ' + i + ': numero absurdo "' + r.ndcLabel + '"');
+      if (r.ndc === null) assert(r.ndcLabel === 'No evaluable', 'caso ' + i + ': deberia decir No evaluable');
+    });
+    near(MSAAnova.compute(aiagRows(), {}).ndc, 4, 0, 'el NDC del dataset AIAG no cambia');
+    assert(MSAAnova.compute(aiagRows(), {}).ndcLabel === '4', 'y su etiqueta es "4"');
+  });
+
+  test('F-01: el dataset AIAG no cambia ni un digito y no gana avisos', function () {
+    var r = MSAAnova.compute(aiagRows(), { alpha: 0.25 });
+    near(r.metrics.pctContribution, 7.76, 0.005, '% Contribucion');
+    near(r.metrics.pctStudyVar, 27.86, 0.005, '% Study Variation');
+    assert(r.discrimination.state === 'ok', 'discriminacion ok');
+    assert(r.inconclusive === false, 'no es no concluyente');
+    var nuevos = r.warnings.filter(function (w) {
+      return /no concluyente|no es medible|resolucion insuficiente/.test(w);
+    });
+    assert(nuevos.length === 0, 'sin avisos nuevos sobre el dataset de referencia');
+  });
+
   global.AIAG_ROWS = aiagRows;
 
   /* ---------------------------------------------------------------------- *

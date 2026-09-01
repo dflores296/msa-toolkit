@@ -133,6 +133,72 @@
     return 0.5 * (lo + hi);
   }
 
+  /* --------------------------------------------------------------------- *
+   * Cuantiles de chi-cuadrada y de F
+   *
+   * Los necesita el metodo MLS (mls.js) para sus constantes G y H. La
+   * convencion es la de Minitab y la usual: chi2Inv(p, k) devuelve el
+   * PERCENTIL p*100, es decir el valor x con P(X <= x) = p.
+   * --------------------------------------------------------------------- */
+
+  /** P(a, x): gamma incompleta regularizada inferior. Serie cuando x < a+1,
+      fraccion continua para la cola en el resto; es el corte habitual porque
+      cada una converge rapido justo donde la otra no. */
+  function gammaP(a, x) {
+    if (x <= 0) return 0;
+    if (x < a + 1) {
+      var ap = a, sum = 1 / a, del = sum;
+      for (var n = 0; n < 500; n++) {
+        ap++; del *= x / ap; sum += del;
+        if (Math.abs(del) < Math.abs(sum) * 1e-15) break;
+      }
+      return sum * Math.exp(-x + a * Math.log(x) - logGamma(a));
+    }
+    var tiny = 1e-300;
+    var b = x + 1 - a, c = 1 / tiny, d = 1 / b, h = d;
+    for (var i = 1; i < 500; i++) {
+      var an = -i * (i - a);
+      b += 2;
+      d = an * d + b; if (Math.abs(d) < tiny) d = tiny;
+      c = b + an / c;  if (Math.abs(c) < tiny) c = tiny;
+      d = 1 / d;
+      var delta = d * c;
+      h *= delta;
+      if (Math.abs(delta - 1) < 1e-15) break;
+    }
+    return 1 - Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
+  }
+
+  function chi2CDF(x, k) { return gammaP(k / 2, x / 2); }
+
+  /** Percentil p*100 de la chi-cuadrada con k grados de libertad. Biseccion
+      sobre una CDF monotona: lenta de sobra para lo que se usa aqui (unas
+      pocas llamadas por intervalo) y sin los casos de borde de una serie
+      asintotica. */
+  function chi2Inv(p, k) {
+    if (!(k > 0)) return NaN;
+    if (p <= 0) return 0;
+    if (p >= 1) return Infinity;
+    var lo = 0, hi = Math.max(10 * k, 100);
+    while (chi2CDF(hi, k) < p && hi < 1e12) hi *= 2;
+    for (var i = 0; i < 200; i++) {
+      var mid = 0.5 * (lo + hi);
+      if (chi2CDF(mid, k) < p) lo = mid; else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+  }
+
+  /** Percentil p*100 de la F con d1 y d2 grados de libertad. Se invierte la
+      relacion  P(F <= f) = betai(d1/2, d2/2, d1*f / (d1*f + d2)). */
+  function fInv(p, d1, d2) {
+    if (!(d1 > 0) || !(d2 > 0)) return NaN;
+    if (p <= 0) return 0;
+    if (p >= 1) return Infinity;
+    var x = betaInv(d1 / 2, d2 / 2, p);
+    if (x >= 1) return Infinity;
+    return (d2 * x) / (d1 * (1 - x));
+  }
+
   /** Intervalo de confianza exacto de Clopper-Pearson para una proporcion.
       Exacto en el sentido de que su cobertura nunca baja de 1 - alfa; es el
       que reporta Minitab en el analisis de concordancia por atributos. Se
@@ -161,5 +227,6 @@
   global.MSAStats = { fSurvival: fSurvival, logGamma: logGamma, betai: betai,
                       quantile: quantile, boxStats: boxStats,
                       erfc: erfc, normalTwoSided: normalTwoSided, betaInv: betaInv,
+                      gammaP: gammaP, chi2CDF: chi2CDF, chi2Inv: chi2Inv, fInv: fInv,
                       proportionCI: proportionCI, binomialCDF: binomialCDF };
 })(typeof window !== 'undefined' ? window : globalThis);

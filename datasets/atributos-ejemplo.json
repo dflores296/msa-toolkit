@@ -1,5 +1,6 @@
 {
  "format": "msa-toolkit-study",
+ "method": "atributos",
  "version": 1,
  "name": "Ejemplo de concordancia por atributos",
  "description": "Caso construido a mano para el metodo de atributos: 30 piezas, 3 evaluadores, 3 replicas, escala Pasa / No pasa, con estandar. NO es un dataset publicado ni proviene de ninguna fuente oficial; sirve para ver el metodo funcionando y para ensenar a leer sus cifras.",

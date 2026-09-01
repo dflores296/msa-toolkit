@@ -1,5 +1,6 @@
 {
   "format": "msa-toolkit/gage-rr-anova",
+  "method": "cruzado",
   "version": 1,
   "name": "Estudio del libro Gage_RR_Study.xlsm",
   "description": "2 operadores x 10 piezas x 2 replicas, tal como estaban capturados en la hoja MSA_Datos.",

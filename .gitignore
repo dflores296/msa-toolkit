@@ -2,3 +2,8 @@ node_modules/
 .DS_Store
 *.log
 .vs/
+
+# Playwright se instala a demanda para las suites de navegador
+# (ver docs/f07-cabos-sueltos.md). El proyecto no tiene dependencias.
+package.json
+package-lock.json

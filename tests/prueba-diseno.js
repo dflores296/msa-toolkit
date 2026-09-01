@@ -514,6 +514,53 @@ function screenState(page) {
   check('F-06: el ejemplo AIAG no recibe el aviso de codificacion',
         real.resultMsg.indexOf('codificado') < 0, real.resultMsg.slice(0, 300));
 
+  /* ======================================================================
+   * Una grafica sin datos no deja su caja puesta
+   *
+   * "Fuga y falsa alarma" solo existe con estandar, escala binaria y una
+   * categoria de rechazo elegida. Sin ella quedaba el titulo, el pie y un
+   * lienzo en blanco de 300x150, que se lee como una grafica que fallo. El
+   * estandar de diseno dice lo contrario: la grafica NO APARECE y el hueco lo
+   * cierra la rejilla.
+   *
+   * Esto solo se ve en un navegador: para el motor los datos estaban bien
+   * -devolvia effectiveness vacio, que es correcto- y ninguna suite sin DOM
+   * podia notar que la caja seguia en pantalla.
+   * ==================================================================== */
+  var cajaVisible = function (id) {
+    return page.evaluate(function (x) {
+      var c = document.getElementById(x), b = c && c.closest('.chart-box');
+      return b ? getComputedStyle(b).display !== 'none' : null;
+    }, id);
+  };
+
+  await open(page, base + '#atributos');
+  await page.click('#demoBtn');
+  await page.waitForFunction(function () { return !document.getElementById('calcBtn').disabled; });
+  await page.evaluate(function () {
+    var s = document.getElementById('rejectCategory');
+    s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await page.click('#calcBtn');
+  await page.waitForTimeout(500);
+  check('sin categoria de rechazo, la grafica de fuga NO deja su caja vacia',
+        (await cajaVisible('chartErrorRates')) === false);
+  check('y las dos que si tienen datos siguen puestas',
+        (await cajaVisible('chartWithin')) === true &&
+        (await cajaVisible('chartVsStandard')) === true);
+
+  await page.selectOption('#rejectCategory', 'No pasa');
+  await page.click('#calcBtn');
+  await page.waitForTimeout(500);
+  check('al elegir la categoria, la grafica vuelve',
+        (await cajaVisible('chartErrorRates')) === true);
+  var dib = await page.evaluate(function () {
+    var c = document.getElementById('chartErrorRates');
+    return c.width + 'x' + c.height;
+  });
+  check('y se dibuja de verdad, no queda el lienzo por omision',
+        dib !== '300x150', 'canvas ' + dib);
+
   await browser.close();
   srv.close();
   console.log('\n' + pass + '/' + (pass + fail) + ' comprobaciones pasaron.');

@@ -249,11 +249,39 @@
     return a;
   }
 
+  /* --- Una grafica sin datos NO deja su caja puesta ----------------------
+   *
+   * El estandar de diseno lo dice para las graficas que un metodo no tiene:
+   * "no se dibuja un lienzo vacio ni una grafica con una nota de 'no aplica':
+   * la grafica NO APARECE. El hueco lo cierra la rejilla sola."
+   *
+   * `data-methods` en el HTML resuelve ese caso -este METODO no tiene esta
+   * grafica- pero no el otro: este ESTUDIO no produjo los datos. Pasaba en
+   * "Fuga y falsa alarma", que solo existe con estandar, escala binaria y
+   * categoria de rechazo elegida: sin eso quedaba el titulo, el pie y un
+   * lienzo en blanco de 300x150, que se lee como una grafica que fallo.
+   *
+   * Se marca con una clase propia y no con `hidden` a proposito: `hidden` es
+   * de `applyMethod`, y dos duenos para la misma propiedad acaban pisandose.
+   * --------------------------------------------------------------------- */
+  function boxOf(id) {
+    var el = document.getElementById(id);
+    return el && el.closest ? el.closest('.chart-box') : null;
+  }
+
+  /** Esta grafica no se dibuja en este estudio: su caja desaparece. */
+  function skip(id) {
+    var b = boxOf(id);
+    if (b) b.classList.add('chart-empty');
+  }
+
   function make(id, config) {
     var el = document.getElementById(id);
     if (!el) return;
     if (registry[id]) registry[id].destroy();
     registry[id] = new Chart(el.getContext('2d'), config);
+    var b = boxOf(id);
+    if (b) b.classList.remove('chart-empty');
   }
 
   /* Quita el prefijo comun de los nombres de pieza ("Pieza 1", "Pieza 2" ->
@@ -533,7 +561,7 @@
     var ch = result.charts;
 
     var agreeChart = function (id, series, label) {
-      if (!series.length) return;
+      if (!series.length) { skip(id); return; }
       make(id, {
         type: 'bar',
         data: {
@@ -571,7 +599,14 @@
     agreeChart('chartWithin', ch.withinAppraiser, 'Consigo mismo');
     agreeChart('chartVsStandard', ch.vsStandard, 'Contra el estandar');
 
-    if (ch.errorRates.length && ch.errorRates[0].missRate !== null) {
+    /* Fuga y falsa alarma solo existen con estandar, escala binaria y una
+       categoria de rechazo elegida (F-04: no se elige por el usuario). Sin
+       ellas no hay grafica, y la caja se va con ella: el porque ya lo dice el
+       aviso del motor y la nota de la Tabla 4, no hace falta un lienzo vacio
+       repitiendolo en blanco. */
+    if (!ch.errorRates.length || ch.errorRates[0].missRate === null) {
+      skip('chartErrorRates');
+    } else {
       make('chartErrorRates', {
         type: 'bar',
         data: {

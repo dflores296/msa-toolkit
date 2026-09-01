@@ -549,6 +549,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 
 /* --- Gráficas --- */
 .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 8px; }
+.chart-box.chart-empty { display: none; }
 .chart-box h3 { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; text-align: center; }
 .chart-box .holder { position: relative; height: 220px; }
 .chart-box p.cap { margin: 8px 0 0; font-size: 11px; color: var(--ink-faint); text-align: center; }

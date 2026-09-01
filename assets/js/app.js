@@ -1057,6 +1057,21 @@
     return { level: t.level, short: String(t.label).split('(')[0].trim() };
   }
 
+  /* La banda concreta en la que cae %Contribucion, para el pie del indicador
+     de apoyo. Las fronteras son las mismas 1 % y 9 % de `assess()`. */
+  function contribBandText(t) {
+    if (!t) return '';
+    return 'Banda: ' + (t.level === 'ok' ? 'menor que 1%' : t.level === 'warn' ? '1% a 9%' : 'mayor que 9%');
+  }
+
+  /* NDC solo tiene dos categorias -- alcanza el minimo de 5 piezas distintas
+     o no --, a diferencia de las tres bandas AIAG del resto de indicadores. */
+  var NDC_SHORT = { ok: 'Adecuado', bad: 'Insuficiente' };
+  function ndcTag(t) {
+    if (!t) return null;
+    return { level: t.level, short: NDC_SHORT[t.level] || String(t.label).split('(')[0].trim() };
+  }
+
   function renderMsaSummary(r) {
     var box = $('msaSummary');
     if (!box) return;
@@ -1121,19 +1136,23 @@
     }
     h.push('</div>');
 
-    /* --- Indicadores complementarios ------------------------------------ */
-    h.push('<p class="support-h">Indicadores complementarios</p><div class="support">');
+    /* --- Indicadores complementarios ------------------------------------
+       Misma tarjeta que "Evaluacion del sistema de medicion": el titulo va
+       DENTRO, en su propio card-head, no como rotulo suelto encima. */
+    h.push('<div class="card support-card">' +
+      '<div class="card-head"><h3 class="card-title">Indicadores complementarios</h3></div>' +
+      '<div class="support">');
     /* %Contribucion lleva la pastilla corta por banda, igual que las dos de
        arriba: es la MISMA razon en escala de varianza, asi que sus tres
        categorias son las mismas tres palabras. NDC e ICC no: sus etiquetas
        ("NDC = 4", "Monitor de primera clase") dicen otra cosa y son cortas ya. */
     h.push(supportItem('Contribucion del Gage R&R', m.pctContribution.toFixed(2) + ' %',
-      bandTag(a.contribution), 'Misma relacion que % Study Variation', VERDICT_HELP.contrib));
+      bandTag(a.contribution), contribBandText(a.contribution), VERDICT_HELP.contrib));
     h.push(supportItem('Categorias distintas (NDC)', r.ndcLabel,
-      a.ndc, 'Grupos de piezas que alcanza a separar', VERDICT_HELP.ndc));
+      ndcTag(a.ndc), 'Minimo recomendado: 5', VERDICT_HELP.ndc));
     h.push(supportItem('ICC (EMP, Wheeler)', r.icc.toFixed(3),
       a.emp, 'Lectura complementaria al criterio AIAG', VERDICT_HELP.icc));
-    h.push('</div>');
+    h.push('</div></div>');
 
     box.innerHTML = h.join('');
     box.hidden = false;

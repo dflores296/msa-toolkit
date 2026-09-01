@@ -495,13 +495,17 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
   border-radius: 50%; background: var(--ink); border: 2px solid var(--surface); z-index: 5;
 }
 
-.support-h { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); }
-.support {
-  display: flex; align-items: stretch; background: var(--surface);
-  border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 18px;
-}
+/* El titulo va DENTRO de la tarjeta (.card-head + .card-title, los mismos de
+   "Evaluacion del sistema de medicion"), asi que .support-card solo pone la
+   separacion respecto a la tarjeta de arriba -- el resto de su aspecto de
+   tarjeta ya lo da .card. */
+.support-card { margin-top: 18px; }
+.support { display: flex; align-items: stretch; }
+/* Los items pierden el padding lateral en el borde exterior: quien inserta el
+   aire ahi es el padding de .card, igual que en el resto de su contenido. */
 .support-item { flex: 1 1 0; padding: 11px 14px; border-right: 1px solid var(--border); min-width: 0; cursor: help; }
-.support-item:last-child { border-right: 0; }
+.support-item:first-child { padding-left: 0; }
+.support-item:last-child { padding-right: 0; border-right: 0; }
 .support-item .k { font-size: 12px; color: var(--ink-soft); }
 .support-item .r { display: flex; align-items: baseline; gap: 8px; margin: 3px 0 2px; }
 .support-item .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -509,7 +513,8 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .support-item .s { font-size: 11px; color: var(--ink-faint); line-height: 1.35; }
 /* En pantalla angosta la tira se apila: tres columnas de 90 px no caben. */
 @media (max-width: 640px) { .support { flex-direction: column; }
-  .support-item { border-right: 0; border-bottom: 1px solid var(--border); } }
+  .support-item { border-right: 0; border-bottom: 1px solid var(--border); padding-left: 0; padding-right: 0; }
+  .support-item:last-child { border-bottom: 0; } }
 
 .verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 10px; }
 .verdict {

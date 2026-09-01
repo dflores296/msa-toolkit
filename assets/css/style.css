@@ -117,9 +117,15 @@ header.site nav { margin-top: 12px; font-size: 13px; }
 header.site nav a { color: var(--ink-soft); text-decoration: none; margin-right: 16px; }
 header.site nav a:hover { color: var(--accent-ink); text-decoration: underline; }
 
-/* --- Barra superior --- */
+/* --- Barra superior ---
+   Fija arriba: las acciones que viven aqui -- Calcular/Recalcular, Importar,
+   Imprimir, el selector de metodo -- se usan MIENTRAS se captura, asi que
+   perderlas de vista al bajar por el formulario obligaba a subir hasta arriba
+   para cada una. El alto real lo publica trackHeaderHeight() en --header-h,
+   que es contra lo que se recortan las dos columnas de abajo. */
 header.toolbar {
   background: var(--header-bg); border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; z-index: 30;
 }
 .toolbar-inner {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
@@ -183,14 +189,25 @@ header.toolbar {
   display: grid; grid-template-columns: minmax(0, 40fr) minmax(0, 60fr);
   align-items: start; max-width: 1760px; margin: 0 auto;
 }
+/* Cada columna se recorta a lo que queda de pantalla bajo la barra y se
+   desplaza SOLA. Antes solo el panel de resultados tenia scroll propio y la
+   captura empujaba el alto de la pagina: bajar por el formulario para llegar
+   a Calcular movia la pagina entera, y con ella se iban la barra superior y
+   los avisos del panel de resultados, que es justo lo que hay que leer al
+   calcular. Con las dos columnas acotadas, la pagina ya no crece y no queda
+   scroll general que arrastre lo de al lado.
+   El pie legal vive dentro de esta columna (ver index.html) porque fuera del
+   banco de trabajo quedaria en una pagina que ya no se desplaza. */
 .col-capture {
   padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;
   border-right: 1px solid var(--border); min-width: 0;
+  max-height: calc(100vh - var(--header-h, 0px)); overflow-y: auto;
 }
-.col-results { min-width: 0; position: sticky; top: 0; align-self: start; }
+.col-results { min-width: 0; align-self: start; }
 .results-panel {
   background: var(--surface-2); padding: 22px 28px;
-  max-height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
+  max-height: calc(100vh - var(--header-h, 0px));
+  overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
 }
 .results-head { display: flex; align-items: center; gap: 10px; }
 .results-title { font-size: 13.5px; font-weight: 600; }
@@ -205,10 +222,16 @@ header.toolbar {
 #resultBody { display: flex; flex-direction: column; gap: 18px; }
 #resultBody[hidden] { display: none; }
 
+/* Apiladas no hay dos columnas que mantener a la vista una junto a la otra:
+   dos cajas con scroll propio, una encima de la otra y cada una mas corta que
+   la pantalla, se leen peor que la pagina desplazandose entera. Vuelve el
+   scroll general -- la barra superior sigue fija, que es lo que hacia falta. */
 @media (max-width: 1100px) {
   .workbench { grid-template-columns: minmax(0, 1fr); }
-  .col-capture { border-right: none; border-bottom: 1px solid var(--border); }
-  .col-results { position: static; }
+  .col-capture {
+    border-right: none; border-bottom: 1px solid var(--border);
+    max-height: none; overflow-y: visible;
+  }
   .results-panel { min-height: 0; max-height: none; overflow-y: visible; }
 }
 

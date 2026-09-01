@@ -209,6 +209,20 @@
       </div>
     </details>
 
+    <!-- El pie va DENTRO de la columna de captura: el banco de trabajo ocupa
+         exactamente la pantalla y cada columna se desplaza sola, asi que fuera
+         de aqui quedaria en una pagina que ya no se desplaza. Al final de esta
+         columna se sigue alcanzando bajando, que es lo que se hacia antes. -->
+    <footer class="site">
+      <p>MSA Toolkit &middot; motor validado contra el dataset del apendice del manual AIAG MSA 4a ed.
+        &middot; <a href="tests/">ver pruebas</a></p>
+      <p>&copy; 2026 dflores296. Todos los derechos reservados.
+        Codigo visible, no codigo abierto &middot; <a href="LICENSE">licencia</a></p>
+      <p class="legal">Minitab es marca registrada de Minitab, LLC. AIAG es marca registrada de Automotive
+        Industry Action Group. Este proyecto no esta afiliado ni avalado por ellos; se les menciona solo
+        como referencia de comparacion.</p>
+    </footer>
+
   </div>
 
   <!-- ======================== COLUMNA DERECHA: resultados en vivo ======================== -->
@@ -426,16 +440,6 @@
 <!-- Anexo de datos del reporte impreso: la tabla de mediciones ya capturada,
      como texto y no como campos de formulario. -->
 <div id="printAnnex" class="print-only"></div>
-
-<footer class="site">
-  <p>MSA Toolkit &middot; motor validado contra el dataset del apendice del manual AIAG MSA 4a ed.
-    &middot; <a href="tests/">ver pruebas</a></p>
-  <p>&copy; 2026 dflores296. Todos los derechos reservados.
-    Codigo visible, no codigo abierto &middot; <a href="LICENSE">licencia</a></p>
-  <p class="legal">Minitab es marca registrada de Minitab, LLC. AIAG es marca registrada de Automotive
-    Industry Action Group. Este proyecto no esta afiliado ni avalado por ellos; se les menciona solo
-    como referencia de comparacion.</p>
-</footer>
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->

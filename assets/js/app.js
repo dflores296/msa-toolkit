@@ -45,6 +45,39 @@
     });
   }
 
+  /* --- Altura real de la barra superior, publicada como --header-h ---------
+   *
+   * Las dos columnas del banco de trabajo se limitan a "lo que queda de
+   * pantalla debajo de la barra" para tener cada una su propio scroll (ver
+   * .col-capture y .results-panel en style.css). Ese "lo que queda" no se
+   * puede escribir como un numero fijo: la barra envuelve a dos lineas en
+   * ventanas angostas, y ademas crece cuando se llenan el nombre del estudio
+   * y el conteo de mediciones. Un calc(100vh - 57px) a ojo deja las columnas
+   * largas de mas -- y devuelve el scroll de pagina que esto viene a quitar --
+   * en cuanto la barra mide otra cosa.
+   *
+   * Se mide con ResizeObserver y no en el evento resize de la ventana porque
+   * la barra tambien cambia de alto SIN que la ventana cambie de tamano: al
+   * publicar el nombre del estudio, al cambiar de metodo, al capturar. El
+   * evento resize no se entera de ninguna de esas tres.
+   * ------------------------------------------------------------------- */
+  function trackHeaderHeight() {
+    var bar = document.querySelector('header.toolbar');
+    if (!bar) return;
+    function publish() {
+      document.documentElement.style.setProperty('--header-h', bar.offsetHeight + 'px');
+    }
+    publish();
+    if (typeof ResizeObserver === 'function') {
+      new ResizeObserver(publish).observe(bar);
+    } else {
+      // Sin ResizeObserver se pierde el caso "la barra crecio sola", pero al
+      // menos la ventana sigue cubierta; el valor por omision del calc evita
+      // que la ausencia de la variable rompa el layout.
+      window.addEventListener('resize', publish);
+    }
+  }
+
   /* ------------------------------------------------------------------ *
    * Metodo del estudio
    * Existen el Gage R&R cruzado y el anidado (pruebas destructivas); el de
@@ -2152,6 +2185,7 @@
    * ------------------------------------------------------------------ */
   document.addEventListener('DOMContentLoaded', function () {
     initTheme();
+    trackHeaderHeight();
     initMethods();
     initTabs();
     renderNameInputs();

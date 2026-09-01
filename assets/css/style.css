@@ -367,7 +367,11 @@ td.num, th.num { font-variant-numeric: tabular-nums; font-family: var(--mono); f
 .indent-2 { padding-left: 40px !important; }
 p.note { font-style: italic; color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 0; }
 
-input.invalid { border-color: var(--bad); background: var(--bad-soft); }
+/* La categoria de rechazo se marca igual que un campo numerico invalido
+   cuando falta elegirla y el estudio la necesita (dos categorias y
+   estandar capturado): de ella dependen la efectividad, el error de fuga
+   y la falsa alarma. */
+input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-soft); }
 
 /* Tabla de captura de datos: ocupa todo el ancho de su tarjeta. Operador y
    Pieza miden lo que necesitan; las columnas de replica se reparten el resto. */
@@ -403,6 +407,49 @@ input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 .msg.warn { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border); }
 .msg.info { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--info-border); }
 .msg strong { font-weight: 600; }
+
+/* --- F-05: resultado obsoleto ---
+   El panel no se oculta: esconder los numeros que alguien acaba de mirar
+   confunde mas que atenuarlos. Se atenua, se dice por que, y el boton de
+   recalcular queda dentro del propio aviso para que la salida este a un clic.
+   Lo que SI se bloquea es imprimir: un reporte que mezcla el encabezado
+   viejo con el anexo nuevo es un documento que miente. */
+.msg.stale-banner {
+  background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border);
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.msg.stale-banner button { margin-left: auto; }
+#resultBody.stale { opacity: .45; filter: grayscale(.6); transition: opacity .15s ease; }
+#resultBody.stale canvas { opacity: .8; }
+.results-live.stale { color: var(--warn); font-weight: 600; }
+
+/* --- F-07: el intervalo debajo de la cifra --- */
+.verdict .ci {
+  font-size: 11px; color: var(--ink-faint); margin-top: -2px; line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+.verdict .ci em { font-style: normal; opacity: .8; }
+.verdict .t.unknown {
+  background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border);
+}
+
+/* --- F-07: la seccion "R&R total" ---
+   Una sola caja para el punto, su evaluacion AIAG y el intervalo. Las filas
+   son etiqueta a la izquierda y valor a la derecha, con la etiqueta capaz de
+   partirse en varias lineas: los rotulos aqui son frases, no palabras. */
+.grr-card { margin-top: 14px; }
+.grr-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
+  padding: 7px 0; border-bottom: 1px solid var(--border);
+}
+.grr-row:last-of-type { border-bottom: 0; }
+.grr-k { color: var(--ink-soft); font-size: 12.5px; flex: 1 1 auto; }
+.grr-v { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.grr-note { font-size: 11px; color: var(--ink-faint); margin: 6px 0 0; line-height: 1.45; }
+.grr-warn {
+  font-size: 12px; margin: 8px 0 0; padding: 8px 10px; border-radius: 6px;
+  background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border);
+}
 
 /* --- Veredicto --- */
 /* Tarjetas de veredicto. Las tres lineas (titulo, valor, etiqueta) se alinean
@@ -547,9 +594,16 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
   .results-panel { max-height: none; overflow: visible; background: #fff; padding: 0; gap: 14px; }
   #resultBody { gap: 14px; }
 
-  /* Sin pestanas, los cuatro paneles se imprimen uno tras otro, cada uno con
-     su titulo (data-print-title). */
-  .tab-panel[hidden] { display: block !important; }
+  /* Sin pestanas, los paneles se imprimen uno tras otro, cada uno con su
+     titulo (data-print-title). Pero SOLO los del metodo activo: la regla de
+     antes revelaba todos los paneles ocultos, incluidos los del otro metodo,
+     que existen en el mismo HTML y salian como paginas en blanco con su
+     encabezado. preparePrint() ya revela en JS los que tocan; esto es la red
+     por si esa preparacion no llego a correr. */
+  html[data-method="cruzado"]   .tab-panel[hidden][data-methods~="cruzado"],
+  html[data-method="anidado"]   .tab-panel[hidden][data-methods~="anidado"],
+  html[data-method="atributos"] .tab-panel[hidden][data-methods~="atributos"],
+  .tab-panel[hidden]:not([data-methods]) { display: block !important; }
   .tab-panel { break-before: page; }
   .tab-panel[data-panel="componentes"] { break-before: auto; }
   .tab-panel::before {

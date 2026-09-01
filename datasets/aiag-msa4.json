@@ -1,5 +1,6 @@
 {
   "format": "msa-toolkit/gage-rr-anova",
+  "method": "cruzado",
   "version": 1,
   "name": "AIAG MSA 4a ed. - apendice (= gageaiag.mtw de Minitab)",
   "description": "10 piezas x 3 operadores x 3 replicas. Resultados publicados: %Contribucion GRR 7.76 %, %Study Variation GRR 27.86 %, NDC 4.",

@@ -83,6 +83,16 @@ inversión de la beta. **La aritmética no es el problema.**
 
 ### F-04 — La categoría de rechazo salía del orden de las filas · `04dc8d5`
 
+> **Precisión añadida el 1 de septiembre de 2026.** Lo que F-04 prohíbe es
+> **deducir** la categoría de rechazo —del orden de aparición de las filas, que
+> no dice nada—. Un campo `rejectCategory` **explícito** en la configuración de
+> un archivo importado no es una deducción, sino una elección declarada por
+> quien escribió el archivo, igual que `categories`; se aplica, se deja
+> **visible** en el desplegable y se dice de dónde salió, y una categoría que
+> no aparece en los datos no se aplica. Antes se ignoraba, así que el estudio
+> de ejemplo del repositorio —que la declara— se importaba sin sus tres cifras
+> de decisión.
+
 Sin `rejectCategory` explícita, el motor tomaba `cats[1]`: la **segunda
 categoría en orden de aparición en los datos**. Los mismos datos, reordenados,
 intercambiaban el error de fuga con la falsa alarma.

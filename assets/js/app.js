@@ -1378,17 +1378,27 @@
         '<th>Evaluador</th><th class="num">Efectividad</th><th class="num">Error de fuga</th>' +
         '<th class="num">Falsa alarma</th></tr></thead><tbody>';
       r.effectiveness.forEach(function (e) {
-        var cellOf = function (v, t, extra) {
+        /* Cada cifra lleva su intervalo y su denominador. El denominador NO es
+           adorno: efectividad se cuenta sobre piezas y los dos errores sobre
+           decisiones, y de ahi salen tres anchuras distintas. */
+        var cellOf = function (v, t, lo, hi, extra) {
           return '<td class="num">' + pc(v) +
             (t ? ' <span class="t ' + t.level + '">' + esc(t.level === 'ok' ? 'ok' :
                  t.level === 'warn' ? 'marginal' : 'malo') + '</span>' : '') +
-            (extra ? '<br><span style="font-size:11px;font-weight:400">' + esc(extra) + '</span>' : '') +
+            (lo === null || lo === undefined ? '' :
+              '<br><span class="cell-ci">IC ' + pc(lo) + ' a ' + pc(hi) + '</span>') +
+            (extra ? '<br><span class="cell-sub">' + esc(extra) + '</span>' : '') +
             '</td>';
         };
         t4 += '<tr><td>' + esc(e.operator) + '</td>' +
-          cellOf(e.effectiveness, e.assessment.effectiveness, e.correct + ' de ' + e.inspected + ' piezas') +
-          cellOf(e.missRate, e.assessment.missRate, e.missed + ' de ' + e.rejectDecisions + ' decisiones') +
+          cellOf(e.effectiveness, e.assessment.effectiveness,
+                 e.effectivenessCiLow, e.effectivenessCiHigh,
+                 e.correct + ' de ' + e.inspected + ' piezas') +
+          cellOf(e.missRate, e.assessment.missRate,
+                 e.missRateCiLow, e.missRateCiHigh,
+                 e.missed + ' de ' + e.rejectDecisions + ' decisiones') +
           cellOf(e.falseAlarmRate, e.assessment.falseAlarmRate,
+                 e.falseAlarmRateCiLow, e.falseAlarmRateCiHigh,
                  e.falseAlarms + ' de ' + e.acceptDecisions + ' decisiones') +
           '</tr>';
       });
@@ -1397,7 +1407,12 @@
         'clasificaciones coinciden: dos aciertos y un fallo valen cero, no dos tercios. ' +
         'Rechazo = "' + esc(r.meta.rejectCategory) + '", conforme = "' + esc(r.meta.acceptCategory) +
         '". Los umbrales de fuga (2 %) y falsa alarma (5 %) son distintos a proposito: dejar pasar ' +
-        'una pieza mala le llega al cliente, rechazar una buena se queda en la planta.';
+        'una pieza mala le llega al cliente, rechazar una buena se queda en la planta. ' +
+        'Los intervalos son de Clopper-Pearson al ' + Math.round(100 * (1 - r.meta.alpha)) +
+        ' %. Ojo con su anchura: la efectividad se cuenta sobre PIEZAS, que son ' +
+        'independientes, y los dos errores sobre DECISIONES, que no lo son -las replicas de ' +
+        'un evaluador sobre la misma pieza estan correlacionadas-, asi que esos dos ' +
+        'intervalos salen mas estrechos que la incertidumbre real.';
     } else {
       $('errorRateTable').innerHTML = '';
       $('agreeNote').innerHTML = 'Nota. Una pieza cuenta como concordante solo si TODAS las ' +

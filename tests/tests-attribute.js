@@ -502,5 +502,58 @@
        quien conoce el proceso, y no del orden en que se tecleo el estudio. */
   });
 
+  /* --- IC de efectividad, fuga y falsa alarma ---------------------------
+   * Las tres son proporciones y ahora llevan Clopper-Pearson, igual que las
+   * cuatro concordancias. Lo que se prueba no es el valor -eso lo cubre la
+   * prueba de definicion de proportionCI-, sino que cada cifra se acota
+   * contra SU denominador, que son tres distintos, y que los casos extremos
+   * (0 % y 100 %) no devuelven un intervalo degenerado.
+   * -------------------------------------------------------------------- */
+
+  test('atributos: efectividad, fuga y falsa alarma llevan intervalo', function () {
+    var e = A.compute(fugaVsFalsaAlarmaRows(false), { rejectCategory: NOPASA }).effectiveness[0];
+    ['effectiveness', 'missRate', 'falseAlarmRate'].forEach(function (k) {
+      var lo = e[k + 'CiLow'], hi = e[k + 'CiHigh'];
+      assert(lo !== null && hi !== null, k + ': deberia traer intervalo');
+      assert(lo <= e[k] && e[k] <= hi, k + ': el punto cae dentro de su intervalo');
+      assert(lo >= 0 && hi <= 100, k + ': el intervalo vive en [0, 100]');
+    });
+  });
+
+  test('atributos: cada cifra se acota contra SU denominador, no contra uno comun', function () {
+    /* El caso tiene 4 piezas, 1 evaluador, 2 replicas: 3 conformes y 1 no
+       conforme. Los tres denominadores son distintos a proposito -4 piezas,
+       2 decisiones sobre la no conforme, 6 sobre las conformes- y por eso las
+       tres anchuras tienen que salir distintas. Si el motor usara un solo
+       denominador, dos de ellas coincidirian. */
+    var e = A.compute(fugaVsFalsaAlarmaRows(false), { rejectCategory: NOPASA }).effectiveness[0];
+    assert(e.inspected === 4 && e.rejectDecisions === 2 && e.acceptDecisions === 6,
+           'los tres denominadores del caso son 4, 2 y 6');
+    var anchoFuga = e.missRateCiHigh - e.missRateCiLow;
+    var anchoFalsa = e.falseAlarmRateCiHigh - e.falseAlarmRateCiLow;
+    /* 2 decisiones dan un intervalo mas ancho que 6. Es la comprobacion de
+       que cada una uso el suyo. */
+    assert(anchoFuga > anchoFalsa,
+           'con 2 decisiones el intervalo debe ser mas ancho que con 6');
+  });
+
+  test('atributos: 0 % de fuga NO es un intervalo de cero, que es el punto', function () {
+    /* La razon de ser del cambio. El evaluador del caso no deja pasar ninguna
+       pieza mala, pero solo tuvo 2 oportunidades de hacerlo: afirmar 0 % a
+       secas seria decir que no hay fuga, y el estudio no lo demuestra. */
+    var e = A.compute(fugaVsFalsaAlarmaRows(false), { rejectCategory: NOPASA }).effectiveness[0];
+    near(e.missRate, 0, 1e-12, 'la fuga puntual es 0 %');
+    near(e.missRateCiLow, 0, 1e-12, 'y su limite inferior es exactamente 0');
+    assert(e.missRateCiHigh > 50, 'pero el superior es enorme: con 2 decisiones no se descarta nada');
+  });
+
+  test('atributos: sin denominador no se inventa intervalo', function () {
+    /* Sin categoria de rechazo elegida no hay efectividad que acotar. La
+       respuesta honesta es que la lista venga vacia, no un intervalo nulo
+       envuelto en una fila. */
+    var r = A.compute(fugaVsFalsaAlarmaRows(false), {});
+    assert(r.effectiveness.length === 0, 'sin rejectCategory no se publican las tres cifras');
+  });
+
   global.ATTRIBUTE_HAND_CASE = HAND;
 })(typeof window !== 'undefined' ? window : globalThis);

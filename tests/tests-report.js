@@ -250,6 +250,17 @@
    * Que el encabezado no invente numeros
    * ======================================================================== */
 
+  test('encabezado: las tres cifras de decision se imprimen con su intervalo', function () {
+    /* Un 0 % de fuga impreso a secas afirma que no hay fuga. El reporte tiene
+       que decir sobre cuantas decisiones se midio, y eso es el intervalo. */
+    var a = attributeResult(), ah = R.headerRows(a, CTX_ATRIB);
+    ['Efectividad (peor)', 'Error de fuga (peor)', 'Falsa alarma (peor)'].forEach(function (k) {
+      var v = valueOf(ah, k);
+      assert(/^[0-9]+\.[0-9]{2} % \(IC [0-9]+\.[0-9]{2} % a [0-9]+\.[0-9]{2} %\)$/.test(v),
+             k + ': deberia imprimirse con su intervalo, y salio "' + v + '"');
+    });
+  });
+
   test('encabezado: los numeros salen del resultado, no de una copia', function () {
     var r = crossedResult();
     var hdr = R.headerRows(r, CTX_CRUZADO);
@@ -259,7 +270,12 @@
     assert(valueOf(hdr, 'Discriminacion') === r.discrimination.label, 'la discriminacion tambien');
 
     var a = attributeResult(), ah = R.headerRows(a, CTX_ATRIB);
-    assert(valueOf(ah, 'Error de fuga (peor)') === a.metrics.worstMiss.toFixed(2) + ' %',
+    /* La fuga impresa ahora arrastra su intervalo, asi que la comprobacion es
+       que EMPIEZA por la cifra calculada -no que sea igual a ella-. La
+       intencion de la prueba no cambia: el numero sale del resultado, no de
+       una copia. Que ademas venga el intervalo se comprueba abajo. */
+    var fuga = valueOf(ah, 'Error de fuga (peor)');
+    assert(fuga.indexOf(a.metrics.worstMiss.toFixed(2) + ' %') === 0,
            'la fuga impresa es la calculada');
     assert(valueOf(ah, 'Kappa (' + a.metrics.kappaSource + ')') === a.metrics.kappa.toFixed(4),
            'kappa impresa con su fuente');

@@ -481,7 +481,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
    una fila se metian encima de la barra de la anterior. Dos componentes con
    densidades distintas no comparten medidas, solo vocabulario. */
 .lead-scale .eval-track { height: 24px; }
-.lead-scale .eval-tick { top: -8px; bottom: -8px; border-left-width: 2px; }
+.lead-scale .eval-tick { top: -8px; bottom: -8px; border-left-width: 2px; border-left-style: solid; }
 .lead-scale .eval-tick-label { margin-bottom: 9px; font: 600 11.5px var(--sans); }
 
 /* El intervalo, encima del relleno. */

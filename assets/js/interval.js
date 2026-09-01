@@ -197,14 +197,22 @@
    *
    * Corto a proposito. El estandar de diseno dice que no se le explica al
    * lector lo que ya sabe, y a un ingeniero de calidad no hay que desarrollarle
-   * las siglas en pantalla: nombra el metodo, cita la fuente y dice lo unico
-   * que el lector necesita saber para no equivocarse -que no dictamina-. La
-   * atribucion completa y la transcripcion estan en docs/mls-transcripcion.md.
+   * las siglas en pantalla: nombra el metodo y dice lo unico que el lector
+   * necesita saber para no equivocarse -que no dictamina-.
+   *
+   * NO NOMBRA A NINGUN PROVEEDOR, y es deliberado por dos razones. La primera
+   * es de exactitud: el MLS es de Burdick & Graybill, y un programa comercial
+   * es un implementador mas, no la fuente. La segunda es de prudencia: esta
+   * aplicacion se publica en una pagina publica, y una marca ajena en una
+   * cadena de interfaz insinua un respaldo que nadie ha dado. La procedencia
+   * academica viaja en `source` y la transcripcion completa, con las paginas
+   * de las que se leyo cada formula, esta en docs/mls-transcripcion.md, que es
+   * documentacion interna y ahi la cita si corresponde.
    * ----------------------------------------------------------------------*/
   function statusLabel(iv) {
     if (!iv) return '';
     if (iv.method === 'MLS') {
-      return 'Intervalo MLS (Minitab / Burdick-Graybill). No utilizado para el dictamen.';
+      return 'Intervalo MLS (Modified Large Sample). No utilizado para el dictamen.';
     }
     if (iv.method === 'Satterthwaite') {
       return 'Intervalo Satterthwaite, la alternativa del MLS. No utilizado para el dictamen.';
@@ -314,7 +322,7 @@
       if (m) return withScales({
         method: m.method,               // 'MLS' o 'Satterthwaite'
         experimental: false,
-        source: 'Minitab / Burdick-Graybill',
+        source: 'Burdick & Graybill (1992); Burdick, Borror & Montgomery (2005)',
         hStar: m.hStar,
         withInteraction: m.withInteraction,
         conf: conf

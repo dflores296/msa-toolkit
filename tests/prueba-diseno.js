@@ -515,6 +515,80 @@ function screenState(page) {
         real.resultMsg.indexOf('codificado') < 0, real.resultMsg.slice(0, 300));
 
   /* ======================================================================
+   * La categoria de rechazo que el archivo DECLARA se aplica
+   *
+   * F-04 prohibe DEDUCIRLA del orden de las filas. Un campo explicito en la
+   * configuracion del archivo no es una deduccion, es una eleccion declarada,
+   * y se respeta igual que `categories`. Lo que F-04 protege se comprueba
+   * aqui entero: que la eleccion queda VISIBLE en el desplegable, que se dice
+   * de donde salio, y que una categoria que no existe en los datos NO se
+   * aplica en silencio.
+   * ==================================================================== */
+  var importar = function (pg, payload) {
+    return pg.evaluate(function (d) {
+      var f = new DataTransfer();
+      f.items.add(new File([JSON.stringify(d)], 'x.json', { type: 'application/json' }));
+      var i = document.getElementById('importFile');
+      i.files = f.files;
+      i.dispatchEvent(new Event('change', { bubbles: true }));
+    }, payload);
+  };
+  var ejemplo = JSON.parse(fs.readFileSync(
+    path.join(__dirname, '..', 'datasets', 'atributos-ejemplo.json'), 'utf8'));
+
+  await open(page, base + '#atributos');
+  await importar(page, ejemplo);
+  await page.waitForTimeout(600);
+  var trasImportar = await page.evaluate(function () {
+    return { sel: document.getElementById('rejectCategory').value,
+             aviso: document.getElementById('configMsg').textContent };
+  });
+  check('el archivo declara la categoria de rechazo y se aplica',
+        trasImportar.sel === 'No pasa', 'select = "' + trasImportar.sel + '"');
+  check('y se dice que salio del archivo, no de una deduccion',
+        trasImportar.aviso.indexOf('El archivo declara') >= 0 &&
+        trasImportar.aviso.indexOf('puedes ver y cambiar') >= 0,
+        trasImportar.aviso.slice(0, 200));
+
+  await page.click('#calcBtn');
+  await page.waitForTimeout(700);
+  check('con ella, las tres cifras de decision si se publican',
+        await page.evaluate(function () {
+          return document.getElementById('errorRateTable').textContent.trim().length > 0;
+        }));
+
+  /* Una categoria que no esta en los datos NO se aplica: se avisa. Aplicarla
+     dejaria el select con un valor imposible, o -peor- calcularia con el lado
+     equivocado. */
+  var mentiroso = JSON.parse(JSON.stringify(ejemplo));
+  mentiroso.config.rejectCategory = 'Categoria que no existe';
+  await open(page, base + '#atributos');
+  await importar(page, mentiroso);
+  await page.waitForTimeout(600);
+  var malo = await page.evaluate(function () {
+    return { sel: document.getElementById('rejectCategory').value,
+             aviso: document.getElementById('configMsg').textContent };
+  });
+  check('una categoria de rechazo que no esta en los datos no se aplica',
+        malo.sel === '', 'select = "' + malo.sel + '"');
+  check('y se dice, en vez de callar',
+        malo.aviso.indexOf('no aparece en los datos') >= 0, malo.aviso.slice(0, 220));
+
+  /* Sin campo declarado, el comportamiento de F-04 intacto: se pide. */
+  var sinCampo = JSON.parse(JSON.stringify(ejemplo));
+  delete sinCampo.config.rejectCategory;
+  await open(page, base + '#atributos');
+  await importar(page, sinCampo);
+  await page.waitForTimeout(600);
+  var sin = await page.evaluate(function () {
+    return { sel: document.getElementById('rejectCategory').value,
+             aviso: document.getElementById('configMsg').textContent };
+  });
+  check('sin campo declarado se sigue pidiendo, que es lo que F-04 exige',
+        sin.sel === '' && sin.aviso.indexOf('Elige arriba cual significa pieza NO CONFORME') >= 0,
+        sin.aviso.slice(0, 200));
+
+  /* ======================================================================
    * Una grafica sin datos no deja su caja puesta
    *
    * "Fuga y falsa alarma" solo existe con estandar, escala binaria y una

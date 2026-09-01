@@ -1770,6 +1770,42 @@
       if (cats.length) $('categories').value = cats.join(', ');
       state.standard = std;
       renderRejectOptions();
+
+      /* --- La categoria de rechazo que el archivo DECLARA -----------------
+       *
+       * F-04 prohibe DEDUCIR cual categoria es la no conforme: tomarla del
+       * orden de aparicion intercambiaba la fuga con la falsa alarma, que
+       * tienen umbrales y consecuencias opuestas. Un campo `rejectCategory`
+       * en la configuracion del archivo NO es una deduccion: es una eleccion
+       * declarada por quien escribio el archivo, igual que `categories`, que
+       * ya se respeta. Ignorarla obligaba a re-elegir a mano algo que el
+       * archivo decia, y dejaba el estudio de ejemplo del repositorio sin sus
+       * tres cifras de decision al importarlo.
+       *
+       * Lo que F-04 protege se conserva entero: la eleccion queda VISIBLE en
+       * el desplegable -no se calcula con un valor que el usuario no ve- y se
+       * dice de donde salio, para que un archivo con el lado equivocado se
+       * pueda cazar. Y se valida contra las categorias que traen los datos:
+       * una que no aparece no se aplica, y se avisa en vez de callar.
+       * ------------------------------------------------------------------ */
+      var declarada = p.config && typeof p.config.rejectCategory === 'string'
+        ? p.config.rejectCategory.trim() : '';
+      if (declarada) {
+        var sel = $('rejectCategory');
+        if (cats.indexOf(declarada) >= 0) sel.value = declarada;
+        if (sel.value === declarada) {
+          notes.push('El archivo declara "' + declarada + '" como pieza NO CONFORME y se aplico ' +
+            'esa eleccion, que puedes ver y cambiar arriba. De ella dependen la efectividad, el ' +
+            'error de fuga y la falsa alarma: si el archivo trae el lado equivocado, los dos ' +
+            'errores salen intercambiados.');
+        } else {
+          notes.push('El archivo declara "' + declarada + '" como categoria de rechazo, pero esa ' +
+            'categoria no aparece en los datos' +
+            (cats.length ? ', que traen "' + cats.join('" y "') + '"' : '') +
+            '. No se aplico: elige arriba cual significa pieza NO CONFORME.');
+        }
+      }
+
       /* Las categorias del archivo salen en orden de aparicion, que no dice
          nada de cual es el no conforme. Antes se preseleccionaba la segunda y
          se calculaba con ella; ahora se pide, porque de esa eleccion depende

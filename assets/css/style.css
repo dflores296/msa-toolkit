@@ -177,10 +177,6 @@ header.toolbar {
 }
 .method-switch .method-opt[disabled] { opacity: .5; cursor: not-allowed; }
 
-.toolbar-nav { padding: 6px 24px 10px; font-size: 12.5px; border-top: 1px dashed var(--border); }
-.toolbar-nav a { color: var(--ink-soft); text-decoration: none; margin-right: 16px; }
-.toolbar-nav a:hover { color: var(--accent-ink); text-decoration: underline; }
-
 /* --- Banco de trabajo: dos columnas. 40% captura / 60% resultados,
    para darle mas aire al panel de resultados. --- */
 .workbench {
@@ -630,7 +626,7 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
   .charts { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 560px) {
-  .toolbar-inner, .toolbar-nav { padding-left: 14px; padding-right: 14px; }
+  .toolbar-inner { padding-left: 14px; padding-right: 14px; }
   .col-capture, .results-panel { padding: 14px; }
   .card { padding: 14px; }
 }
@@ -655,7 +651,7 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
   .print-only { display: block; }
 
   /* Fuera todo lo que solo sirve en pantalla. */
-  header.toolbar, .toolbar-nav, footer.site, .actions, button, .theme-toggle,
+  header.toolbar, footer.site, .actions, button, .theme-toggle,
   .col-capture, .results-head, .tabs-bar, .chart-subcap { display: none !important; }
 
   .workbench { display: block; max-width: none; }

@@ -484,6 +484,12 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .verdict .t.warn { background: var(--warn-soft); color: var(--warn); }
 .verdict .t.bad  { background: var(--bad-soft);  color: var(--bad); }
 
+/* Segunda y tercera linea dentro de una celda numerica: el intervalo y el
+   conteo del que sale. Pesan menos que la cifra, que es la que se lee primero,
+   pero el intervalo pesa mas que el conteo porque matiza el veredicto. */
+.cell-ci  { font-size: 11px; font-weight: 400; color: var(--ink-soft); }
+.cell-sub { font-size: 11px; font-weight: 400; color: var(--ink-faint); }
+
 /* --- Gráficas --- */
 .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 8px; }
 .chart-box h3 { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; text-align: center; }

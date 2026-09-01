@@ -243,9 +243,37 @@
 
     /* Las tres cifras de decision binaria solo si se calcularon. */
     if (r.effectiveness && r.effectiveness.length) {
-      rows.push(['Efectividad (peor)', numOr(k.worstEffectiveness, 2, ' %')]);
-      rows.push(['Error de fuga (peor)', numOr(k.worstMiss, 2, ' %')]);
-      rows.push(['Falsa alarma (peor)', numOr(k.worstFalseAlarm, 2, ' %')]);
+      /* El peor evaluador de cada cifra, con SU intervalo: el resumen impreso
+         no puede afirmar un 0 % de fuga sin decir sobre cuantas decisiones
+         se midio. Las tres filas van por evaluador en la Tabla 4. */
+      var worstOf = function (campo) {
+        var peor = null;
+        r.effectiveness.forEach(function (e) {
+          if (e[campo] === null || e[campo] === undefined) return;
+          if (peor === null || e[campo] > peor[campo]) peor = e;
+        });
+        return peor;
+      };
+      var mejorOf = function (campo) {
+        var peor = null;
+        r.effectiveness.forEach(function (e) {
+          if (e[campo] === null || e[campo] === undefined) return;
+          if (peor === null || e[campo] < peor[campo]) peor = e;
+        });
+        return peor;
+      };
+      var conIC = function (v, e, campo) {
+        var base = numOr(v, 2, ' %');
+        if (!e || e[campo + 'CiLow'] === null || e[campo + 'CiLow'] === undefined) return base;
+        return base + ' (IC ' + numOr(e[campo + 'CiLow'], 2, ' %') +
+               ' a ' + numOr(e[campo + 'CiHigh'], 2, ' %') + ')';
+      };
+      rows.push(['Efectividad (peor)',
+        conIC(k.worstEffectiveness, mejorOf('effectiveness'), 'effectiveness')]);
+      rows.push(['Error de fuga (peor)',
+        conIC(k.worstMiss, worstOf('missRate'), 'missRate')]);
+      rows.push(['Falsa alarma (peor)',
+        conIC(k.worstFalseAlarm, worstOf('falseAlarmRate'), 'falseAlarmRate')]);
     }
     return rows;
   }

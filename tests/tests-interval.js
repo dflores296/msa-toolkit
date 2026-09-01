@@ -243,13 +243,44 @@
     var ambos = I.crossings({ lo: 5, hi: 45 });
     assert(ambos.crosses.length === 2, 'un intervalo enorme cruza los dos limites');
 
-    /* El texto es el aprobado en F-07, y NO contiene ninguna categoria. */
-    assert(/Interpreta la clasificacion puntual con precaucion/.test(c30.label),
-      'el mensaje remite al punto: ' + c30.label);
+    /* EL TEXTO DICE QUE SIGNIFICA EL CRUCE, y sigue sin clasificar.
+       El mensaje anterior ("Interpreta la clasificacion puntual con
+       precaucion") era correcto pero dejaba la deduccion al lector: que zonas
+       estan en juego y por que. El de ahora las nombra.
+
+       Ojo con como se prueba "no clasifica". La comprobacion vieja era buscar
+       las palabras Aceptable / Marginal / Inaceptable, y ESA COMPROBACION YA
+       NO SIRVE: el mensaje nuevo nombra las zonas justamente para decir que
+       NO puede separarlas, asi que la palabra aparece con el sentido opuesto
+       al que se queria prohibir. Buscar la palabra media lo contrario de lo
+       que se pretendia medir.
+
+       Lo que se prueba en su lugar es la estructura de la afirmacion: que
+       habla de no distinguir entre zonas -nunca de estar en una-, que nombra
+       el limite cruzado, y que atribuye el hecho al intervalo. */
+    assert(/^El resultado no distingue completamente entre /.test(c30.label),
+      'el mensaje afirma una limitacion, no una categoria: ' + c30.label);
     [c10, c30, ambos].forEach(function (c) {
-      assert(!/Aceptable|Marginal|Inaceptable|No concluyente/i.test(c.label),
-        'y no emite categoria: ' + c.label);
+      assert(/no distingue completamente entre/.test(c.label),
+        'nunca dice que el gage ES algo, sino que no se puede separar: ' + c.label);
+      assert(/porque el .* cruza (el limite|los limites) de/.test(c.label),
+        'y dice por que: ' + c.label);
     });
+    assert(/entre aceptable y condicional/.test(c10.label), 'cruzar el 10 % afecta a esas dos zonas');
+    assert(/entre condicional y no aceptable/.test(c30.label), 'y cruzar el 30 %, a las otras dos');
+    assert(/entre aceptable, condicional y no aceptable/.test(ambos.label),
+      'cruzar los dos limites deja las tres zonas en juego');
+  });
+
+  test('F-07: el mensaje de cruce nombra el nivel de confianza que se eligio', function () {
+    /* El nivel es configurable (90 / 95 / 99 %), asi que la frase no puede
+       llevar 95 escrito. Sin nivel se degrada a un texto generico que sigue
+       siendo cierto, en vez de mentir con un valor por omision. */
+    assert(/IC 95 %/.test(I.crossings({ lo: 8, hi: 15 }, null, 0.95).label), '95 %');
+    assert(/IC 99 %/.test(I.crossings({ lo: 8, hi: 15 }, null, 0.99).label), '99 %');
+    var sinNivel = I.crossings({ lo: 8, hi: 15 }).label;
+    assert(/intervalo de confianza/.test(sinNivel) && !/IC \d/.test(sinNivel),
+      'sin nivel no se inventa uno: ' + sinNivel);
   });
 
   test('F-07: las fronteras de las bandas AIAG son las aprobadas', function () {

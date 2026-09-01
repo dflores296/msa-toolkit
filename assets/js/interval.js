@@ -365,25 +365,41 @@
    * crossings(iv, thresholds) - que limites de evaluacion cruza el intervalo
    *
    * NO clasifica. No devuelve "Aceptable", "Marginal", "Inaceptable" ni "No
-   * concluyente": esa politica esta retirada (ver cabecera). Devuelve solo los
-   * limites que el intervalo cruza, para poder advertir al lector de que la
-   * clasificacion puntual cae cerca de una frontera.
+   * concluyente": esa politica esta retirada (ver cabecera). Devuelve los
+   * limites que el intervalo cruza y una frase que dice QUE SIGNIFICA cruzarlos
+   * -que el estudio no separa dos zonas de evaluacion-, que es un hecho sobre
+   * la resolucion del estudio, no una categoria.
+   *
+   * `conf` solo entra en el texto, para poder nombrar el nivel ("IC 95 %").
+   * Es opcional: sin el, la frase dice "intervalo de confianza" y sigue siendo
+   * correcta.
    *
    * Devuelve null si no cruza ninguno.
    * ----------------------------------------------------------------------*/
-  function crossings(iv, thresholds) {
+  function crossings(iv, thresholds, conf) {
     if (!iv || iv.lo === null || iv.hi === null) return null;
     var t = thresholds || { good: 10, bad: 30 };
     var cruza = [];
     if (iv.lo < t.good && iv.hi > t.good) cruza.push(t.good);
     if (iv.lo < t.bad && iv.hi > t.bad) cruza.push(t.bad);
     if (!cruza.length) return null;
+
+    /* El mensaje dice QUE SIGNIFICA el cruce, no que hay que tener cuidado.
+       "Interpreta con precaucion" obligaba al lector a deducir el resto: que
+       zonas estan en juego y por que. Estas son las tres unicas formas que
+       puede tomar, porque solo hay dos limites que cruzar. */
+    var zonas = cruza.length > 1
+      ? 'entre aceptable, condicional y no aceptable'
+      : (cruza[0] === t.good ? 'entre aceptable y condicional'
+                             : 'entre condicional y no aceptable');
+    var nivel = conf ? 'IC ' + Math.round(100 * conf) + ' %' : 'intervalo de confianza';
+    var limites = cruza.map(function (x) { return x + ' %'; }).join(' y ');
+
     return {
       crosses: cruza,
-      label: 'El intervalo de confianza cruza ' +
-             (cruza.length > 1 ? 'los limites de evaluacion de ' : 'el limite de evaluacion de ') +
-             cruza.map(function (x) { return x + ' %'; }).join(' y ') +
-             '. Interpreta la clasificacion puntual con precaucion.'
+      label: 'El resultado no distingue completamente ' + zonas + ', porque el ' +
+             nivel + ' cruza ' + (cruza.length > 1 ? 'los limites de ' : 'el limite de ') +
+             limites + '.'
     };
   }
 

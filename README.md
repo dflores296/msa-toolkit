@@ -385,7 +385,12 @@ assets/js/app.js         interfaz y flujo
 tests/                   suite de regresión + reimplementación del VBA original
 datasets/                casos de validación con resultados publicados
 docs/                    auditoría, estándar de diseño y plan de trabajo
+docs/README.md           índice: qué es cada documento y si está vigente
 ```
+
+La carpeta `docs/` mezcla **referencia viva** con **informes fechados**, y leer
+un informe superado como si fuera referencia es el error fácil.
+**[`docs/README.md`](docs/README.md)** dice cuál es cuál.
 
 `assets/js/anova.js` no depende del DOM ni de ninguna librería: se puede
 importar desde Node o desde otra herramienta tal cual.

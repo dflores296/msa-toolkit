@@ -314,7 +314,7 @@ y validación de entradas mal formadas.
 
 ---
 
-## Nota sobre el documento `Instrucciones recomendadas Claude Code.md`
+## Nota sobre el documento `instrucciones-claude-code.md`
 
 Ese documento indica *"replicar las fórmulas EXACTAMENTE como están ahí, no las
 reinterpretes"*, y transcribe las fórmulas del VBA **con los errores 1, 2, 3

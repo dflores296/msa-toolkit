@@ -239,20 +239,17 @@
       <div id="resultMsg"></div>
 
       <div id="resultBody" hidden>
-        <div class="verdicts" id="verdicts"></div>
+        <div class="verdicts" id="verdicts" data-methods="atributos"></div>
 
-        <!-- F-07. Todo lo que se dice del R&R total, en un solo sitio y en un
-             orden explicito: primero el punto y su evaluacion AIAG -que es la
-             que dictamina-, despues el intervalo, rotulado como experimental.
-             Antes esto vivia repartido en tarjetas contiguas que podian leerse
-             como dictamenes independientes y contradecirse. -->
-        <div class="card grr-card" id="grrSummary" data-methods="cruzado anidado" hidden></div>
-
-        <div class="card eval-card" data-methods="cruzado anidado">
-          <h3 class="eval-title">Evaluacion de la variacion</h3>
-          <p class="chart-subcap">&lt;10 % aceptable &middot; 10&ndash;30 % condicional &middot; &gt;30 % no aceptable</p>
-          <div class="eval-bars" id="evalBars"></div>
-        </div>
+        <!-- Variables: UN solo bloque. Antes esto eran tres cajas contiguas
+             -cinco tarjetas, el resumen del R&R total y las barras de
+             evaluacion- que publicaban el mismo %Study Variation cuatro veces
+             y con el mismo peso visual, asi que se leian como cuatro
+             decisiones. Ahora la cifra vive una vez, junto a la escala que la
+             situa entre los limites y al intervalo que dice cuanto se puede
+             confiar en ella. Lo secundario baja a una tira de apoyo. Todo lo
+             arma renderMsaSummary. -->
+        <div id="msaSummary" data-methods="cruzado anidado" hidden></div>
 
         <div class="card eval-card" data-methods="atributos">
           <h3 class="eval-title">Concordancia por evaluador</h3>

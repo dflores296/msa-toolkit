@@ -90,7 +90,15 @@ function estado(page) {
       panelVisible: !!el('resultBody') && !el('resultBody').hidden,
       rotulo: (el('resultsLive') || {}).textContent || '',
       imprimirBloqueado: !!el('printBtn') && el('printBtn').disabled,
-      veredictos: (el('verdicts') || {}).textContent || '',
+      /* Donde vive el veredicto depende de la familia del metodo, y por eso
+         se leen los dos: variables publica un bloque unico (#msaSummary) y
+         atributos, la rejilla de tarjetas (#verdicts). Antes esto leia solo
+         #verdicts, que era donde vivian los dos; cuando variables se mudo a su
+         propio bloque, la sonda se quedo mirando una caja vacia y las
+         comprobaciones de "se recalculo de verdad" pasaban a comparar '' con
+         '', que es verdadero y no prueba nada. */
+      veredictos: ((el('msaSummary') || {}).textContent || '') +
+                  ((el('verdicts') || {}).textContent || ''),
       primeraCelda: (document.querySelector('#dataTable input, #dataTable select') || {}).value
     };
   });

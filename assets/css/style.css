@@ -437,28 +437,80 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
    Una sola caja para el punto, su evaluacion AIAG y el intervalo. Las filas
    son etiqueta a la izquierda y valor a la derecha, con la etiqueta capaz de
    partirse en varias lineas: los rotulos aqui son frases, no palabras. */
-.grr-card { margin-top: 14px; }
-.grr-row {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 14px;
-  padding: 7px 0; border-bottom: 1px solid var(--border);
+/* --- Evaluacion del sistema de medicion (metodos de variables) ----------
+ * Un solo bloque para lo que antes eran tres cajas seguidas. La jerarquia es
+ * el punto: los dos indicadores que deciden llevan cifra grande y escala; los
+ * tres de apoyo, un tercio del peso. La regla de lectura se dice una vez, en
+ * el encabezado, y por eso ningun indicador la repite.
+ * --------------------------------------------------------------------- */
+.card-title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.card-rule { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-soft); }
+.card-head { padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+
+.lead { display: flex; flex-direction: column; }
+.lead + .lead { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.lead-head { display: flex; align-items: baseline; gap: 12px; }
+.lead-k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); cursor: help; }
+.lead-t { margin-left: auto; font-size: 11.5px; font-weight: 500; padding: 2px 8px; border-radius: 4px; }
+.lead-v { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; margin-top: 8px; }
+/* El aire de arriba no es estetico: el rotulo de 10 % vive por ENCIMA de la
+   pista, asi que sin este margen quedaria a la altura de la cifra grande y
+   competiria con ella. 34 px dejan el rotulo despegado del numero. */
+.lead-scale { margin-top: 34px; }
+/* El intervalo y su metodo, en la MISMA linea. El metodo es una propiedad del
+   intervalo; en su propia linea se leia como una nota suelta. */
+.lead-foot { margin: 10px 0 0; font-size: 12px; color: var(--ink-soft); }
+.ci-method {
+  display: inline-flex; align-items: center; gap: 4px; margin-left: 10px;
+  font-size: 11.5px; color: var(--ink-faint); cursor: help;
+  border-bottom: 1px dotted var(--border-strong);
 }
-.grr-row:last-of-type { border-bottom: 0; }
-.grr-k { color: var(--ink-soft); font-size: 12.5px; flex: 1 1 auto; }
-.grr-v { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.grr-note { font-size: 11px; color: var(--ink-faint); margin: 6px 0 0; line-height: 1.45; }
-.grr-warn {
-  font-size: 12px; margin: 8px 0 0; padding: 8px 10px; border-radius: 6px;
-  background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border);
+.ci-method .info-i { width: 12px; height: 12px; flex: none; }
+/* Interpretacion, no advertencia sobre datos invalidos: el ambar esta
+   reservado para los avisos del motor. Aqui se usan los tokens de .msg.info,
+   que ya existen; el estandar dice que no se inventa lenguaje visual. */
+.interp {
+  margin: 12px 0 0; padding: 8px 10px; border-radius: 6px; font-size: 12px;
+  background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--info-border);
 }
 
-/* --- Veredicto --- */
-/* Tarjetas de veredicto. Las tres lineas (titulo, valor, etiqueta) se alinean
-   ENTRE tarjetas, no solo dentro de cada una: cada tarjeta ocupa tres filas de
-   la rejilla madre con grid-template-rows:subgrid, asi que el alto de cada
-   banda lo fija la tarjeta mas alta. Los numeros quedan al mismo nivel aunque
-   un titulo ocupe dos lineas ("% Study Variation (GRR)") y las etiquetas
-   empiezan todas a la misma altura aunque una se parta en dos lineas
-   ("Monitor de primera clase (ICC >= 0.80)"). */
+/* La escala del bloque de variables va MAS GRANDE que la de las barras de
+   concordancia, y el aumento se acota aqui a proposito. Al subirlo en las
+   clases compartidas (.eval-track, .eval-tick) crecieron tambien las barras de
+   atributos, cuyas filas estan separadas 26 px: los rotulos de 80 % y 90 % de
+   una fila se metian encima de la barra de la anterior. Dos componentes con
+   densidades distintas no comparten medidas, solo vocabulario. */
+.lead-scale .eval-track { height: 24px; }
+.lead-scale .eval-tick { top: -8px; bottom: -8px; border-left-width: 2px; }
+.lead-scale .eval-tick-label { margin-bottom: 9px; font: 600 11.5px var(--sans); }
+
+/* El intervalo, encima del relleno. */
+.ci-line { position: absolute; top: 50%; height: 3px; margin-top: -1.5px; background: var(--ink); z-index: 4; }
+.ci-cap { position: absolute; top: -6px; height: 15px; width: 2.5px; background: var(--ink); }
+.ci-cap.a { left: 0; } .ci-cap.b { right: 0; }
+/* El punto lleva contorno del color del fondo para despegarse del relleno del
+   semaforo, que en el nivel "malo" es casi tan oscuro como el. */
+.ci-dot {
+  position: absolute; top: 50%; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px;
+  border-radius: 50%; background: var(--ink); border: 2px solid var(--surface); z-index: 5;
+}
+
+.support-h { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); }
+.support {
+  display: flex; align-items: stretch; background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 18px;
+}
+.support-item { flex: 1 1 0; padding: 11px 14px; border-right: 1px solid var(--border); min-width: 0; cursor: help; }
+.support-item:last-child { border-right: 0; }
+.support-item .k { font-size: 12px; color: var(--ink-soft); }
+.support-item .r { display: flex; align-items: baseline; gap: 8px; margin: 3px 0 2px; }
+.support-item .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.support-item .m { font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px; }
+.support-item .s { font-size: 11px; color: var(--ink-faint); line-height: 1.35; }
+/* En pantalla angosta la tira se apila: tres columnas de 90 px no caben. */
+@media (max-width: 640px) { .support { flex-direction: column; }
+  .support-item { border-right: 0; border-bottom: 1px solid var(--border); } }
+
 .verdicts { display: grid; grid-template-columns: repeat(auto-fit, minmax(158px, 1fr)); gap: 10px; }
 .verdict {
   display: grid; grid-row: span 3; grid-template-rows: subgrid; align-content: start;
@@ -480,9 +532,20 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
   .verdict .v { margin: 3px 0 6px; }
   .verdict .t { align-self: flex-start; margin-top: auto; }
 }
-.verdict .t.ok   { background: var(--ok-soft);   color: var(--ok); }
-.verdict .t.warn { background: var(--warn-soft); color: var(--warn); }
-.verdict .t.bad  { background: var(--bad-soft);  color: var(--bad); }
+/* El semaforo de una pastilla NO se acota a un componente. Estaba escrito
+   como `.verdict .t.ok`, asi que al reutilizar la pastilla fuera de una
+   tarjeta de veredicto -en el bloque de evaluacion y en la tira de apoyo-
+   salia sin color: el nivel dejaba de codificarse y quedaba solo la palabra.
+   Va por la clase, que es lo que significa. */
+.t.ok   { background: var(--ok-soft);   color: var(--ok); }
+.t.warn { background: var(--warn-soft); color: var(--warn); }
+.t.bad  { background: var(--bad-soft);  color: var(--bad); }
+
+/* Segunda y tercera linea dentro de una celda numerica: el intervalo y el
+   conteo del que sale. Pesan menos que la cifra, que es la que se lee primero,
+   pero el intervalo pesa mas que el conteo porque matiza el veredicto. */
+.cell-ci  { font-size: 11px; font-weight: 400; color: var(--ink-soft); }
+.cell-sub { font-size: 11px; font-weight: 400; color: var(--ink-faint); }
 
 /* --- Gráficas --- */
 .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 8px; }

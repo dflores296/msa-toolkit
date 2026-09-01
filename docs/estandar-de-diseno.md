@@ -195,6 +195,71 @@ se enteran.
 - Ningun rotulo, marcador de posicion o texto de `<select>` puede quedar
   cortado. Si no cabe, sube el minimo de la columna; no encojas la fuente.
 
+### El bloque de resultado de los metodos de variables
+
+Cruzado y anidado publican su resultado en **un solo bloque**, no en una fila
+de tarjetas. Antes eran tres cajas seguidas —cinco tarjetas de veredicto, el
+resumen del R&R total y las barras de evaluacion— y entre las tres el
+`%Study Variation` aparecia **cuatro veces con el mismo peso visual**, asi que
+se leia como cuatro decisiones cuando es una.
+
+La regla que queda, y que vale para cualquier metodo que publique un dictamen:
+
+| | Tratamiento |
+|---|---|
+| **Indicadores que deciden** | Cifra de 30 px, insignia con su categoria, escala con los umbrales y —si existe— su intervalo dibujado encima |
+| **Indicadores de apoyo** | Tira horizontal, cifra de 17 px, micro-pastilla y una sub-linea. Un tercio del peso |
+
+- **Una cifra se publica UNA vez.** Si aparece dos veces en la misma pantalla,
+  una de las dos sobra: o es la misma decision repetida, o son dos calculos que
+  pueden contradecirse.
+- **La escala no repite la cifra.** Lleva el punto como marca y, a su derecha,
+  el intervalo, que es informacion nueva. El numero grande ya esta arriba.
+- **La regla de lectura se dice una vez**, en el encabezado del bloque
+  («La clasificacion utiliza la estimacion puntual. El intervalo muestra su
+  incertidumbre»), y ningun indicador la repite.
+- **La insignia dice solo la categoria** —Aceptable, Condicional, No
+  aceptable—. Los limites ya estan bajo la escala; repetirlos dentro de la
+  pastilla la alarga sin decir nada nuevo. Se traduce por NIVEL, no recortando
+  la etiqueta larga: depender de donde cae un parentesis convierte un cambio de
+  redaccion en un cambio de interfaz.
+- **El metodo del intervalo va en la misma linea que el intervalo**, con su
+  nombre corto y la referencia completa en el tooltip. Es una propiedad del
+  intervalo; en su propia linea se lee como una nota suelta.
+- **Nunca una nota de desarrollo en la interfaz.** «Pendiente de referencia
+  validada» le dice al usuario algo del backlog, no de su estudio. Lo que se
+  dice es que el intervalo de arriba no le aplica a ese indicador.
+
+#### Interpretacion no es advertencia
+
+El ambar de `.msg.warn` esta reservado a los avisos del motor sobre los datos.
+Cuando el intervalo cruza un limite, eso no es un dato invalido: es un hecho
+sobre la resolucion del estudio, y va con los tokens de informacion
+(`--accent-soft` / `--info-border`), que ya existen.
+
+Y el mensaje **dice que significa**, no pide precaucion:
+
+> El resultado no distingue completamente entre aceptable y condicional, porque
+> el IC 95 % cruza el limite de 10 %.
+
+«Interpreta con precaucion» era correcto y dejaba la deduccion al lector.
+
+#### Dos componentes con densidades distintas no comparten medidas
+
+La escala del bloque de variables es mas alta (24 px) que las barras de
+concordancia de atributos (16 px), y ese aumento se acota con
+`.lead-scale .eval-track`. Subirlo en la clase compartida agrando tambien las
+barras de atributos, cuyas filas van separadas 26 px, y los rotulos de umbral
+de una fila se metieron encima de la barra de la anterior. **Se comparte el
+vocabulario —pista, relleno, marca punteada, semaforo—, no las medidas.**
+
+Corolario que costo un fallo: **el semaforo de una pastilla no se acota a un
+componente.** Estaba escrito `.verdict .t.ok`, asi que al reutilizar la
+pastilla fuera de una tarjeta de veredicto salia sin color y el nivel dejaba de
+codificarse. Va por la clase, que es lo que significa.
+
+---
+
 ### Tarjetas que se alinean entre si
 
 Las tarjetas de resumen (`.verdicts`) se alinean **entre ellas**, no solo por

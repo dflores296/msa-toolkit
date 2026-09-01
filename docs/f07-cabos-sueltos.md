@@ -6,9 +6,9 @@ cinco cosas que **no se pudieron hacer desde el contenedor** y que hay que
 rematar en local. Ninguna bloquea el uso; la primera es la que convierte
 «validado internamente» en «verificado contra la fuente».
 
-Estado al escribir esto: `develop` en `4c0135d`, 224 pruebas de motor y 160
-comprobaciones de navegador en verde. `main` sigue en `52b6b1e`, sin nada de la
-auditoría — el merge lo haces tú.
+Estado al 1 de septiembre de 2026: `develop` en `91032f5` y **`main` ya
+fusionado** en `6da89cc`, con toda la auditoría dentro. 224 pruebas de motor y
+160 comprobaciones de navegador en verde.
 
 ---
 

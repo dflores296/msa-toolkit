@@ -15,8 +15,12 @@ commit, y lo que queda pendiente con su razonamiento.
 
 ## Estado actual
 
-> **Dónde vive esto.** Todas las correcciones de la tabla están en la rama
-> `develop`. La rama `main` sigue en `52b6b1e`, intacta y sin ninguna de ellas.
+> **Dónde vive esto.** *(Actualizado el 1 de septiembre de 2026.)* Todas las
+> correcciones de la tabla están **en `main`**, fusionadas desde `develop` con
+> el commit de merge `6da89cc`. Ya no hay que ir a `develop` a buscarlas: la
+> advertencia anterior —«`main` sigue en `52b6b1e`, intacta»— quedó superada
+> por ese merge.
+>
 > El mapa de commits de F-07 y los puntos a los que volver si hay que deshacer
 > algo están en [`f07-commits.md`](f07-commits.md); lo que a F-07 le falta por
 > rematar en escritorio, en [`f07-cabos-sueltos.md`](f07-cabos-sueltos.md).
@@ -283,7 +287,7 @@ funcionara dejó de funcionar.
 > (`support.minitab.com` responde 403 al proxy), así que no se pudieron leer
 > las páginas de fórmulas directamente. **El 31 de agosto se subió al
 > repositorio un documento técnico de referencia** —
-> [`docs/Documento técnico de referencia — Fórmulas del método MLS…`](Documento%20t%C3%A9cnico%20de%20referencia%20F%C3%B3rmulas%20del%20m%C3%A9todo%20MLS%20%28Modified%20Large%20Sample%29%20para%20intervalos%20de%20confianza%20en%20estudios%20Gage%20R%26R.md)
+> [`docs/mls-fuente-minitab.md`](mls-fuente-minitab.md)
 > — que investigó las fuentes primarias y **desbloquea una parte, no toda**:
 >
 > - **Desbloqueado y listo para implementar:** el intervalo exacto χ² de

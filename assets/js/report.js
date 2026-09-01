@@ -188,25 +188,27 @@
        que este intervalo hace. Si no se pudo calcular, las filas desaparecen
        -- no se imprime un intervalo vacio. */
     if (r.assessment && r.assessment.studyVar) {
-      rows.push(['Evaluacion AIAG basada en la estimacion puntual',
-        textOr(r.assessment.studyVar.label)]);
+      rows.push(['Resultado puntual', textOr(r.assessment.studyVar.label)]);
     }
     if (r.interval && r.interval.studyVar && r.interval.studyVar.lo !== null) {
-      rows.push(['IC ' + Math.round(100 * r.interval.conf) + ' % de la razon V_GRR / V_Total, ' +
-        'en % Study Variation',
+      rows.push(['IC ' + Math.round(100 * r.interval.conf) + ' % en % Study Variation',
         numOr(r.interval.studyVar.lo, 2, ' %') + ' a ' + numOr(r.interval.studyVar.hi, 2, ' %')]);
-      /* El rotulo viene dentro del propio intervalo, puesto por interval.js:
-         pantalla y papel nombran el mismo metodo porque leen el mismo dato.
-         El texto de reserva NO nombra ningun metodo: si el rotulo faltara,
-         inventar uno aqui es justo el fallo que abrio F-07. */
-      rows.push(['Estado del intervalo',
-        textOr(r.interval.statusLabel ||
-               'No utilizado para el dictamen.')]);
-      if (r.intervalCross) rows.push(['Advertencia del intervalo', textOr(r.intervalCross.label)]);
+      /* El metodo, en su propia fila y por su nombre corto. Sale de
+         `interval.method`, el mismo dato que lee la pantalla: papel y pantalla
+         no pueden nombrar metodos distintos, que fue el fallo que abrio F-07.
+         Sin metodo NO se inventa ninguno: la fila desaparece. */
+      if (r.interval.method) rows.push(['Metodo del intervalo', textOr(r.interval.method)]);
+      /* La regla de lectura, UNA vez, igual que en pantalla: antes iba pegada
+         al metodo ("...No utilizado para el dictamen") y otra vez en la
+         advertencia, asi que el papel la decia tres veces. */
+      rows.push(['Como leerlo',
+        'La clasificacion utiliza la estimacion puntual. El intervalo muestra su incertidumbre.']);
+      if (r.intervalCross) rows.push(['Alcance del estudio', textOr(r.intervalCross.label)]);
     }
     rows.push(['% Contribucion equivalente',
       numOr(r.metrics && r.metrics.pctContribution, 2, ' %')]);
-    rows.push(['Intervalo de % Tolerance', 'Pendiente de referencia validada']);
+    rows.push(['Intervalo de % Tolerance',
+      'El intervalo de % Study Variation no aplica a este indicador']);
     rows.push(['Categorias distintas', textOr(r.ndcLabel)]);
     rows.push(['Discriminacion', textOr(r.discrimination && r.discrimination.label)]);
     if (r.inconclusive) rows.push(['Veredicto', 'Estudio no concluyente']);

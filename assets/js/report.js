@@ -196,10 +196,12 @@
         'en % Study Variation',
         numOr(r.interval.studyVar.lo, 2, ' %') + ' a ' + numOr(r.interval.studyVar.hi, 2, ' %')]);
       /* El rotulo viene dentro del propio intervalo, puesto por interval.js:
-         pantalla y papel nombran el mismo metodo porque leen el mismo dato. */
+         pantalla y papel nombran el mismo metodo porque leen el mismo dato.
+         El texto de reserva NO nombra ningun metodo: si el rotulo faltara,
+         inventar uno aqui es justo el fallo que abrio F-07. */
       rows.push(['Estado del intervalo',
         textOr(r.interval.statusLabel ||
-               'Intervalo experimental. No utilizado para el dictamen.')]);
+               'No utilizado para el dictamen.')]);
       if (r.intervalCross) rows.push(['Advertencia del intervalo', textOr(r.intervalCross.label)]);
     }
     rows.push(['% Contribucion equivalente',

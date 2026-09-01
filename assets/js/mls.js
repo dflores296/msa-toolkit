@@ -1,6 +1,6 @@
 /* ============================================================================
  * mls.js - Intervalo de confianza MLS (Modified Large Sample) para la razon
- *          de varianzas del estudio Gage R&R cruzado.
+ *          de varianzas del estudio Gage R&R, cruzado y anidado.
  *
  * QUE IMPLEMENTA
  *
@@ -22,14 +22,16 @@
  * y la varianza total" (variantes "Con operador y termino de interaccion" y
  * "Sin termino de interaccion"), y "Metodos y formulas para los componentes de
  * la varianza en los intervalos de confianza", seccion "Notacion comun y
- * reglas". El metodo procede de Burdick & Graybill (1992) y de Burdick, Borror
- * & Montgomery (2005).
+ * reglas". Para el modelo anidado, la pagina propia del "Estudio R&R anidado
+ * del sistema de medicion", su seccion de relaciones de la varianza. Son las
+ * tres paginas. El metodo procede de Burdick & Graybill (1992) y de Burdick,
+ * Borror & Montgomery (2005).
  *
  * Las formulas se transcribieron de esas paginas; no se reconstruyeron. La
  * transcripcion y su verificacion estan en docs/mls-transcripcion.md, que
- * anota tambien las siete erratas detectadas en la fuente y los tres puntos en
- * los que esta implementacion se aparta de lo impreso, con el algebra que lo
- * justifica. Los tres, en resumen:
+ * anota tambien las DIEZ erratas detectadas en la fuente y los puntos en los
+ * que esta implementacion se aparta de lo impreso, con el algebra que lo
+ * justifica. Los cuatro que afectan al codigo de aqui:
  *
  *   1. El multiplicador de la razon parte/total es I (numero de partes), no J
  *      (operadores) como dice el texto. Comprobado: solo con I la raiz doble
@@ -39,11 +41,14 @@
  *   3. C del limite superior usa (2 + H13), la forma simetrica de C del limite
  *      inferior (2 + G13). La variante sin interaccion lo imprime como
  *      2(1 + H13), que no es lo mismo.
+ *   4. En el anidado, gamma_3 lleva I(K-1) y no (IK-1) como imprime la pagina;
+ *      con lo impreso la combinacion no vale I*K*sigma2_total. Es la errata 10,
+ *      y de ella salen los coeficientes `c` del modelo anidado.
  *
  * LA CONSTANTE NO PUBLICADA: H*
  *
  * El limite SUPERIOR de la razon parte/total usa terminos (2 - k*H*_qr) donde
- * H*_qr no esta definido en ninguna de las dos paginas de notacion de Minitab.
+ * H*_qr no esta definido en ninguna de las tres paginas de notacion de Minitab.
  * Se implementa como estrategia seleccionable (`hStar`), con su eleccion por
  * omision justificada por cobertura simulada en tests/mls-cobertura.js.
  *
@@ -56,9 +61,14 @@
  * del limite INFERIOR de parte/total, que esta enteramente publicado. El hueco
  * afecta solo al limite inferior del %GRR, que es informativo.
  *
- * ALCANCE: modelo cruzado, con y sin termino de interaccion. El modelo anidado
- * NO esta cubierto: Minitab lo documenta en paginas propias que no se han
- * transcrito. Para el anidado esta funcion devuelve null.
+ * ALCANCE: los tres modelos. Cruzado con termino de interaccion, cruzado sin
+ * el, y anidado -este ultimo transcrito de la pagina propia que Minitab le
+ * dedica, con `options.model = 'nested'`-. Ninguno es experimental.
+ *
+ * Lo unico que no se leyo de la fuente son los coeficientes `c` del anidado:
+ * esa pagina publica solo I, J y K, asi que se derivan del gamma_3 impreso en
+ * su propio "segundo metodo" (ver specFor). Es la parte de este archivo con
+ * menos respaldo documental y la primera sospechosa si algo no cuadra.
  *
  * Depende de MSAStats (chi2Inv, fInv). Sin DOM.
  * ==========================================================================*/

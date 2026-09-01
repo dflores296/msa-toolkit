@@ -67,9 +67,16 @@
  *
  * LO QUE SIGUE PENDIENTE
  *
- * El MLS del modelo ANIDADO, que necesita transcribir las paginas propias de
- * Minitab para ese diseno. Y, dentro del cruzado, la constante H* que Minitab
- * usa sin definir: afecta solo al limite INFERIOR del %GRR (ver mls.js).
+ *   1. El cotejo contra una corrida real de Minitab. Todo lo medido hasta hoy
+ *      es interno o contra el GPQ; nada se ha comparado con el programa cuyas
+ *      formulas se transcribieron. Los tres casos y los valores esperados
+ *      estan en docs/f07-cabos-sueltos.md.
+ *   2. La constante H*, que Minitab usa sin definir. Afecta solo al limite
+ *      INFERIOR del %GRR (ver mls.js).
+ *   3. El intervalo de %Tolerance, que necesita su propia referencia: no es
+ *      una transformacion de esta razon y no se puede derivar de aqui.
+ *
+ * El MLS del anidado YA NO esta pendiente: se transcribio y esta en mls.js.
  *
  * Sin dependencias. Sin DOM. Reutilizable desde los tests.
  * ==========================================================================*/
@@ -235,7 +242,8 @@
    * ----------------------------------------------------------------------*/
   /* --- Puente al MLS -----------------------------------------------------
    * Traduce la tabla ANOVA a la notacion S1..S4 de Minitab y delega en mls.js.
-   * Devuelve null si el modelo no es cruzado o si mls.js no esta cargado, y
+   * Cubre los tres modelos. Devuelve null solo si mls.js no esta cargado, si
+   * el modelo no esta en MLS_SOURCES o si falta alguna fila de la tabla; y
    * entonces forResult cae al GPQ.
    * --------------------------------------------------------------------- */
   var MLS_SOURCES = {
@@ -298,8 +306,9 @@
     var draws = options.draws || DRAWS;
     var alpha = (1 - conf) / 2;
 
-    /* Metodo publicado primero. El GPQ queda de reserva para el anidado, que
-       no tiene transcripcion. */
+    /* Metodo publicado primero, para los tres modelos. El GPQ solo sale si se
+       pide a proposito con options.method = 'GPQ', o si el MLS no puede
+       calcularse; no es la ruta de ningun modelo. */
     if (options.method !== 'GPQ') {
       var m = mlsRatio(result, sources, d, conf);
       if (m) return withScales({

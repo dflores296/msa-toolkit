@@ -1,23 +1,30 @@
 # F-07 — Validación del intervalo de confianza del %GRR
 
-> **ACTUALIZACIÓN (posterior a todo lo que sigue). El MLS ya está implementado
-> para el modelo cruzado**, con la aproximación de Satterthwaite como
-> alternativa, transcrito de las páginas de Minitab. La transcripción, las
+> **ACTUALIZACIÓN (1 de septiembre de 2026, posterior a todo lo que sigue).
+> El MLS está implementado para los TRES modelos** —cruzado con interacción,
+> cruzado sin ella y anidado—, con la aproximación de Satterthwaite como
+> alternativa, transcrito de las páginas de Minitab. La transcripción, las diez
 > erratas de la fuente y la validación están en
 > [`mls-transcripcion.md`](mls-transcripcion.md); el módulo, en
 > `assets/js/mls.js`.
 >
-> **Lo que este documento sigue describiendo correctamente:** el GPQ, que es lo
-> que ahora usa **sólo el modelo anidado** y sigue siendo experimental; y las
-> mediciones que retiraron la política de dictaminar por intervalo, que siguen
-> vigentes porque son geométricas y no dependen del método.
+> **Lo que este documento sigue describiendo correctamente:** la mecánica del
+> GPQ, que se conserva como **segunda opinión independiente** y es lo que las
+> pruebas usan de juez; y las mediciones que retiraron la política de
+> dictaminar por intervalo, que siguen vigentes porque son geométricas y no
+> dependen del método.
 >
 > **Lo que ha quedado obsoleto:** todo lo que aquí se lee como «el cruzado usa
-> GPQ» o «falta implementar MLS». Ya no es así en el cruzado.
+> GPQ», «el anidado usa GPQ» o «falta implementar MLS». Ningún modelo sale ya
+> por GPQ: hay que pedirlo a propósito con `options.method = 'GPQ'`. Obsoleto
+> también **«nivel de confianza 90 %, fijo, no configurable»** (§1 y §3): hoy
+> el valor por omisión es **95 %** y se elige en pantalla entre 90, 95 y 99 %.
 
-**Estado: el GPQ es experimental y no dictamina; ahora vive sólo en el anidado.**
-La política de veredicto se corrigió en su momento (§13). **F-07 queda cerrada
-en el modelo cruzado y abierta en el anidado.**
+**Estado: F-07 está cerrada en los tres modelos.** El intervalo sale por MLS,
+ningún modelo se rotula experimental, y el intervalo sigue sin dictaminar —la
+política de veredicto se corrigió en su momento (§13)—. Lo que queda pendiente
+no es método sino verificación externa, y está en
+[`f07-cabos-sueltos.md`](f07-cabos-sueltos.md).
 
 > **Corrección de fondo respecto a la primera versión de este documento.** El
 > §4 de la versión original concluía que el intervalo de la razón «no tiene
@@ -666,7 +673,7 @@ lectura. No emite categorías, no produce «no concluyente» y no bloquea nada.
 sección:** el contenedor tiene el egreso restringido y `support.minitab.com`
 respondía `403` al `CONNECT` del proxy. No se resolvió leyendo la fuente desde
 aquí — se resolvió **por otra vía**: el responsable del producto adjuntó
-[`docs/Documento técnico de referencia — Fórmulas del método MLS…`](Documento%20t%C3%A9cnico%20de%20referencia%20F%C3%B3rmulas%20del%20m%C3%A9todo%20MLS%20%28Modified%20Large%20Sample%29%20para%20intervalos%20de%20confianza%20en%20estudios%20Gage%20R%26R.md),
+[`docs/mls-fuente-minitab.md`](mls-fuente-minitab.md),
 que investiga las fórmulas contra las fuentes primarias (Burdick & Graybill
 1984, 1992; Burdick, Borror & Montgomery 2003/2005; Gui, Graybill, Burdick &
 Ting 1995; Chiang 2001/2002) y **declara explícitamente, fórmula por fórmula,

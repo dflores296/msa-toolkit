@@ -47,6 +47,27 @@
  * cuesta al cliente; rechazar una pieza buena (falsa alarma) le cuesta a la
  * planta. Por eso AIAG les pone umbrales distintos.
  *
+ * Las tres llevan intervalo de Clopper-Pearson, por el mismo motivo que las
+ * concordancias: con 30 piezas un 0 % de fuga no significa que no haya fuga.
+ *
+ * UN MATIZ QUE HAY QUE SABER PARA LEER ESE INTERVALO. Los tres denominadores
+ * no son iguales:
+ *
+ *   efectividad   -> PIEZAS. Cada pieza aporta un acierto o un fallo, y las
+ *                    piezas son independientes entre si. El intervalo es
+ *                    exacto en el sentido habitual.
+ *   fuga y falsa  -> DECISIONES (piezas x replicas). Las r decisiones que un
+ *   alarma           evaluador toma sobre la MISMA pieza no son independientes
+ *                    -si falla una vez, es mas probable que vuelva a fallar-,
+ *                    asi que el intervalo binomial sale ESTRECHO: la
+ *                    incertidumbre real es mayor que la que dibuja.
+ *
+ * Se implementa asi porque es la convencion de AIAG y de Minitab, y porque un
+ * intervalo estrecho de mas sigue siendo mejor que ninguno. Pero no se le
+ * llama exacto a lo que no lo es: el rotulo de esas dos cifras dice sobre que
+ * denominador se calculo, para que nadie lea la anchura como si fuera la de
+ * una muestra de piezas independientes.
+ *
  * Sin dependencias. Sin DOM. Determinista. Reutilizable desde los tests.
  * ==========================================================================*/
 (function (global) {
@@ -248,12 +269,21 @@
     return true;
   }
 
+  /* Clopper-Pearson en porcentaje, o nulos si no hay denominador. Un solo
+     sitio para las dos familias de proporciones del modulo: las cuatro
+     concordancias y las tres cifras de decision binaria. */
+  function pctCI(x, n, alpha) {
+    if (!(n > 0)) return { lo: null, hi: null };
+    var ci = global.MSAStats.proportionCI(x, n, alpha);
+    return { lo: 100 * ci.lo, hi: 100 * ci.hi };
+  }
+
   function agreement(matched, inspected, alpha) {
-    var ci = global.MSAStats.proportionCI(matched, inspected, alpha);
+    var ci = pctCI(matched, inspected, alpha);
     return {
       inspected: inspected, matched: matched,
       pct: inspected ? 100 * matched / inspected : NaN,
-      ciLow: 100 * ci.lo, ciHigh: 100 * ci.hi
+      ciLow: ci.lo, ciHigh: ci.hi
     };
   }
 
@@ -517,11 +547,17 @@
         var eff = 100 * correct / parts.length;
         var miss = nRej ? 100 * missed / nRej : null;
         var fa = nAcc ? 100 * badCalls / nAcc : null;
+        var ciEff = pctCI(correct, parts.length, alpha);
+        var ciMiss = pctCI(missed, nRej, alpha);
+        var ciFa = pctCI(badCalls, nAcc, alpha);
         return {
           operator: op,
           effectiveness: eff, correct: correct, inspected: parts.length,
+          effectivenessCiLow: ciEff.lo, effectivenessCiHigh: ciEff.hi,
           missRate: miss, missed: missed, rejectDecisions: nRej,
+          missRateCiLow: ciMiss.lo, missRateCiHigh: ciMiss.hi,
           falseAlarmRate: fa, falseAlarms: badCalls, acceptDecisions: nAcc,
+          falseAlarmRateCiLow: ciFa.lo, falseAlarmRateCiHigh: ciFa.hi,
           assessment: {
             effectiveness: tag(eff, LIMITS.effective, false, PCT_LABELS),
             missRate: tag(miss, LIMITS.miss, true, MISS_LABELS),

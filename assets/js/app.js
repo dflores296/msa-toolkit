@@ -805,7 +805,12 @@
 
   function resetResultViz() {
     MSACharts.destroyAll();
-    $('evalBars').innerHTML = '';
+    /* attrBars es de atributos; el bloque de variables lo vacia y lo esconde
+       renderMsaSummary con su propio `hidden`. */
+    var ab = $('attrBars');
+    if (ab) ab.innerHTML = '';
+    var ms = $('msaSummary');
+    if (ms) { ms.innerHTML = ''; ms.hidden = true; }
   }
 
   function calculate() {
@@ -886,7 +891,7 @@
          razon en otra escala, asi que cruzar 10/30 y cruzar 1/9 es el mismo
          hecho y no hace falta comprobarlo dos veces. */
       result.intervalCross = result.interval && !result.inconclusive
-        ? MSAInterval.crossings(result.interval.studyVar, null) : null;
+        ? MSAInterval.crossings(result.interval.studyVar, null, result.interval.conf) : null;
     }
 
     state.result = result;
@@ -910,8 +915,7 @@
       renderAttributeBars(result);
       renderAttributeTables(result);
     } else {
-      renderVerdict(result);
-      renderEvalBars(result);
+      renderMsaSummary(result);
       renderTables(result);
     }
     MSACharts.render(result);
@@ -941,19 +945,6 @@
         'complementaria al criterio AIAG, no sustituto.'
   };
 
-  /* F-07. QUIEN DICTAMINA ES LA ESTIMACION PUNTUAL, con las bandas AIAG de
-     `assess`. El intervalo acompana y no emite ninguna categoria: la politica
-     que clasificaba por el intervalo esta retirada (el porque, en la cabecera
-     de interval.js). La coletilla "(experimental)" la lleva solo el metodo que
-     lo es -el GPQ del anidado-, no el MLS del cruzado. */
-  function intervalLine(iv) {
-    var full = state.result.interval;
-    if (!iv || iv.lo === null || iv.hi === null || !full) return '';
-    return '<div class="ci">IC ' + Math.round(100 * full.conf) + ' %: ' +
-      iv.lo.toFixed(2) + ' - ' + iv.hi.toFixed(2) + ' %' +
-      (full.experimental ? ' <em>(experimental)</em>' : '') + '</div>';
-  }
-
   /* Umbrales de %Contribucion: son varianzas, no desviaciones, asi que la
      escala es otra. Menos de 1 % aceptable, mas de 9 % no aceptable; son los
      mismos que usa `assess`, escritos una sola vez alli. */
@@ -968,126 +959,205 @@
     return isFinite(v) && v > 0 && v < 1 ? v : MSAInterval.DEFAULT_CONF;
   }
 
-  function renderVerdict(r) {
-    var a = r.assessment, iv = r.interval;
-    var cards = [
-      card('% Study Variation (GRR)', r.metrics.pctStudyVar.toFixed(2) + ' %',
-           a.studyVar, VERDICT_HELP.sv, iv && intervalLine(iv.studyVar)),
-      card('% Contribucion (GRR)', r.metrics.pctContribution.toFixed(2) + ' %',
-           a.contribution, VERDICT_HELP.contrib, iv && intervalLine(iv.contribution)),
-      /* %Tolerance conserva su resultado puntual y NO lleva intervalo: su
-         denominador es la tolerancia de especificacion, no la varianza total,
-         asi que no es una transformacion de la razon V_GRR/V_Total y no se
-         puede derivar del intervalo de arriba. Pendiente de referencia
-         validada; no se inventa uno. */
-      r.metrics.pctTolerance === null
-        ? card('% Tolerance (P/T)', 'sin LSL/USL', null, VERDICT_HELP.tol)
-        : card('% Tolerance (P/T)', r.metrics.pctTolerance.toFixed(2) + ' %',
-               a.tolerance, VERDICT_HELP.tol),
-      card('Categorias distintas', r.ndcLabel, a.ndc, VERDICT_HELP.ndc),
-      card('ICC (EMP, Wheeler)', r.icc.toFixed(3), a.emp, VERDICT_HELP.icc)
-    ];
-    $('verdicts').innerHTML = cards.join('');
-    renderGrr(r);
+  /* ---------------------------------------------------------------------
+   * renderMsaSummary(r) - TODO lo que dice el R&R total, en un solo bloque.
+   *
+   * Sustituye a tres cajas que antes iban seguidas: las cinco tarjetas de
+   * veredicto, el resumen del R&R total y las barras de evaluacion. Entre las
+   * tres publicaban el %Study Variation CUATRO veces con el mismo peso, y
+   * ponian al mismo nivel cinco indicadores que no responden preguntas del
+   * mismo rango. El reparto que queda:
+   *
+   *   principales   %Study Variation y %Tolerance. Cifra grande, insignia con
+   *                 su clasificacion, escala con los limites AIAG, y -donde
+   *                 existe- el intervalo dibujado sobre la escala.
+   *   de apoyo      %Contribucion, NDC e ICC. Misma informacion, un tercio del
+   *                 peso: no son tres decisiones mas.
+   *
+   * La regla de lectura -quien dictamina y para que sirve el intervalo- se
+   * dice UNA vez, en el encabezado del bloque, y por eso ya no aparece
+   * repetida en cada indicador ni dentro del rotulo del metodo.
+   * ------------------------------------------------------------------- */
+
+  /** Escala 0-100 con los umbrales AIAG, el punto y su intervalo si lo hay. */
+  function evalScale(value, level, iv) {
+    var h = '<div class="eval-track">' +
+      '<div class="eval-fill ' + level + '" style="width:' + Math.min(100, value).toFixed(2) + '%"></div>';
+    /* El intervalo va ENCIMA del relleno: es el bigote del estimador, no una
+       segunda barra. Se dibuja antes que el punto para que el punto quede
+       arriba del todo. */
+    if (iv && iv.lo !== null && iv.hi !== null) {
+      var lo = Math.max(0, Math.min(100, iv.lo)), hi = Math.max(0, Math.min(100, iv.hi));
+      h += '<div class="ci-line" style="left:' + lo.toFixed(2) + '%;width:' +
+           Math.max(0, hi - lo).toFixed(2) + '%">' +
+           '<span class="ci-cap a"></span><span class="ci-cap b"></span></div>';
+    }
+    h += '<div class="ci-dot" style="left:' + Math.min(100, value).toFixed(2) + '%"></div>' +
+      evalTick(10, 'ok') + evalTick(30, 'warn') + '</div>';
+    return h;
   }
 
+  /* El icono de ayuda. SVG en linea y no un caracter: escala con el texto,
+     toma el color de alrededor y no depende de que fuente tenga el equipo. */
+  var INFO_ICON = '<svg class="info-i" viewBox="0 0 16 16" aria-hidden="true" focusable="false">' +
+    '<circle cx="8" cy="8" r="6.75" fill="none" stroke="currentColor" stroke-width="1.4"/>' +
+    '<path d="M8 7v4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<circle cx="8" cy="4.7" r=".95" fill="currentColor"/></svg>';
+
+  /* Que es el MLS, para el tooltip del metodo. No nombra ningun programa
+     comercial: el metodo es de Burdick & Graybill y un implementador no es la
+     fuente (ver la cabecera de statusLabel en interval.js). */
+  var METHOD_HELP = {
+    MLS: 'MLS (Modified Large Sample). Metodo de Burdick & Graybill (1992) y de Burdick, Borror & ' +
+         'Montgomery (2005) para intervalos de razones de varianza. Cuando la cuadratica no tiene ' +
+         'solucion real se usa la aproximacion de Satterthwaite. No interviene en la clasificacion.',
+    Satterthwaite: 'Aproximacion de Satterthwaite, la alternativa publicada del MLS. Se usa cuando ' +
+         'la cuadratica del MLS no tiene solucion real. No interviene en la clasificacion.',
+    GPQ: 'GPQ (generalized pivotal quantity), inferencia generalizada de Weerahandi. Implementacion ' +
+         'propia, sin trazar contra una formula publicada: se conserva como segunda opinion ' +
+         'independiente. No interviene en la clasificacion.'
+  };
+
+  /** Un indicador principal: cifra, insignia, escala y su linea de lectura. */
+  function leadBlock(o) {
+    var h = '<div class="lead">' +
+      '<div class="lead-head"><span class="lead-k"' +
+        (o.help ? ' title="' + esc(o.k + ': ' + o.help) + '"' : '') + '>' + esc(o.k) + '</span>' +
+      (o.tag ? '<span class="lead-t t ' + o.tag.level + '">Resultado puntual: ' +
+               esc(o.tag.short) + '</span>' : '') +
+      '</div>' +
+      '<div class="lead-v">' + esc(o.value) + '</div>' +
+      '<div class="lead-scale">' + o.scale + '</div>' +
+      '<p class="lead-foot">' + o.foot + '</p>';
+    if (o.interp) h += '<p class="interp">' + esc(o.interp) + '</p>';
+    return h + '</div>';
+  }
+
+  /* La insignia dice SOLO la categoria. Los limites ya estan bajo la escala,
+     dos centimetros mas abajo, asi que repetirlos dentro de la pastilla la
+     alarga sin decir nada nuevo, y la etiqueta larga de `assess` lleva ademas
+     la coletilla "segun la aplicacion", que es una condicion de lectura y no
+     el nombre de la categoria.
+
+     Se traduce por NIVEL y no recortando la cadena: las bandas AIAG de las
+     dos cifras principales son las mismas tres, y depender de donde cae un
+     parentesis convierte un cambio de redaccion en un cambio de interfaz.
+     Los indicadores de apoyo no entran aqui -- su etiqueta ya es corta y dice
+     otra cosa (NDC = 4, primera clase) --, asi que conservan la suya recortada
+     por el parentesis, que ahi si es el limite entre nombre y umbral. */
+  var BAND_SHORT = { ok: 'Aceptable', warn: 'Condicional', bad: 'No aceptable' };
+
+  function bandTag(t) {
+    if (!t) return null;
+    return { level: t.level, short: BAND_SHORT[t.level] || String(t.label).split('(')[0].trim() };
+  }
+
+  function shortTag(t) {
+    if (!t) return null;
+    return { level: t.level, short: String(t.label).split('(')[0].trim() };
+  }
+
+  function renderMsaSummary(r) {
+    var box = $('msaSummary');
+    if (!box) return;
+    if (!r.metrics || r.model === 'attribute') { box.hidden = true; return; }
+
+    /* Sobre datos degenerados no se pinta una escala. Un 0.00 % en verde con
+       la leyenda "bueno" es la lectura mas enganosa que puede dar la pantalla
+       cuando lo que hay detras es un estudio sin informacion. */
+    if (r.inconclusive) {
+      box.innerHTML = '<div class="msg warn" style="margin:0">' +
+        '<strong>Estudio no concluyente.</strong> Los datos no contienen informacion suficiente ' +
+        'para estimar la repetibilidad: las ' + r.design.n + ' mediciones son el mismo valor. ' +
+        'No se emite veredicto porque no hay nada que juzgar; revisa las notas.</div>';
+      box.hidden = false;
+      return;
+    }
+
+    var a = r.assessment, iv = r.interval, m = r.metrics, h = [];
+
+    h.push('<div class="card">' +
+      '<div class="card-head"><h3 class="card-title">Evaluacion del sistema de medicion</h3>' +
+      '<p class="card-rule">La clasificacion utiliza la estimacion puntual. El intervalo muestra ' +
+      'su incertidumbre.</p></div>');
+
+    /* --- % Study Variation, el indicador que dictamina ------------------- */
+    var sv = m.pctStudyVar;
+    var svLevel = sv <= 10 ? 'ok' : sv <= 30 ? 'warn' : 'bad';
+    var svIv = iv && iv.studyVar && iv.studyVar.lo !== null ? iv.studyVar : null;
+    /* El intervalo y su metodo van en la MISMA linea, debajo de la escala: el
+       metodo es una propiedad del intervalo, y en su propia linea se leia como
+       una nota suelta. El nombre corto va en pantalla y la referencia completa
+       en el tooltip. */
+    var foot;
+    if (svIv) {
+      foot = 'IC ' + Math.round(100 * iv.conf) + ' %: ' + svIv.lo.toFixed(2) + ' % a ' +
+             svIv.hi.toFixed(2) + ' %' +
+             '<span class="ci-method" title="' + esc(METHOD_HELP[iv.method] || '') + '">' +
+             INFO_ICON + esc(iv.method) + '</span>';
+    } else {
+      foot = 'Sin intervalo: este estudio no permite calcularlo.';
+    }
+    h.push(leadBlock({
+      k: '% Study Variation (GRR)', value: sv.toFixed(2) + ' %',
+      tag: bandTag(a.studyVar), help: VERDICT_HELP.sv,
+      scale: evalScale(sv, svLevel, svIv), foot: foot,
+      interp: r.intervalCross ? r.intervalCross.label : null
+    }));
+
+    /* --- % Tolerance, cuando hay especificacion -------------------------- */
+    if (m.pctTolerance !== null) {
+      var pt = m.pctTolerance;
+      var ptLevel = pt <= 10 ? 'ok' : pt <= 30 ? 'warn' : 'bad';
+      h.push(leadBlock({
+        k: '% Tolerance (P/T)' + (r.toleranceInfo && r.toleranceInfo.oneSided ? ', unilateral' : ''),
+        value: pt.toFixed(2) + ' %', tag: bandTag(a.tolerance), help: VERDICT_HELP.tol,
+        scale: evalScale(pt, ptLevel, null),
+        /* NO lleva intervalo, y el motivo se dice en terminos del lector: no
+           que falte una referencia -eso es una nota de desarrollo, y vive en
+           la cabecera de interval.js-, sino que el de arriba no le sirve. */
+        foot: 'El intervalo mostrado para % Study Variation no aplica a este indicador.'
+      }));
+    }
+    h.push('</div>');
+
+    /* --- Indicadores complementarios ------------------------------------ */
+    h.push('<p class="support-h">Indicadores complementarios</p><div class="support">');
+    /* %Contribucion lleva la pastilla corta por banda, igual que las dos de
+       arriba: es la MISMA razon en escala de varianza, asi que sus tres
+       categorias son las mismas tres palabras. NDC e ICC no: sus etiquetas
+       ("NDC = 4", "Monitor de primera clase") dicen otra cosa y son cortas ya. */
+    h.push(supportItem('Contribucion del Gage R&R', m.pctContribution.toFixed(2) + ' %',
+      bandTag(a.contribution), 'Misma relacion que % Study Variation', VERDICT_HELP.contrib));
+    h.push(supportItem('Categorias distintas (NDC)', r.ndcLabel,
+      a.ndc, 'Grupos de piezas que alcanza a separar', VERDICT_HELP.ndc));
+    h.push(supportItem('ICC (EMP, Wheeler)', r.icc.toFixed(3),
+      a.emp, 'Lectura complementaria al criterio AIAG', VERDICT_HELP.icc));
+    h.push('</div>');
+
+    box.innerHTML = h.join('');
+    box.hidden = false;
+  }
+
+  /** `tag` llega ya reducido a {level, short}, o como assessment crudo. */
+  function supportItem(k, v, tag, sub, help) {
+    var t = tag && tag.short ? tag : shortTag(tag);
+    return '<div class="support-item"' + (help ? ' title="' + esc(k + ': ' + help) + '"' : '') + '>' +
+      '<div class="k">' + esc(k) + '</div>' +
+      '<div class="r"><span class="v">' + esc(v) + '</span>' +
+      (t ? '<span class="m t ' + t.level + '">' + esc(t.short) + '</span>' : '') + '</div>' +
+      '<div class="s">' + esc(sub) + '</div></div>';
+  }
+
+  /* Las tarjetas de veredicto siguen existiendo para ATRIBUTOS, que publica
+     otra forma de respuesta -concordancias, no componentes- y para la que la
+     rejilla de tarjetas si es la vista correcta. */
   function card(k, v, t, help, extra) {
     return '<div class="verdict"' + (help ? ' title="' + esc(k + ': ' + help) + '"' : '') + '>' +
       '<div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' +
       (extra || '') +
       (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') +
       '</div>';
-  }
-
-  /* ---------------------------------------------------------------------
-   * "R&R total": la seccion que reune en un solo sitio lo que antes estaba
-   * repartido entre tarjetas contiguas que podian leerse como dictamenes
-   * independientes. El orden es deliberado: primero el punto y su evaluacion
-   * -que es la que dictamina-, y despues el intervalo, rotulado como
-   * experimental, con la advertencia de cruce si la hay. La %Contribucion
-   * aparece como equivalencia, no como una segunda prueba.
-   * ------------------------------------------------------------------- */
-  function renderGrr(r) {
-    var box = $('grrSummary');
-    if (!box) return;
-    if (!r.metrics || r.model === 'attribute') { box.hidden = true; return; }
-    var a = r.assessment, iv = r.interval, h = [];
-
-    h.push('<div class="grr-row"><span class="grr-k">% Study Variation</span>' +
-           '<span class="grr-v">' + r.metrics.pctStudyVar.toFixed(2) + ' %</span></div>');
-    if (a.studyVar) {
-      h.push('<div class="grr-row"><span class="grr-k">Evaluacion AIAG basada en la estimacion ' +
-             'puntual</span><span class="t ' + a.studyVar.level + '">' +
-             esc(a.studyVar.label) + '</span></div>');
-    }
-    if (iv && iv.studyVar && iv.studyVar.lo !== null) {
-      h.push('<div class="grr-row"><span class="grr-k">IC ' +
-             Math.round(100 * iv.conf) + ' % de la razon V_GRR / V_Total, en % Study Variation' +
-             '</span><span class="grr-v">' + iv.studyVar.lo.toFixed(2) + ' % a ' +
-             iv.studyVar.hi.toFixed(2) + ' %</span></div>');
-      h.push('<p class="grr-note">' + esc(iv.statusLabel || '') + '</p>');
-      if (r.intervalCross) h.push('<p class="grr-warn">' + esc(r.intervalCross.label) + '</p>');
-    }
-    h.push('<div class="grr-row"><span class="grr-k">% Contribucion equivalente</span>' +
-           '<span class="grr-v">' + r.metrics.pctContribution.toFixed(2) + ' %</span></div>');
-    h.push('<p class="grr-note">% Contribucion y % Study Variation son dos escalas de la misma ' +
-           'razon: %Contribucion = (%StudyVar / 100)<sup>2</sup> x 100. No son dos pruebas ' +
-           'independientes.</p>');
-
-    box.innerHTML = h.join('');
-    box.hidden = false;
-  }
-
-  /* Barras de "Evaluacion de la variacion": mismos dos datos que mostraba
-     el chart de Chart.js que reemplaza (Total Gage -- Study Variation y,
-     si hay tolerancia, Total Gage -- Tolerance), solo que en HTML/CSS con
-     marcas de 10 % y 30 % del criterio AIAG en vez del canvas heredado
-     del Excel. Es un cambio de presentacion, no de datos. */
-  function renderEvalBars(r) {
-    /* Sobre datos degenerados no se pintan barras. Un 0.00 % en verde con la
-       leyenda "bueno" es la lectura mas enganosa que puede dar la pantalla
-       cuando lo que hay detras es un estudio sin informacion. */
-    if (r.inconclusive) {
-      $('evalBars').innerHTML = '<div class="msg warn" style="margin:0">' +
-        '<strong>Estudio no concluyente.</strong> Los datos no contienen informacion suficiente ' +
-        'para estimar la repetibilidad: las ' + r.design.n + ' mediciones son el mismo valor. ' +
-        'No se emite veredicto porque no hay nada que juzgar; revisa las notas.</div>';
-      return;
-    }
-    var rows = [];
-    if (r.metrics.pctTolerance !== null) {
-      rows.push({
-        label: 'Total Gage – Tolerance' +
-          (r.toleranceInfo && r.toleranceInfo.oneSided ? ' (unilateral)' : ''),
-        value: r.metrics.pctTolerance,
-        help: 'Variacion total del sistema de medicion (6 sigma GRR) como porcentaje de la tolerancia LSL–USL.'
-      });
-    }
-    rows.push({
-      label: 'Total Gage – Study Variation',
-      value: r.metrics.pctStudyVar,
-      help: 'Variacion total del sistema de medicion como porcentaje de la variacion total del estudio.'
-    });
-
-    var LEVELS = {
-      ok: 'bueno (< 10 %)', warn: 'marginal (10–30 %)', bad: 'malo (> 30 %)'
-    };
-
-    $('evalBars').innerHTML = rows.map(function (row) {
-      var v = row.value;
-      var level = v <= 10 ? 'ok' : v <= 30 ? 'warn' : 'bad';
-      // Mismo rol que el tooltip de Chart.js en las otras graficas: al pasar
-      // el cursor se lee el valor exacto, el criterio y que significa la barra.
-      var tip = row.label + ': ' + v.toFixed(2) + ' % — ' + LEVELS[level] + '. ' + row.help;
-      return '<div class="eval-row" title="' + esc(tip) + '">' +
-        '<div class="eval-label">' + esc(row.label) + '</div>' +
-        '<div class="eval-track">' +
-          '<div class="eval-fill ' + level + '" style="width:' + Math.min(100, v).toFixed(2) + '%"></div>' +
-          evalTick(10, 'ok') + evalTick(30, 'warn') +
-        '</div>' +
-        '<div class="eval-val">' + v.toFixed(2) + ' %</div>' +
-      '</div>';
-    }).join('');
   }
 
   /* Marca de umbral del criterio AIAG: linea punteada con el color de su
@@ -1378,17 +1448,27 @@
         '<th>Evaluador</th><th class="num">Efectividad</th><th class="num">Error de fuga</th>' +
         '<th class="num">Falsa alarma</th></tr></thead><tbody>';
       r.effectiveness.forEach(function (e) {
-        var cellOf = function (v, t, extra) {
+        /* Cada cifra lleva su intervalo y su denominador. El denominador NO es
+           adorno: efectividad se cuenta sobre piezas y los dos errores sobre
+           decisiones, y de ahi salen tres anchuras distintas. */
+        var cellOf = function (v, t, lo, hi, extra) {
           return '<td class="num">' + pc(v) +
             (t ? ' <span class="t ' + t.level + '">' + esc(t.level === 'ok' ? 'ok' :
                  t.level === 'warn' ? 'marginal' : 'malo') + '</span>' : '') +
-            (extra ? '<br><span style="font-size:11px;font-weight:400">' + esc(extra) + '</span>' : '') +
+            (lo === null || lo === undefined ? '' :
+              '<br><span class="cell-ci">IC ' + pc(lo) + ' a ' + pc(hi) + '</span>') +
+            (extra ? '<br><span class="cell-sub">' + esc(extra) + '</span>' : '') +
             '</td>';
         };
         t4 += '<tr><td>' + esc(e.operator) + '</td>' +
-          cellOf(e.effectiveness, e.assessment.effectiveness, e.correct + ' de ' + e.inspected + ' piezas') +
-          cellOf(e.missRate, e.assessment.missRate, e.missed + ' de ' + e.rejectDecisions + ' decisiones') +
+          cellOf(e.effectiveness, e.assessment.effectiveness,
+                 e.effectivenessCiLow, e.effectivenessCiHigh,
+                 e.correct + ' de ' + e.inspected + ' piezas') +
+          cellOf(e.missRate, e.assessment.missRate,
+                 e.missRateCiLow, e.missRateCiHigh,
+                 e.missed + ' de ' + e.rejectDecisions + ' decisiones') +
           cellOf(e.falseAlarmRate, e.assessment.falseAlarmRate,
+                 e.falseAlarmRateCiLow, e.falseAlarmRateCiHigh,
                  e.falseAlarms + ' de ' + e.acceptDecisions + ' decisiones') +
           '</tr>';
       });
@@ -1397,7 +1477,12 @@
         'clasificaciones coinciden: dos aciertos y un fallo valen cero, no dos tercios. ' +
         'Rechazo = "' + esc(r.meta.rejectCategory) + '", conforme = "' + esc(r.meta.acceptCategory) +
         '". Los umbrales de fuga (2 %) y falsa alarma (5 %) son distintos a proposito: dejar pasar ' +
-        'una pieza mala le llega al cliente, rechazar una buena se queda en la planta.';
+        'una pieza mala le llega al cliente, rechazar una buena se queda en la planta. ' +
+        'Los intervalos son de Clopper-Pearson al ' + Math.round(100 * (1 - r.meta.alpha)) +
+        ' %. Ojo con su anchura: la efectividad se cuenta sobre PIEZAS, que son ' +
+        'independientes, y los dos errores sobre DECISIONES, que no lo son -las replicas de ' +
+        'un evaluador sobre la misma pieza estan correlacionadas-, asi que esos dos ' +
+        'intervalos salen mas estrechos que la incertidumbre real.';
     } else {
       $('errorRateTable').innerHTML = '';
       $('agreeNote').innerHTML = 'Nota. Una pieza cuenta como concordante solo si TODAS las ' +

@@ -6,24 +6,36 @@ entre código, pruebas y documentación. Si en algún momento hay que deshacer
 parte de ese trabajo, esto dice **qué commit deshace qué** y **a qué punto
 volver**, sin tener que reconstruirlo leyendo el historial.
 
-Escrito el 31 de agosto de 2026, con `develop` en `bbccad8`.
+Escrito el 31 de agosto de 2026, con `develop` en `bbccad8`. Los hashes de los
+commits de F-07 y los puntos de retorno **no han cambiado** y siguen siendo
+válidos; lo que sí cambió es dónde está cada rama (ver el recuadro siguiente).
 
 ---
 
 ## Antes que nada: dónde está cada cosa
 
+> **Actualizado el 1 de septiembre de 2026.** `develop` se fusionó en `main`
+> con el commit de merge `6da89cc`, así que el aviso original de este apartado
+> —«`main` no tiene nada de la auditoría»— **ya no aplica**.
+>
+> ```
+> origin/main     6da89cc   ← merge de develop. YA tiene toda la auditoría.
+> origin/develop  91032f5   ← rama de trabajo, sin commits pendientes de subir.
+> ```
+>
+> Desplegar desde `main` hoy despliega la aplicación **posterior** a la
+> auditoría, que es lo que se quiere.
+
+El estado original, y el motivo por el que este apartado existía:
+
 ```
-origin/main     52b6b1e   ← intacto. NO tiene ninguna corrección de la auditoría.
-origin/develop  bbccad8   ← todo el trabajo de la auditoría vive aquí.
+origin/main     52b6b1e   ← intacto. NO tenía ninguna corrección de la auditoría.
+origin/develop  bbccad8   ← todo el trabajo de la auditoría vivía aquí.
 ```
 
-`main` es **ancestro directo** de `develop`: no ha divergido, nadie ha
-sobreescrito nada, y no hay commits en `main` que no estén en `develop`.
-
-Pero conviene no confundir «a salvo» con «al día». **`main` no contiene las
-correcciones de F-02, F-03.1, F-05, F-06 ni F-07**, ni las de F-01, F-03, F-04 y
-F-17. Todo eso está sólo en `develop`, a 17 commits de distancia. Si alguien
-despliega desde `main` hoy, despliega la aplicación **anterior** a la auditoría.
+`main` era **ancestro directo** de `develop`: no había divergido, nadie
+sobreescribió nada, y no hubo commits en `main` que no estuvieran en `develop`.
+Por eso el merge pudo hacerse sin conflictos.
 
 Comprobarlo en cualquier momento:
 

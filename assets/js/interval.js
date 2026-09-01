@@ -67,9 +67,16 @@
  *
  * LO QUE SIGUE PENDIENTE
  *
- * El MLS del modelo ANIDADO, que necesita transcribir las paginas propias de
- * Minitab para ese diseno. Y, dentro del cruzado, la constante H* que Minitab
- * usa sin definir: afecta solo al limite INFERIOR del %GRR (ver mls.js).
+ *   1. El cotejo contra una corrida real de Minitab. Todo lo medido hasta hoy
+ *      es interno o contra el GPQ; nada se ha comparado con el programa cuyas
+ *      formulas se transcribieron. Los tres casos y los valores esperados
+ *      estan en docs/f07-cabos-sueltos.md.
+ *   2. La constante H*, que Minitab usa sin definir. Afecta solo al limite
+ *      INFERIOR del %GRR (ver mls.js).
+ *   3. El intervalo de %Tolerance, que necesita su propia referencia: no es
+ *      una transformacion de esta razon y no se puede derivar de aqui.
+ *
+ * El MLS del anidado YA NO esta pendiente: se transcribio y esta en mls.js.
  *
  * Sin dependencias. Sin DOM. Reutilizable desde los tests.
  * ==========================================================================*/
@@ -190,14 +197,22 @@
    *
    * Corto a proposito. El estandar de diseno dice que no se le explica al
    * lector lo que ya sabe, y a un ingeniero de calidad no hay que desarrollarle
-   * las siglas en pantalla: nombra el metodo, cita la fuente y dice lo unico
-   * que el lector necesita saber para no equivocarse -que no dictamina-. La
-   * atribucion completa y la transcripcion estan en docs/mls-transcripcion.md.
+   * las siglas en pantalla: nombra el metodo y dice lo unico que el lector
+   * necesita saber para no equivocarse -que no dictamina-.
+   *
+   * NO NOMBRA A NINGUN PROVEEDOR, y es deliberado por dos razones. La primera
+   * es de exactitud: el MLS es de Burdick & Graybill, y un programa comercial
+   * es un implementador mas, no la fuente. La segunda es de prudencia: esta
+   * aplicacion se publica en una pagina publica, y una marca ajena en una
+   * cadena de interfaz insinua un respaldo que nadie ha dado. La procedencia
+   * academica viaja en `source` y la transcripcion completa, con las paginas
+   * de las que se leyo cada formula, esta en docs/mls-transcripcion.md, que es
+   * documentacion interna y ahi la cita si corresponde.
    * ----------------------------------------------------------------------*/
   function statusLabel(iv) {
     if (!iv) return '';
     if (iv.method === 'MLS') {
-      return 'Intervalo MLS (Minitab / Burdick-Graybill). No utilizado para el dictamen.';
+      return 'Intervalo MLS (Modified Large Sample). No utilizado para el dictamen.';
     }
     if (iv.method === 'Satterthwaite') {
       return 'Intervalo Satterthwaite, la alternativa del MLS. No utilizado para el dictamen.';
@@ -235,7 +250,8 @@
    * ----------------------------------------------------------------------*/
   /* --- Puente al MLS -----------------------------------------------------
    * Traduce la tabla ANOVA a la notacion S1..S4 de Minitab y delega en mls.js.
-   * Devuelve null si el modelo no es cruzado o si mls.js no esta cargado, y
+   * Cubre los tres modelos. Devuelve null solo si mls.js no esta cargado, si
+   * el modelo no esta en MLS_SOURCES o si falta alguna fila de la tabla; y
    * entonces forResult cae al GPQ.
    * --------------------------------------------------------------------- */
   var MLS_SOURCES = {
@@ -298,14 +314,15 @@
     var draws = options.draws || DRAWS;
     var alpha = (1 - conf) / 2;
 
-    /* Metodo publicado primero. El GPQ queda de reserva para el anidado, que
-       no tiene transcripcion. */
+    /* Metodo publicado primero, para los tres modelos. El GPQ solo sale si se
+       pide a proposito con options.method = 'GPQ', o si el MLS no puede
+       calcularse; no es la ruta de ningun modelo. */
     if (options.method !== 'GPQ') {
       var m = mlsRatio(result, sources, d, conf);
       if (m) return withScales({
         method: m.method,               // 'MLS' o 'Satterthwaite'
         experimental: false,
-        source: 'Minitab / Burdick-Graybill',
+        source: 'Burdick & Graybill (1992); Burdick, Borror & Montgomery (2005)',
         hStar: m.hStar,
         withInteraction: m.withInteraction,
         conf: conf
@@ -348,25 +365,41 @@
    * crossings(iv, thresholds) - que limites de evaluacion cruza el intervalo
    *
    * NO clasifica. No devuelve "Aceptable", "Marginal", "Inaceptable" ni "No
-   * concluyente": esa politica esta retirada (ver cabecera). Devuelve solo los
-   * limites que el intervalo cruza, para poder advertir al lector de que la
-   * clasificacion puntual cae cerca de una frontera.
+   * concluyente": esa politica esta retirada (ver cabecera). Devuelve los
+   * limites que el intervalo cruza y una frase que dice QUE SIGNIFICA cruzarlos
+   * -que el estudio no separa dos zonas de evaluacion-, que es un hecho sobre
+   * la resolucion del estudio, no una categoria.
+   *
+   * `conf` solo entra en el texto, para poder nombrar el nivel ("IC 95 %").
+   * Es opcional: sin el, la frase dice "intervalo de confianza" y sigue siendo
+   * correcta.
    *
    * Devuelve null si no cruza ninguno.
    * ----------------------------------------------------------------------*/
-  function crossings(iv, thresholds) {
+  function crossings(iv, thresholds, conf) {
     if (!iv || iv.lo === null || iv.hi === null) return null;
     var t = thresholds || { good: 10, bad: 30 };
     var cruza = [];
     if (iv.lo < t.good && iv.hi > t.good) cruza.push(t.good);
     if (iv.lo < t.bad && iv.hi > t.bad) cruza.push(t.bad);
     if (!cruza.length) return null;
+
+    /* El mensaje dice QUE SIGNIFICA el cruce, no que hay que tener cuidado.
+       "Interpreta con precaucion" obligaba al lector a deducir el resto: que
+       zonas estan en juego y por que. Estas son las tres unicas formas que
+       puede tomar, porque solo hay dos limites que cruzar. */
+    var zonas = cruza.length > 1
+      ? 'entre aceptable, condicional y no aceptable'
+      : (cruza[0] === t.good ? 'entre aceptable y condicional'
+                             : 'entre condicional y no aceptable');
+    var nivel = conf ? 'IC ' + Math.round(100 * conf) + ' %' : 'intervalo de confianza';
+    var limites = cruza.map(function (x) { return x + ' %'; }).join(' y ');
+
     return {
       crosses: cruza,
-      label: 'El intervalo de confianza cruza ' +
-             (cruza.length > 1 ? 'los limites de evaluacion de ' : 'el limite de evaluacion de ') +
-             cruza.map(function (x) { return x + ' %'; }).join(' y ') +
-             '. Interpreta la clasificacion puntual con precaucion.'
+      label: 'El resultado no distingue completamente ' + zonas + ', porque el ' +
+             nivel + ' cruza ' + (cruza.length > 1 ? 'los limites de ' : 'el limite de ') +
+             limites + '.'
     };
   }
 

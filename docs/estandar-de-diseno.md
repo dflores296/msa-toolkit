@@ -207,14 +207,14 @@ La regla que queda, y que vale para cualquier metodo que publique un dictamen:
 
 | | Tratamiento |
 |---|---|
-| **Indicadores que deciden** | Cifra de 30 px, insignia con su categoria, escala con los umbrales y —si existe— su intervalo dibujado encima |
+| **Indicadores que deciden** | Cifra de 30 px, insignia con su categoria, escala con los umbrales y —si existe— su intervalo en el carril de abajo |
 | **Indicadores de apoyo** | Tira horizontal, cifra de 17 px, micro-pastilla y una sub-linea. Un tercio del peso |
 
 - **Una cifra se publica UNA vez.** Si aparece dos veces en la misma pantalla,
   una de las dos sobra: o es la misma decision repetida, o son dos calculos que
   pueden contradecirse.
-- **La escala no repite la cifra.** Lleva el punto como marca y, a su derecha,
-  el intervalo, que es informacion nueva. El numero grande ya esta arriba.
+- **La escala no repite la cifra.** El numero grande ya esta arriba; la pista
+  aporta la posicion frente a los umbrales y el carril, la incertidumbre.
 - **La regla de lectura se dice una vez**, en el encabezado del bloque
   («La clasificacion utiliza la estimacion puntual. El intervalo muestra su
   incertidumbre»), y ningun indicador la repite.
@@ -229,6 +229,42 @@ La regla que queda, y que vale para cualquier metodo que publique un dictamen:
 - **Nunca una nota de desarrollo en la interfaz.** «Pendiente de referencia
   validada» le dice al usuario algo del backlog, no de su estudio. Lo que se
   dice es que el intervalo de arriba no le aplica a ese indicador.
+
+#### Una codificacion por carril
+
+La pista y el intervalo **no comparten banda**. Arriba va la pista, que es
+SOLO el semaforo —relleno, umbrales y nada mas—; debajo, en su propio riel
+alineado a la misma escala 0-100, va el intervalo.
+
+Antes iban los dos encima del relleno: un bigote negro de 3 px con sus topes y
+un punto de 13 px con contorno. El resultado era que la unica franja de la
+pantalla donde el color codifica el nivel de alerta quedaba tapada por tinta
+que no codifica nada, y en la pista de 16 px de atributos el punto llegaba a
+tapar las marcas de 80 % y 90 %.
+
+- **El punto no se marca sobre la pista.** El borde del relleno YA es la
+  estimacion puntual; el circulo encima repetia el mismo dato en el peor sitio
+  posible. Marcarla dos veces no la hace mas cierta.
+- **En el carril si va una marca** —un rombo—, y ahi no repite: dice donde cae
+  el punto DENTRO de su intervalo, que es informacion nueva, y es lo que ancla
+  el riel a la pista.
+- **El intervalo pesa menos que la barra:** linea gris de 1.5 px (`--ink-soft`)
+  frente a un relleno de 16 o 24 px de color. El peso visual sigue a la
+  autoridad: la barra dictamina, el intervalo matiza.
+- **Los dos cuelgan del mismo contenedor** (`.eval-scale`), que es quien define
+  el 0-100 comun. Un riel en otro contenedor se desalinea con la pista en
+  cuanto cambie un ancho, y entonces el intervalo apunta a valores que no son.
+- **Sin intervalo no se dibuja un riel vacio.** La fila queda mas corta, que es
+  exactamente lo que pasa: `% Tolerance` no tiene intervalo publicado.
+- **Cuesta 15 px por fila** (17 px con la pista de 24 px). En la rejilla por
+  evaluador con muchos nombres eso alarga la seccion, y se paga a proposito:
+  la alternativa era volver a tapar la barra.
+
+Vale para los tres metodos —cruzado, anidado y atributos— y para las dos
+densidades: `scaleLane()` en `app.js` construye el mismo carril y solo recibe
+los umbrales que cada uno tiene, 10 % y 30 % en variables, 80 % y 90 % en
+atributos. **Esto es solo la barra de las zonas de evaluacion**; el bigote
+vertical de las graficas de Chart.js es otro componente y no cambia.
 
 #### Interpretacion no es advertencia
 
@@ -251,7 +287,9 @@ concordancia de atributos (16 px), y ese aumento se acota con
 `.lead-scale .eval-track`. Subirlo en la clase compartida agrando tambien las
 barras de atributos, cuyas filas van separadas 26 px, y los rotulos de umbral
 de una fila se metieron encima de la barra de la anterior. **Se comparte el
-vocabulario —pista, relleno, marca punteada, semaforo—, no las medidas.**
+vocabulario —pista, relleno, marca punteada, semaforo, carril—, no las
+medidas.** El carril sigue la misma regla: crece con su pista (`--ci-cap` y
+`--ci-mark` se reajustan en `.lead-scale`), y no al reves.
 
 Corolario que costo un fallo: **el semaforo de una pastilla no se acota a un
 componente.** Estaba escrito `.verdict .t.ok`, asi que al reutilizar la
@@ -342,7 +380,8 @@ Nada de paquetes extra: lo que falte se resuelve con un plugin propio
 - Va con el color de su nivel (verde el 10 %, ambar el 30 %) y se traza **antes**
   que las barras, para que la barra sobresalga donde se traslapan.
 - En los medidores HTML el mismo caso se resuelve al reves: la marca punteada va
-  por encima de la barra y sobresale 5 px arriba y abajo de la pista.
+  por encima de la barra y sobresale 5 px arriba y abajo de la pista. Lo que ya
+  NO va encima de la barra es el intervalo, que tiene su propio carril.
 
 ### Tooltips
 

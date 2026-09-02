@@ -492,16 +492,42 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .lead-scale .eval-track { height: 24px; }
 .lead-scale .eval-tick { top: -8px; bottom: -8px; border-left-width: 2px; border-left-style: solid; }
 .lead-scale .eval-tick-label { margin-bottom: 9px; font: 600 11.5px var(--sans); }
+/* El carril acompana a la pista: con 24 px de barra, 6 px de separacion lo
+   dejaban pegado a la marca de umbral, que sobresale 8 px por abajo. */
+.lead-scale .ci-rail { --ci-cap: 11px; --ci-mark: 7px; margin-top: 9px; }
 
-/* El intervalo, encima del relleno. */
-.ci-line { position: absolute; top: 50%; height: 3px; margin-top: -1.5px; background: var(--ink); z-index: 4; }
-.ci-cap { position: absolute; top: -6px; height: 15px; width: 2.5px; background: var(--ink); }
+/* --- El carril del intervalo --------------------------------------------
+ * Una codificacion por carril: la pista es SOLO el semaforo y el intervalo
+ * baja a su propio riel, alineado a la misma escala. Antes iban los dos en la
+ * misma banda -bigote negro y punto de 13 px encima del relleno-, y el
+ * resultado era que la unica franja donde el color codifica el nivel de
+ * alerta quedaba tapada por tinta que no codifica nada.
+ *
+ * El punto ya no se dibuja sobre la pista: el borde del relleno ES la
+ * estimacion puntual y marcarla dos veces no la hace mas cierta. El rombo del
+ * riel si dice algo nuevo -donde cae el punto dentro de su intervalo-, y es
+ * ademas lo que ancla el riel a la pista.
+ *
+ * El intervalo pesa MENOS que la barra, y es deliberado: matiza, no dictamina.
+ * Una linea gris de 1.5 px frente a un relleno de 16 o 24 px de color.
+ * --------------------------------------------------------------------- */
+.eval-scale { position: relative; }
+/* --ci-cap y --ci-mark van a escala de SU pista: las medidas se ajustan una
+   sola vez, aqui y en .lead-scale, y no en cada componente que use el carril. */
+.ci-rail { --ci-cap: 9px; --ci-mark: 6px; position: relative; height: var(--ci-cap); margin-top: 6px; }
+.ci-line { position: absolute; top: 50%; height: 1.5px; margin-top: -0.75px; background: var(--ink-soft); }
+.ci-cap {
+  position: absolute; top: 50%; width: 1.5px;
+  height: var(--ci-cap); margin-top: calc(var(--ci-cap) / -2); background: var(--ink-soft);
+}
 .ci-cap.a { left: 0; } .ci-cap.b { right: 0; }
-/* El punto lleva contorno del color del fondo para despegarse del relleno del
-   semaforo, que en el nivel "malo" es casi tan oscuro como el. */
-.ci-dot {
-  position: absolute; top: 50%; width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px;
-  border-radius: 50%; background: var(--ink); border: 2px solid var(--surface); z-index: 5;
+/* El rombo de la estimacion puntual. Va mas oscuro que la linea porque es el
+   dato y la linea es su margen; y es un rombo y no un circulo para que no se
+   confunda con los puntos de las graficas, que son observaciones. */
+.ci-mark {
+  position: absolute; top: 50%; width: var(--ci-mark); height: var(--ci-mark);
+  margin: calc(var(--ci-mark) / -2) 0 0 calc(var(--ci-mark) / -2);
+  background: var(--ink); transform: rotate(45deg);
 }
 
 /* --- Resumen de atributos ------------------------------------------------
@@ -578,12 +604,11 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .who-cell { display: grid; grid-template-columns: minmax(0, 1fr) 148px; gap: 10px; align-items: center; }
 .who-val { font: 12px var(--mono); text-align: right; color: var(--ink); white-space: nowrap; line-height: 1.35; }
 .who-ci { display: block; font: 10.5px var(--mono); color: var(--ink-faint); }
-/* El punto de 13 px esta dimensionado para la pista de 24 px del bloque
-   principal. En la de 16 px ocupa cuatro quintos del alto y tapa los topes
-   del intervalo, las lineas de 80 % y 90 % y las diferencias chicas cerca de
-   90 y 100. Va a escala de SU pista. */
-.who-cell .ci-dot { width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-width: 1.5px; }
-.who-cell .ci-cap { top: -5px; height: 13px; width: 2px; }
+/* La rejilla por evaluador usa la pista de 16 px y el carril base, sin
+   reescalar nada: con el intervalo fuera de la barra ya no hay marcas que
+   tapen los umbrales de 80 % y 90 %. Lo que cuesta el carril son 15 px por
+   fila, y en una lista larga de evaluadores eso alarga la seccion; se paga a
+   proposito, porque la alternativa era volver a tapar la barra. */
 
 /* Encuadre del final: mismos tokens de .msg.info, sin lenguaje visual nuevo. */
 .note {

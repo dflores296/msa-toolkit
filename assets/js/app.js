@@ -1011,22 +1011,53 @@
    * repetida en cada indicador ni dentro del rotulo del metodo.
    * ------------------------------------------------------------------- */
 
-  /** Escala 0-100 con los umbrales AIAG, el punto y su intervalo si lo hay. */
-  function evalScale(value, level, iv) {
-    var h = '<div class="eval-track">' +
-      '<div class="eval-fill ' + level + '" style="width:' + Math.min(100, value).toFixed(2) + '%"></div>';
-    /* El intervalo va ENCIMA del relleno: es el bigote del estimador, no una
-       segunda barra. Se dibuja antes que el punto para que el punto quede
-       arriba del todo. */
-    if (iv && iv.lo !== null && iv.hi !== null) {
-      var lo = Math.max(0, Math.min(100, iv.lo)), hi = Math.max(0, Math.min(100, iv.hi));
-      h += '<div class="ci-line" style="left:' + lo.toFixed(2) + '%;width:' +
-           Math.max(0, hi - lo).toFixed(2) + '%">' +
-           '<span class="ci-cap a"></span><span class="ci-cap b"></span></div>';
+  /* ------------------------------------------------------------------------
+   * scaleLane(value, level, lo, hi, ticks) - la pista y el carril del intervalo
+   *
+   * UNA CODIFICACION POR CARRIL. Arriba la pista, que es SOLO el semaforo
+   * -relleno, umbrales y nada mas-; debajo el intervalo, en su propio riel
+   * alineado a la misma escala 0-100.
+   *
+   * La estimacion puntual YA NO se marca sobre el relleno. El borde del
+   * relleno ES la estimacion puntual, asi que el circulo que se dibujaba
+   * encima repetia el mismo dato con tinta negra sobre el unico sitio de la
+   * pantalla donde el color significa algo. Sobre el carril si va una marca
+   * -el rombo-, y ahi no repite: dice donde cae el punto DENTRO de su
+   * intervalo, que es informacion nueva y es lo que ancla el riel a la pista.
+   *
+   * Los dos van dentro de .eval-scale, que es quien define el 0-100 comun. Si
+   * el riel colgara de otro contenedor, cualquier diferencia de ancho lo
+   * desalinearia de la pista y el intervalo apuntaria a valores que no son.
+   *
+   * Los umbrales se reciben ya dibujados porque cada metodo tiene los suyos
+   * -10 % y 30 % en variables, 80 % y 90 % en atributos- y el carril es el
+   * mismo para todos.
+   * ----------------------------------------------------------------------*/
+  function scaleLane(value, level, lo, hi, ticks) {
+    var v = Math.max(0, Math.min(100, value));
+    var h = '<div class="eval-scale">' +
+      '<div class="eval-track">' +
+        '<div class="eval-fill ' + level + '" style="width:' + v.toFixed(2) + '%"></div>' +
+        ticks +
+      '</div>';
+    /* Sin intervalo no se dibuja un riel vacio: la fila queda mas corta, que
+       es exactamente lo que pasa -no hay incertidumbre publicada que mostrar-. */
+    if (lo !== null && lo !== undefined && isFinite(lo) && isFinite(hi)) {
+      var a = Math.max(0, Math.min(100, lo)), b = Math.max(0, Math.min(100, hi));
+      h += '<div class="ci-rail">' +
+        '<div class="ci-line" style="left:' + a.toFixed(2) + '%;width:' +
+          Math.max(0, b - a).toFixed(2) + '%">' +
+          '<span class="ci-cap a"></span><span class="ci-cap b"></span></div>' +
+        '<div class="ci-mark" style="left:' + v.toFixed(2) + '%"></div>' +
+      '</div>';
     }
-    h += '<div class="ci-dot" style="left:' + Math.min(100, value).toFixed(2) + '%"></div>' +
-      evalTick(10, 'ok') + evalTick(30, 'warn') + '</div>';
-    return h;
+    return h + '</div>';
+  }
+
+  /** Escala 0-100 con los umbrales AIAG y, en su carril, el intervalo. */
+  function evalScale(value, level, iv) {
+    return scaleLane(value, level, iv ? iv.lo : null, iv ? iv.hi : null,
+                     evalTick(10, 'ok') + evalTick(30, 'warn'));
   }
 
   /* El icono de ayuda. SVG en linea y no un caracter: escala con el texto,
@@ -1429,22 +1460,12 @@
       '</div>';
   }
 
-  /** Pista 0-100 con los umbrales 80/90, el intervalo y el punto. */
+  /** Pista 0-100 con los umbrales 80/90 y, en su carril, el intervalo. Es el
+      MISMO carril que el de variables: comparten `scaleLane` y solo cambian
+      los umbrales, porque un intervalo se lee igual mida lo que mida. */
   function attrTrack(value, level, lo, hi, withLabels) {
-    var v = Math.min(100, value);
-    var h = '<div class="eval-track">' +
-      '<div class="eval-fill ' + level + '" style="width:' + v.toFixed(2) + '%"></div>';
-    /* El intervalo va ENCIMA del relleno y DEBAJO del punto: es el bigote del
-       estimador, no una segunda barra. */
-    if (lo !== null && lo !== undefined && isFinite(lo) && isFinite(hi)) {
-      var a = Math.max(0, Math.min(100, lo)), b = Math.max(0, Math.min(100, hi));
-      h += '<div class="ci-line" style="left:' + a.toFixed(2) + '%;width:' +
-           Math.max(0, b - a).toFixed(2) + '%">' +
-           '<span class="ci-cap a"></span><span class="ci-cap b"></span></div>';
-    }
-    h += '<div class="ci-dot" style="left:' + v.toFixed(2) + '%"></div>' +
-      attrTick(80, 'warn', withLabels) + attrTick(90, 'ok', withLabels) + '</div>';
-    return h;
+    return scaleLane(value, level, lo, hi,
+                     attrTick(80, 'warn', withLabels) + attrTick(90, 'ok', withLabels));
   }
 
   /* El rotulo del intervalo lleva la confianza REAL del estudio, no un 95

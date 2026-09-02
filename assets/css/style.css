@@ -494,7 +494,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .lead-scale .eval-tick-label { margin-bottom: 9px; font: 600 11.5px var(--sans); }
 /* El carril acompana a la pista: con 24 px de barra, 6 px de separacion lo
    dejaban pegado a la marca de umbral, que sobresale 8 px por abajo. */
-.lead-scale .ci-rail { --ci-cap: 12px; --ci-mark: 12px; margin-top: 9px; }
+.lead-scale .ci-rail { --ci-cap: 12px; margin-top: 9px; }
 
 /* --- El carril del intervalo --------------------------------------------
  * Una codificacion por carril: la pista es SOLO el semaforo y el intervalo
@@ -537,7 +537,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
    de diagonal y su mitad no se puede pedir sin redondear -- y redondear ahi
    encoge la figura, que deja de ser el mismo rombo. */
 .ci-rail {
-  --ci-cap: 10px; --ci-mark: 8px; --ci-term: 4px;
+  --ci-cap: 10px; --ci-mark: 12px; --ci-term: 4px;
   position: relative; height: var(--ci-cap); margin-top: 6px;
 }
 .ci-line { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--ink-soft); }
@@ -547,24 +547,44 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 }
 .ci-cap.a { left: 0; } .ci-cap.b { right: 0; }
 /* El tope TERMINAL: el que cae exactamente en 0 % o en 100 %. Sobresale del
-   riel por arriba y por abajo, y por eso sigue leyendose cuando el marcador
-   puntual cae en la MISMA coordenada -- que es justo lo que pasa cuando 10 de
-   10 piezas concuerdan y el punto y el limite superior valen los dos 100 %.
-   Solo cambia su ALTO: la coordenada no se mueve. */
+   riel por arriba y por abajo, asi que sigue leyendose aunque el marcador
+   puntual caiga cerca. Solo cambia su ALTO: la coordenada no se mueve. */
 .ci-cap.term {
   height: calc(var(--ci-cap) + var(--ci-term) * 2);
   margin-top: calc((var(--ci-cap) + var(--ci-term) * 2) / -2);
 }
-/* El rombo de la estimacion puntual. Va mas oscuro que la linea porque es el
-   dato y la linea es su margen; y es un rombo y no un circulo para que no se
-   confunda con los puntos de las graficas, que son observaciones.
+/* Cuando el marcador cae en ESA MISMA coordenada -- 10 de 10 piezas
+   concordantes: el punto vale 100 % y el limite superior tambien -- el tope no
+   se dibuja: el CANTO RECTO del medio rombo ya es el tope. Es una cara
+   vertical, a la altura del marcador, exactamente en la coordenada; hace el
+   mismo trabajo que el poste y ademas deja ver el rombo.
+
+   Dibujarlos los dos fue un error, y se veia: el tope es una barra de 2 px que
+   el marcador tapa siguiendo sus diagonales, asi que el gris no asomaba en dos
+   tacos limpios sino en dos cunas que perseguian el filo del triangulo, y la
+   cara del rombo parecia desalineada -- medido, el desfase era cero --. En la
+   pista compacta era peor: entre el poste de 18 px y un rombo de 8, el rombo
+   dejaba de leerse como rombo.
+
+   Cual cifra es cual no lo dice un matiz de gris, lo dice el rotulo del
+   marcador. Y en esa coordenada, ademas, las dos cifras SON la misma. */
+/* El rombo de la estimacion puntual. Es un rombo y no un circulo para que no
+   se confunda con los puntos de las graficas, que son observaciones.
+
+   Va de la MISMA tinta que la linea y los topes. Llevaba una mas oscura -el
+   dato frente a su margen-, pero es una jerarquia que el lector no necesita:
+   dentro del carril, el punto ya se distingue por ser una masa solida frente a
+   una linea de 2 px. Lo que si se notaba era el defecto: dos grises con un 6 %
+   de diferencia, tocandose, se leen como un error de dibujo. El carril es UN
+   elemento y habla con UNA voz; quien pesa distinto es la barra, que es de
+   color y mide diez veces mas.
 
    Se RECORTA, no se gira: un cuadrado girado mide su diagonal, y esa diagonal
    no es entera (ver --ci-mark arriba). */
 .ci-mark {
   position: absolute; top: 50%; width: var(--ci-mark); height: var(--ci-mark);
   margin: calc(var(--ci-mark) / -2) 0 0 calc(var(--ci-mark) / -2);
-  background: var(--ink); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  background: var(--ink-soft); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
 /* El marcador de los EXTREMOS. En 0 % y en 100 % un rombo centrado no cabe:
    la mitad de fuera se sale de la pista, tapa el tope del intervalo y deja de

@@ -248,9 +248,10 @@ tapar las marcas de 80 % y 90 %.
 - **En el carril si va una marca** —un rombo—, y ahi no repite: dice donde cae
   el punto DENTRO de su intervalo, que es informacion nueva, y es lo que ancla
   el riel a la pista.
-- **El intervalo pesa menos que la barra:** linea gris de 2 px (`--ink-soft`)
-  frente a un relleno de 16 o 24 px de color. El peso visual sigue a la
-  autoridad: la barra dictamina, el intervalo matiza.
+- **El intervalo pesa menos que la barra:** el carril entero —linea, topes y
+  marcador— va en gris de 2 px (`--ink-soft`) frente a un relleno de 16 o 24 px
+  de color. El peso visual sigue a la autoridad: la barra dictamina, el
+  intervalo matiza.
 - **Toda medida del carril es entera, y los centrados son pares.** La linea
   nacio de 1.5 px y las tres filas de «Evaluacion global» salieron con
   grosores distintos: el navegador no suaviza una caja de 1.5 px, la REDONDEA
@@ -297,26 +298,44 @@ o el final de la escala.
   la figura, que deja de ser el mismo rombo—. Con la diagonal par, la mitad es
   exacta y entera a la vez.
 - **Un tope que cae exactamente en 0 % o 100 % se dibuja terminal:** mas alto
-  que el riel (`--ci-term` por arriba y por abajo), asi que asoma por encima y
-  por debajo del marcador cuando los dos comparten coordenada. Vale por DONDE
-  CAE el tope, no por si el punto lo acompana: eso es lo que salva tambien el
-  caso apretado, con el punto en 99.5 % y el limite en 100 %. Solo cambia su
-  alto; la coordenada no se mueve.
-- **Cuando el punto y un limite valen lo mismo, el texto lo dice.** El dibujo
-  separa las dos marcas, pero dos marcas en la misma coordenada no van a decir
-  por si solas cual es cual a 8 px de alto. El marcador lleva `title` y
-  `aria-label` con «Estimacion: 100.0 % / Limite superior del IC 95 %:
-  100.0 %» —los dos, porque el tooltip del navegador no existe para quien no
-  usa el cursor—.
+  que el riel (`--ci-term` por arriba y por abajo), para que siga leyendose con
+  el marcador cerca. Vale por DONDE CAE el tope, no por si el punto lo
+  acompana: eso es lo que salva el caso apretado, con el punto en 99.5 % y el
+  limite en 100 %. Solo cambia su alto; la coordenada no se mueve.
+- **Cuando el punto CAE en ese mismo extremo, el tope no se dibuja:** el canto
+  recto del medio rombo ya es una cara vertical en esa coordenada y hace el
+  mismo trabajo. Dibujar los dos fue un error, y se veia: el tope es una barra
+  de 2 px que el marcador tapa siguiendo sus diagonales, asi que el gris no
+  asomaba en dos tacos limpios sino en dos cunas que perseguian el filo del
+  triangulo, y la cara del rombo **parecia** desalineada —medido, el desfase
+  era cero—. En la pista compacta era peor: entre un poste de 18 px y un rombo
+  de 8, el rombo dejaba de leerse como rombo.
+- **Cual cifra es cual lo dice el texto, no un matiz de gris.** El marcador
+  lleva `title` y `aria-label` con «Estimacion: 100.0 % / Limite superior del
+  IC 95 %: 100.0 %» —los dos, porque el tooltip del navegador no existe para
+  quien no usa el cursor—. En esa coordenada, ademas, las dos cifras **son** la
+  misma.
+- **El carril habla con UNA voz.** Linea, topes y marcador van de la misma
+  tinta (`--ink-soft`). El marcador llevaba una mas oscura —el dato frente a su
+  margen—, pero es una jerarquia que el lector no necesita: dentro del carril
+  el punto ya se distingue por ser una masa solida frente a una linea de 2 px.
+  Lo que si se notaba era el defecto: dos grises con un 6 % de diferencia,
+  tocandose, se leen como un error de dibujo. Quien pesa distinto es la barra,
+  que es de color y mide diez veces mas.
+- **El marcador no encoge con la densidad.** El riel si (12 px arriba, 10 px en
+  la rejilla por evaluador), pero el rombo mide 12 px de diagonal en las dos:
+  es el unico glifo del carril que porta un dato, y a 8 px dejaba de
+  apreciarse. Es la excepcion medida a la regla de que dos densidades no
+  comparten medidas.
 - **El gutter de la pista compacta** son 4 px que la pista cede antes de la
-  columna de cifras, para que el tope terminal no quede pegado al texto. No es
-  parte de la escala: la pista sigue midiendo 0 a 100 % de su propio ancho, el
-  relleno termina en su borde y los umbrales conservan su sitio.
+  columna de cifras, para que el marcador terminal no quede pegado al texto. No
+  es parte de la escala: la pista sigue midiendo 0 a 100 % de su propio ancho,
+  el relleno termina en su borde y los umbrales conservan su sitio.
 
-| | Rombo interior | Medio rombo | Tope | Tope terminal |
-|---|---|---|---|---|
-| **Barra grande** | 12 px de diagonal | 6 × 12 px | 2 × 12 px | 2 × 20 px |
-| **Barra compacta** | 8 px de diagonal | 4 × 8 px | 2 × 10 px | 2 × 18 px |
+| | Riel | Rombo interior | Medio rombo | Tope | Tope terminal |
+|---|---|---|---|---|---|
+| **Barra grande** | 12 px | 12 px de diagonal | 6 × 12 px | 2 × 12 px | 2 × 20 px |
+| **Barra compacta** | 10 px | 12 px de diagonal | 6 × 12 px | 2 × 10 px | 2 × 18 px |
 
 #### Interpretacion no es advertencia
 

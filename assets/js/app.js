@@ -1032,8 +1032,26 @@
    * Los umbrales se reciben ya dibujados porque cada metodo tiene los suyos
    * -10 % y 30 % en variables, 80 % y 90 % en atributos- y el carril es el
    * mismo para todos.
+   *
+   * EN LOS EXTREMOS EL ROMBO SE PARTE, NO SE MUEVE
+   *
+   * Un 100 % no es un caso raro: con 10 piezas y ningun desacuerdo es el
+   * resultado normal. Ahi la coordenada del punto ES el borde de la pista, y
+   * un rombo centrado deja fuera su mitad derecha, tapa el tope del intervalo
+   * -que tambien vale 100 %- y hace imposible saber que se esta mirando.
+   *
+   * Lo que NO se hace es dibujar un 99 % ni correr el marcador hacia dentro:
+   * eso seria mentir sobre la coordenada. Lo que se hace es cortar el rombo
+   * por su eje y quedarse con la mitad que cabe -misma altura, media anchura-,
+   * con el canto recto apoyado en la coordenada exacta y la punta hacia
+   * dentro. La silueta visible es la del rombo de siempre.
+   *
+   * Y el tope que cae en un extremo se dibuja mas alto que el riel, para que
+   * asome por encima y por debajo del marcador cuando los dos comparten
+   * coordenada. Ahi el dibujo dice que hay DOS cosas; cual es cual lo dice el
+   * rotulo de `coincidenceLabel`.
    * ----------------------------------------------------------------------*/
-  function scaleLane(value, level, lo, hi, ticks) {
+  function scaleLane(value, level, lo, hi, ticks, conf) {
     var v = Math.max(0, Math.min(100, value));
     var h = '<div class="eval-scale">' +
       '<div class="eval-track">' +
@@ -1044,20 +1062,59 @@
        es exactamente lo que pasa -no hay incertidumbre publicada que mostrar-. */
     if (lo !== null && lo !== undefined && isFinite(lo) && isFinite(hi)) {
       var a = Math.max(0, Math.min(100, lo)), b = Math.max(0, Math.min(100, hi));
+      /* Un tope vale terminal por DONDE CAE, no por si el punto lo acompana:
+         asi el caso apretado -punto en 99.5 % y limite en 100 %- tampoco
+         acaba con el rombo encima del tope. */
+      var capA = 'ci-cap a' + (a <= 0 ? ' term' : '');
+      var capB = 'ci-cap b' + (b >= 100 ? ' term' : '');
+      var rotulo = coincidenceLabel(v, a, b, conf);
+      var attr = rotulo ? ' title="' + esc(rotulo) + '" aria-label="' + esc(rotulo) +
+                          '" role="img"' : '';
+      var mark = v >= 100 ? '<div class="ci-mark at-hi"' + attr + '></div>'
+               : v <= 0   ? '<div class="ci-mark at-lo"' + attr + '></div>'
+               : '<div class="ci-mark" style="left:' + v.toFixed(2) + '%"' + attr + '></div>';
       h += '<div class="ci-rail">' +
         '<div class="ci-line" style="left:' + a.toFixed(2) + '%;width:' +
           Math.max(0, b - a).toFixed(2) + '%">' +
-          '<span class="ci-cap a"></span><span class="ci-cap b"></span></div>' +
-        '<div class="ci-mark" style="left:' + v.toFixed(2) + '%"></div>' +
+          '<span class="' + capA + '"></span><span class="' + capB + '"></span></div>' +
+        mark +
       '</div>';
     }
     return h + '</div>';
   }
 
+  /* ------------------------------------------------------------------------
+   * coincidenceLabel(v, lo, hi, conf) - que dice el marcador cuando el punto y
+   * un limite valen lo mismo.
+   *
+   * Pasa en los extremos: con 10 de 10 piezas concordantes la estimacion es
+   * 100 % y el limite superior de Clopper-Pearson tambien. El dibujo ya separa
+   * las dos marcas -medio rombo contra tope terminal-, pero dos marcas en la
+   * misma coordenada no van a decir POR SI SOLAS cual es cual, por mucho que
+   * se afinen a 8 px de alto. Eso lo dice el texto.
+   *
+   * Va en `aria-label` ademas de en `title` porque el tooltip del navegador no
+   * existe para quien no usa el cursor, y esta es la unica pieza de la pantalla
+   * donde dos cifras distintas comparten sitio.
+   *
+   * Devuelve '' cuando no coinciden, que es el caso normal: un marcador que no
+   * se confunde con nada no necesita explicarse.
+   * ----------------------------------------------------------------------*/
+  function coincidenceLabel(v, lo, hi, conf) {
+    var cual = Math.abs(v - lo) < 1e-9 ? 'inferior'
+             : Math.abs(v - hi) < 1e-9 ? 'superior' : null;
+    if (!cual) return '';
+    var cifra = v.toFixed(1) + ' %';
+    return 'Estimacion: ' + cifra + '\n' +
+           'Limite ' + cual + ' del ' +
+           (conf ? 'IC ' + Math.round(100 * conf) + ' %' : 'intervalo de confianza') +
+           ': ' + cifra;
+  }
+
   /** Escala 0-100 con los umbrales AIAG y, en su carril, el intervalo. */
-  function evalScale(value, level, iv) {
+  function evalScale(value, level, iv, conf) {
     return scaleLane(value, level, iv ? iv.lo : null, iv ? iv.hi : null,
-                     evalTick(10, 'ok') + evalTick(30, 'warn'));
+                     evalTick(10, 'ok') + evalTick(30, 'warn'), conf);
   }
 
   /* El icono de ayuda. SVG en linea y no un caracter: escala con el texto,
@@ -1179,7 +1236,7 @@
     h.push(leadBlock({
       k: '% Study Variation (GRR)', value: sv.toFixed(2) + ' %',
       tag: bandTag(a.studyVar), help: VERDICT_HELP.sv,
-      scale: evalScale(sv, svLevel, svIv), foot: foot,
+      scale: evalScale(sv, svLevel, svIv, iv && iv.conf), foot: foot,
       interp: r.intervalCross ? r.intervalCross.label : null
     }));
 
@@ -1463,9 +1520,9 @@
   /** Pista 0-100 con los umbrales 80/90 y, en su carril, el intervalo. Es el
       MISMO carril que el de variables: comparten `scaleLane` y solo cambian
       los umbrales, porque un intervalo se lee igual mida lo que mida. */
-  function attrTrack(value, level, lo, hi, withLabels) {
+  function attrTrack(value, level, lo, hi, withLabels, conf) {
     return scaleLane(value, level, lo, hi,
-                     attrTick(80, 'warn', withLabels) + attrTick(90, 'ok', withLabels));
+                     attrTick(80, 'warn', withLabels) + attrTick(90, 'ok', withLabels), conf);
   }
 
   /* El rotulo del intervalo lleva la confianza REAL del estudio, no un 95
@@ -1536,7 +1593,7 @@
         count: r.allVsStandard.matched + ' de ' + r.allVsStandard.inspected + ' piezas',
         ci: ciText(r.allVsStandard.ciLow, r.allVsStandard.ciHigh, alpha),
         scale: attrTrack(m.allVsStandard, a.allVsStandard.level,
-                         r.allVsStandard.ciLow, r.allVsStandard.ciHigh, true),
+                         r.allVsStandard.ciLow, r.allVsStandard.ciHigh, true, 1 - alpha),
         foot: 'En ' + r.allVsStandard.matched + ' de las ' + r.allVsStandard.inspected +
               ' piezas, todos los evaluadores clasificaron de manera consistente y de acuerdo ' +
               'con el estandar.'
@@ -1549,7 +1606,7 @@
       count: r.betweenAppraisers.matched + ' de ' + r.betweenAppraisers.inspected + ' piezas',
       ci: ciText(r.betweenAppraisers.ciLow, r.betweenAppraisers.ciHigh, alpha),
       scale: attrTrack(m.between, a.between.level,
-                       r.betweenAppraisers.ciLow, r.betweenAppraisers.ciHigh, true),
+                       r.betweenAppraisers.ciLow, r.betweenAppraisers.ciHigh, true, 1 - alpha),
       foot: 'Coincidir no necesariamente significa acertar. Esta metrica cuenta las piezas en ' +
             'las que todos asignaron la misma clasificacion, aunque pudiera ser diferente del ' +
             'estandar.'
@@ -1562,7 +1619,7 @@
         value: pcPlain(worstW.pct), tag: attrTag(a.within),
         count: worstW.matched + ' de ' + worstW.inspected + ' piezas',
         ci: ciText(worstW.ciLow, worstW.ciHigh, alpha),
-        scale: attrTrack(worstW.pct, a.within.level, worstW.ciLow, worstW.ciHigh, true),
+        scale: attrTrack(worstW.pct, a.within.level, worstW.ciLow, worstW.ciHigh, true, 1 - alpha),
         foot: 'Se muestra el resultado minimo observado entre los evaluadores. El detalle se ' +
               'presenta en la seccion inferior.'
       });
@@ -1686,7 +1743,7 @@
           if (!e) return '<div class="who-cell"></div>';
           var lvl = e.assessment ? e.assessment.level : 'ok';
           return '<div class="who-cell">' +
-            attrTrack(e.pct, lvl, e.ciLow, e.ciHigh, false) +
+            attrTrack(e.pct, lvl, e.ciLow, e.ciHigh, false, 1 - alpha) +
             '<div class="who-val">' + e.pct.toFixed(1) + '%' +
               '<span class="who-ci">' + esc(ciText(e.ciLow, e.ciHigh, alpha)) + '</span></div>' +
           '</div>';

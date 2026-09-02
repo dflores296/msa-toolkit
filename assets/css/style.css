@@ -494,7 +494,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .lead-scale .eval-tick-label { margin-bottom: 9px; font: 600 11.5px var(--sans); }
 /* El carril acompana a la pista: con 24 px de barra, 6 px de separacion lo
    dejaban pegado a la marca de umbral, que sobresale 8 px por abajo. */
-.lead-scale .ci-rail { --ci-cap: 12px; --ci-mark: 8px; margin-top: 9px; }
+.lead-scale .ci-rail { --ci-cap: 12px; --ci-mark: 12px; margin-top: 9px; }
 
 /* --- El carril del intervalo --------------------------------------------
  * Una codificacion por carril: la pista es SOLO el semaforo y el intervalo
@@ -522,28 +522,65 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
  * distinto numero de renglones-, asi que no se arregla en la fila que se ve
  * mal: se arregla no pidiendo medias unidades.
  *
- * Por eso --ci-cap y --ci-mark son PARES: `top: 50%` con `margin-top` de la
- * mitad solo cae en entero si la mitad lo es. Cualquier ajuste futuro de
- * estas medidas conserva la paridad, o vuelve el mismo defecto.
+ * Por eso --ci-cap, --ci-mark y --ci-term son PARES: `top: 50%` con
+ * `margin-top` de la mitad solo cae en entero si la mitad lo es. Cualquier
+ * ajuste futuro de estas medidas conserva la paridad, o vuelve el mismo
+ * defecto.
  * --------------------------------------------------------------------- */
 .eval-scale { position: relative; }
-/* --ci-cap y --ci-mark van a escala de SU pista: las medidas se ajustan una
-   sola vez, aqui y en .lead-scale, y no en cada componente que use el carril. */
-.ci-rail { --ci-cap: 10px; --ci-mark: 6px; position: relative; height: var(--ci-cap); margin-top: 6px; }
+/* Las tres medidas van a escala de SU pista: se ajustan una sola vez, aqui y
+   en .lead-scale, y no en cada componente que use el carril.
+
+   --ci-mark es la DIAGONAL del rombo, no el lado de un cuadrado girado, y esa
+   diferencia es la que hace posible el marcador de los extremos: la mitad de
+   una diagonal par es entera, mientras que un cuadrado de 8 px mide 11.31 px
+   de diagonal y su mitad no se puede pedir sin redondear -- y redondear ahi
+   encoge la figura, que deja de ser el mismo rombo. */
+.ci-rail {
+  --ci-cap: 10px; --ci-mark: 8px; --ci-term: 4px;
+  position: relative; height: var(--ci-cap); margin-top: 6px;
+}
 .ci-line { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--ink-soft); }
 .ci-cap {
   position: absolute; top: 50%; width: 2px;
   height: var(--ci-cap); margin-top: calc(var(--ci-cap) / -2); background: var(--ink-soft);
 }
 .ci-cap.a { left: 0; } .ci-cap.b { right: 0; }
+/* El tope TERMINAL: el que cae exactamente en 0 % o en 100 %. Sobresale del
+   riel por arriba y por abajo, y por eso sigue leyendose cuando el marcador
+   puntual cae en la MISMA coordenada -- que es justo lo que pasa cuando 10 de
+   10 piezas concuerdan y el punto y el limite superior valen los dos 100 %.
+   Solo cambia su ALTO: la coordenada no se mueve. */
+.ci-cap.term {
+  height: calc(var(--ci-cap) + var(--ci-term) * 2);
+  margin-top: calc((var(--ci-cap) + var(--ci-term) * 2) / -2);
+}
 /* El rombo de la estimacion puntual. Va mas oscuro que la linea porque es el
    dato y la linea es su margen; y es un rombo y no un circulo para que no se
-   confunda con los puntos de las graficas, que son observaciones. */
+   confunda con los puntos de las graficas, que son observaciones.
+
+   Se RECORTA, no se gira: un cuadrado girado mide su diagonal, y esa diagonal
+   no es entera (ver --ci-mark arriba). */
 .ci-mark {
   position: absolute; top: 50%; width: var(--ci-mark); height: var(--ci-mark);
   margin: calc(var(--ci-mark) / -2) 0 0 calc(var(--ci-mark) / -2);
-  background: var(--ink); transform: rotate(45deg);
+  background: var(--ink); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
 }
+/* El marcador de los EXTREMOS. En 0 % y en 100 % un rombo centrado no cabe:
+   la mitad de fuera se sale de la pista, tapa el tope del intervalo y deja de
+   distinguirse el punto del final de la escala.
+
+   La solucion no es mover el valor -- eso seria dibujar un 99 % --, sino
+   cortar el rombo por su eje y quedarse con la mitad que cabe: MISMA altura,
+   media anchura, con el canto recto apoyado en la coordenada exacta y la
+   punta hacia dentro. La silueta visible es la del rombo de siempre, y nada
+   sobresale de la pista. */
+.ci-mark.at-hi, .ci-mark.at-lo {
+  width: calc(var(--ci-mark) / 2); height: var(--ci-mark);
+  margin: calc(var(--ci-mark) / -2) 0 0 0;
+}
+.ci-mark.at-hi { left: auto; right: 0; clip-path: polygon(100% 0, 0 50%, 100% 100%); }
+.ci-mark.at-lo { left: 0; right: auto; clip-path: polygon(0 0, 100% 50%, 0 100%); }
 
 /* --- Resumen de atributos ------------------------------------------------
    Reutiliza el vocabulario del bloque de variables -.lead, la pista, el punto
@@ -617,6 +654,11 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .who-d { display: block; margin-top: 2px; font-size: 11px; font-weight: 400; color: var(--ink-faint); line-height: 1.4; }
 .who-n { font-size: 12px; color: var(--ink-soft); }
 .who-cell { display: grid; grid-template-columns: minmax(0, 1fr) 148px; gap: 10px; align-items: center; }
+/* El gutter de la pista compacta. NO es parte de la escala -- la pista sigue
+   midiendo 0 a 100 % de su propio ancho y el relleno sigue terminando en su
+   borde --: son 4 px que la pista cede para que el tope terminal no quede
+   pegado a la columna de cifras. */
+.who-cell .eval-scale { margin-right: 4px; }
 .who-val { font: 12px var(--mono); text-align: right; color: var(--ink); white-space: nowrap; line-height: 1.35; }
 .who-ci { display: block; font: 10.5px var(--mono); color: var(--ink-faint); }
 /* La rejilla por evaluador usa la pista de 16 px y el carril base, sin

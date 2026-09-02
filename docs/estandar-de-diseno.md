@@ -278,6 +278,46 @@ los umbrales que cada uno tiene, 10 % y 30 % en variables, 80 % y 90 % en
 atributos. **Esto es solo la barra de las zonas de evaluacion**; el bigote
 vertical de las graficas de Chart.js es otro componente y no cambia.
 
+#### En los extremos el rombo se parte, no se mueve
+
+Un 100 % no es un caso raro: con 10 piezas y ningun desacuerdo es el resultado
+normal. Ahi la coordenada del punto **es** el borde de la pista, y un rombo
+centrado deja fuera su mitad derecha, tapa el tope del intervalo —que tambien
+vale 100 %— y hace imposible saber que se esta mirando: si el punto, el limite,
+o el final de la escala.
+
+- **La coordenada no se toca.** No se dibuja un 99 % ni se corre el marcador
+  hacia dentro. Lo que se hace es cortar el rombo por su eje y quedarse con la
+  mitad que cabe: **misma altura, media anchura**, con el canto recto apoyado
+  en la coordenada exacta y la punta hacia dentro. La silueta visible sigue
+  siendo la del rombo de siempre, y nada sobresale de la pista.
+- **Por eso el rombo se define por su DIAGONAL** (`--ci-mark`) y se dibuja con
+  `clip-path`, no con un cuadrado girado. Un cuadrado de 8 px mide 11.31 px de
+  diagonal y su mitad no se puede pedir sin redondear —y redondear ahi encoge
+  la figura, que deja de ser el mismo rombo—. Con la diagonal par, la mitad es
+  exacta y entera a la vez.
+- **Un tope que cae exactamente en 0 % o 100 % se dibuja terminal:** mas alto
+  que el riel (`--ci-term` por arriba y por abajo), asi que asoma por encima y
+  por debajo del marcador cuando los dos comparten coordenada. Vale por DONDE
+  CAE el tope, no por si el punto lo acompana: eso es lo que salva tambien el
+  caso apretado, con el punto en 99.5 % y el limite en 100 %. Solo cambia su
+  alto; la coordenada no se mueve.
+- **Cuando el punto y un limite valen lo mismo, el texto lo dice.** El dibujo
+  separa las dos marcas, pero dos marcas en la misma coordenada no van a decir
+  por si solas cual es cual a 8 px de alto. El marcador lleva `title` y
+  `aria-label` con «Estimacion: 100.0 % / Limite superior del IC 95 %:
+  100.0 %» —los dos, porque el tooltip del navegador no existe para quien no
+  usa el cursor—.
+- **El gutter de la pista compacta** son 4 px que la pista cede antes de la
+  columna de cifras, para que el tope terminal no quede pegado al texto. No es
+  parte de la escala: la pista sigue midiendo 0 a 100 % de su propio ancho, el
+  relleno termina en su borde y los umbrales conservan su sitio.
+
+| | Rombo interior | Medio rombo | Tope | Tope terminal |
+|---|---|---|---|---|
+| **Barra grande** | 12 px de diagonal | 6 × 12 px | 2 × 12 px | 2 × 20 px |
+| **Barra compacta** | 8 px de diagonal | 4 × 8 px | 2 × 10 px | 2 × 18 px |
+
 #### Interpretacion no es advertencia
 
 El ambar de `.msg.warn` esta reservado a los avisos del motor sobre los datos.

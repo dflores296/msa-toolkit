@@ -248,15 +248,27 @@ tapar las marcas de 80 % y 90 %.
 - **En el carril si va una marca** —un rombo—, y ahi no repite: dice donde cae
   el punto DENTRO de su intervalo, que es informacion nueva, y es lo que ancla
   el riel a la pista.
-- **El intervalo pesa menos que la barra:** linea gris de 1.5 px (`--ink-soft`)
+- **El intervalo pesa menos que la barra:** linea gris de 2 px (`--ink-soft`)
   frente a un relleno de 16 o 24 px de color. El peso visual sigue a la
   autoridad: la barra dictamina, el intervalo matiza.
+- **Toda medida del carril es entera, y los centrados son pares.** La linea
+  nacio de 1.5 px y las tres filas de «Evaluacion global» salieron con
+  grosores distintos: el navegador no suaviza una caja de 1.5 px, la REDONDEA
+  a un numero entero de pixeles fisicos, y el resultado depende de en que fase
+  de la rejilla cae cada fila. Medido a 1800 px de ancho, las dos primeras
+  filas se dibujaban con un pixel de tinta y la tercera con dos; a 1600 px y
+  factor 1.75, al reves. El desfase lo arrastra el texto de arriba —11.5 px
+  por 1.45 de interlinea son 16.675 px por renglon, y cada pie tiene distinto
+  numero de renglones—, asi que no se corrige en la fila que se ve mal: se
+  corrige no pidiendo medias unidades. `--ci-cap` y `--ci-mark` son pares
+  porque `top: 50%` con `margin-top` de la mitad solo cae en entero si la
+  mitad lo es.
 - **Los dos cuelgan del mismo contenedor** (`.eval-scale`), que es quien define
   el 0-100 comun. Un riel en otro contenedor se desalinea con la pista en
   cuanto cambie un ancho, y entonces el intervalo apunta a valores que no son.
 - **Sin intervalo no se dibuja un riel vacio.** La fila queda mas corta, que es
   exactamente lo que pasa: `% Tolerance` no tiene intervalo publicado.
-- **Cuesta 15 px por fila** (17 px con la pista de 24 px). En la rejilla por
+- **Cuesta 16 px por fila** (21 px con la pista de 24 px). En la rejilla por
   evaluador con muchos nombres eso alarga la seccion, y se paga a proposito:
   la alternativa era volver a tapar la barra.
 

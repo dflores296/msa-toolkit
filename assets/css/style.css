@@ -494,7 +494,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .lead-scale .eval-tick-label { margin-bottom: 9px; font: 600 11.5px var(--sans); }
 /* El carril acompana a la pista: con 24 px de barra, 6 px de separacion lo
    dejaban pegado a la marca de umbral, que sobresale 8 px por abajo. */
-.lead-scale .ci-rail { --ci-cap: 11px; --ci-mark: 7px; margin-top: 9px; }
+.lead-scale .ci-rail { --ci-cap: 12px; --ci-mark: 8px; margin-top: 9px; }
 
 /* --- El carril del intervalo --------------------------------------------
  * Una codificacion por carril: la pista es SOLO el semaforo y el intervalo
@@ -509,15 +509,30 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
  * ademas lo que ancla el riel a la pista.
  *
  * El intervalo pesa MENOS que la barra, y es deliberado: matiza, no dictamina.
- * Una linea gris de 1.5 px frente a un relleno de 16 o 24 px de color.
+ * Una linea gris de 2 px frente a un relleno de 16 o 24 px de color.
+ *
+ * TODA MEDIDA DEL CARRIL ES ENTERA, Y ES UNA CORRECCION MEDIDA, NO UN GUSTO.
+ * La linea nacio de 1.5 px y las tres filas de "Evaluacion global" salian con
+ * grosores distintos: el navegador no suaviza una caja de 1.5 px, la REDONDEA
+ * a un numero entero de pixeles fisicos, y el resultado depende de en que
+ * fase de la rejilla cae esa fila. Medido a 1800 px de ancho, las dos
+ * primeras filas se dibujaban con un pixel de tinta y la tercera con dos; a
+ * 1600 px y factor 1.75, al reves. El desfase lo arrastra el texto de arriba
+ * -11.5 px por 1.45 de interlinea son 16.675 px por renglon, y cada pie tiene
+ * distinto numero de renglones-, asi que no se arregla en la fila que se ve
+ * mal: se arregla no pidiendo medias unidades.
+ *
+ * Por eso --ci-cap y --ci-mark son PARES: `top: 50%` con `margin-top` de la
+ * mitad solo cae en entero si la mitad lo es. Cualquier ajuste futuro de
+ * estas medidas conserva la paridad, o vuelve el mismo defecto.
  * --------------------------------------------------------------------- */
 .eval-scale { position: relative; }
 /* --ci-cap y --ci-mark van a escala de SU pista: las medidas se ajustan una
    sola vez, aqui y en .lead-scale, y no en cada componente que use el carril. */
-.ci-rail { --ci-cap: 9px; --ci-mark: 6px; position: relative; height: var(--ci-cap); margin-top: 6px; }
-.ci-line { position: absolute; top: 50%; height: 1.5px; margin-top: -0.75px; background: var(--ink-soft); }
+.ci-rail { --ci-cap: 10px; --ci-mark: 6px; position: relative; height: var(--ci-cap); margin-top: 6px; }
+.ci-line { position: absolute; top: 50%; height: 2px; margin-top: -1px; background: var(--ink-soft); }
 .ci-cap {
-  position: absolute; top: 50%; width: 1.5px;
+  position: absolute; top: 50%; width: 2px;
   height: var(--ci-cap); margin-top: calc(var(--ci-cap) / -2); background: var(--ink-soft);
 }
 .ci-cap.a { left: 0; } .ci-cap.b { right: 0; }
@@ -606,7 +621,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .who-ci { display: block; font: 10.5px var(--mono); color: var(--ink-faint); }
 /* La rejilla por evaluador usa la pista de 16 px y el carril base, sin
    reescalar nada: con el intervalo fuera de la barra ya no hay marcas que
-   tapen los umbrales de 80 % y 90 %. Lo que cuesta el carril son 15 px por
+   tapen los umbrales de 80 % y 90 %. Lo que cuesta el carril son 16 px por
    fila, y en una lista larga de evaluadores eso alarga la seccion; se paga a
    proposito, porque la alternativa era volver a tapar la barra. */
 

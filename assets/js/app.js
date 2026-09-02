@@ -1063,10 +1063,19 @@
     if (lo !== null && lo !== undefined && isFinite(lo) && isFinite(hi)) {
       var a = Math.max(0, Math.min(100, lo)), b = Math.max(0, Math.min(100, hi));
       /* Un tope vale terminal por DONDE CAE, no por si el punto lo acompana:
-         asi el caso apretado -punto en 99.5 % y limite en 100 %- tampoco
-         acaba con el rombo encima del tope. */
-      var capA = 'ci-cap a' + (a <= 0 ? ' term' : '');
-      var capB = 'ci-cap b' + (b >= 100 ? ' term' : '');
+         asi el caso apretado -punto en 99.5 % y limite en 100 %- tampoco acaba
+         con el rombo encima del tope.
+
+         Y cuando el punto SI lo acompana, el tope no se dibuja: el canto recto
+         del medio rombo ya es una cara vertical en esa coordenada y hace su
+         trabajo. Dos figuras encimadas ahi no se leian como dos cosas, se
+         leian como un error. */
+      var cap = function (lado, en, junto) {
+        return en && junto ? ''
+             : '<span class="ci-cap ' + lado + (en ? ' term' : '') + '"></span>';
+      };
+      var capA = cap('a', a <= 0, v <= 0);
+      var capB = cap('b', b >= 100, v >= 100);
       var rotulo = coincidenceLabel(v, a, b, conf);
       var attr = rotulo ? ' title="' + esc(rotulo) + '" aria-label="' + esc(rotulo) +
                           '" role="img"' : '';
@@ -1076,7 +1085,7 @@
       h += '<div class="ci-rail">' +
         '<div class="ci-line" style="left:' + a.toFixed(2) + '%;width:' +
           Math.max(0, b - a).toFixed(2) + '%">' +
-          '<span class="' + capA + '"></span><span class="' + capB + '"></span></div>' +
+          capA + capB + '</div>' +
         mark +
       '</div>';
     }

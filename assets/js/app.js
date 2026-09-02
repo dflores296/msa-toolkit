@@ -838,10 +838,10 @@
 
   function resetResultViz() {
     MSACharts.destroyAll();
-    /* attrBars es de atributos; el bloque de variables lo vacia y lo esconde
-       renderMsaSummary con su propio `hidden`. */
-    var ab = $('attrBars');
-    if (ab) ab.innerHTML = '';
+    /* El resumen de atributos vive en #verdicts; el de variables se vacia y se
+       esconde solo, con su propio `hidden`, dentro de renderMsaSummary. */
+    var av = $('verdicts');
+    if (av) av.innerHTML = '';
     var ms = $('msaSummary');
     if (ms) { ms.innerHTML = ''; ms.hidden = true; }
   }
@@ -944,8 +944,7 @@
        varianza, atributos da concordancias. El resto de la pantalla -pasos,
        tarjetas, pestanas, impresion- es el mismo para los dos. */
     if (result.model === 'attribute') {
-      renderAttributeVerdict(result);
-      renderAttributeBars(result);
+      renderAttributeSummary(result);
       renderAttributeTables(result);
     } else {
       renderMsaSummary(result);
@@ -1204,14 +1203,6 @@
   /* Las tarjetas de veredicto siguen existiendo para ATRIBUTOS, que publica
      otra forma de respuesta -concordancias, no componentes- y para la que la
      rejilla de tarjetas si es la vista correcta. */
-  function card(k, v, t, help, extra) {
-    return '<div class="verdict"' + (help ? ' title="' + esc(k + ': ' + help) + '"' : '') + '>' +
-      '<div class="k">' + esc(k) + '</div><div class="v">' + esc(v) + '</div>' +
-      (extra || '') +
-      (t ? '<span class="t ' + t.level + '">' + esc(t.label) + '</span>' : '') +
-      '</div>';
-  }
-
   /* Marca de umbral del criterio AIAG: linea punteada con el color de su
      nivel (verde el 10 %, ambar el 30 %) y su rotulo arriba, como en Minitab. */
   function evalTick(pctAt, level) {
@@ -1394,61 +1385,301 @@
         'depende cual de los dos errores es cual.'
   };
 
-  function renderAttributeVerdict(r) {
-    var m = r.metrics, a = r.assessment, cards = [];
+  /* ---------------------------------------------------------------------
+   * renderAttributeSummary(r) - el resumen de atributos en UN bloque.
+   *
+   * Sustituye a las siete tarjetas planas y a las seis barras apiladas. Las
+   * siete ponian al mismo nivel cuatro cosas que no responden preguntas del
+   * mismo rango -concordancia, exactitud, riesgo de clasificacion y un
+   * estadistico complementario-, y las barras obligaban a saltar entre dos
+   * mitades para comparar a un evaluador consigo mismo.
+   *
+   * El reparto que queda, en orden de lectura:
+   *
+   *   global      Las tres concordancias que dictaminan. Cifra grande,
+   *               conteo, intervalo, insignia y escala con los limites.
+   *   riesgos     Como se equivoca. Fuga y falsa alarma NO comparten
+   *               denominador ni umbral, y el bloque lo dice en cada celda.
+   *   complemento Kappa, a un tercio del peso: matiza, no dictamina.
+   *   evaluador   Las dos concordancias de cada uno, lado a lado.
+   *
+   * No calcula nada: toda cifra sale tal cual del motor. El encuadre -que
+   * esto evalua el sistema de clasificacion y no a las personas- se dice una
+   * vez arriba y se cierra con la nota del final.
+   * ------------------------------------------------------------------- */
 
-    if (m.worstWithin !== null) {
-      cards.push(card('Dentro del evaluador (peor)', pc(m.worstWithin), a.within, ATTR_HELP.within));
-    }
-    if (m.allVsStandard !== null) {
-      cards.push(card('Todos vs estandar', pc(m.allVsStandard), a.allVsStandard, ATTR_HELP.vsStd));
-    }
-    cards.push(card('Entre evaluadores', pc(m.between), a.between, ATTR_HELP.between));
-    cards.push(card('Kappa (' + m.kappaSource + ')', kfmt(m.kappa), a.kappa, ATTR_HELP.kappa));
+  /* La insignia dice SOLO la categoria, igual que BAND_SHORT en variables. Se
+     traduce por NIVEL y no recortando la cadena del motor: las etiquetas de
+     acuerdo, efectividad, fuga y falsa alarma tienen cada una su propio texto
+     entre parentesis, asi que cortar por el parentesis daria cuatro
+     vocabularios distintos para las mismas tres bandas. */
+  var ATTR_BAND_SHORT = { ok: 'Aceptable', warn: 'Marginal', bad: 'No aceptable' };
 
-    if (m.worstEffectiveness !== null) {
-      cards.push(card('Efectividad (peor)', pc(m.worstEffectiveness), a.effectiveness, ATTR_HELP.effective));
-    }
-    /* Las dos tarjetas de error llevan en el titulo LA CATEGORIA, no solo el
-       nombre del error. Un "Error de fuga: 6.7 %" a secas obliga a bajar hasta
-       la nota de la Tabla 4 para saber que lado del proceso es cual, y esas
-       dos tarjetas son justamente las que se leen para decidir. */
-    if (m.worstMiss !== null) {
-      cards.push(card('Fuga: dejar pasar "' + r.meta.rejectCategory + '"',
-                      pc(m.worstMiss), a.missRate, ATTR_HELP.miss));
-      cards.push(card('Falsa alarma: rechazar "' + r.meta.acceptCategory + '"',
-                      pc(m.worstFalseAlarm), a.falseAlarmRate, ATTR_HELP.falseAlarm));
-    }
-    $('verdicts').innerHTML = cards.join('');
+  function attrTag(t) {
+    if (!t) return null;
+    return { level: t.level, short: ATTR_BAND_SHORT[t.level] || String(t.label).split('(')[0].trim() };
   }
 
-  /* Barras por evaluador. Cada una lleva su intervalo de confianza dibujado
-     encima, porque con 20 o 30 piezas el porcentaje solo enganaria: un 95 %
-     que va de 75 a 99 no es un 95 % firme. */
-  function renderAttributeBars(r) {
-    var rows = [];
-    r.withinAppraiser.forEach(function (a) {
-      rows.push({ label: a.operator + ' - consigo mismo', a: a, help: ATTR_HELP.within });
-    });
-    r.vsStandard.forEach(function (a) {
-      rows.push({ label: a.operator + ' - contra el estandar', a: a, help: ATTR_HELP.vsStd });
-    });
-    if (!rows.length) { $('attrBars').innerHTML = ''; return; }
-
-    $('attrBars').innerHTML = rows.map(function (row) {
-      var v = row.a.pct;
-      var lvl = v >= 90 ? 'ok' : v >= 80 ? 'warn' : 'bad';
-      var tip = row.label + ': ' + v.toFixed(2) + ' % (' + row.a.matched + ' de ' + row.a.inspected +
-                ' piezas), intervalo de confianza al 95 % ' + ci(row.a) + '. ' + row.help;
-      return '<div class="eval-row" title="' + esc(tip) + '">' +
-        '<div class="eval-label">' + esc(row.label) + '</div>' +
-        '<div class="eval-track">' +
-          '<div class="eval-fill ' + lvl + '" style="width:' + Math.min(100, v).toFixed(2) + '%"></div>' +
-          evalTick(80, 'warn') + evalTick(90, 'ok') +
-        '</div>' +
-        '<div class="eval-val">' + v.toFixed(1) + ' %</div>' +
+  /* Marca de 80 % y 90 % para las pistas de concordancia. No reutiliza
+     evalTick porque ese rotula "80 %" con espacio fino y aqui la tira de
+     cifras va sin el; el resto del dibujo es identico. */
+  function attrTick(at, level, withLabel) {
+    return '<div class="eval-tick ' + level + '" style="left:' + at + '%">' +
+      (withLabel ? '<span class="eval-tick-label ' + level + '">' + at + '%</span>' : '') +
       '</div>';
-    }).join('');
+  }
+
+  /** Pista 0-100 con los umbrales 80/90, el intervalo y el punto. */
+  function attrTrack(value, level, lo, hi, withLabels) {
+    var v = Math.min(100, value);
+    var h = '<div class="eval-track">' +
+      '<div class="eval-fill ' + level + '" style="width:' + v.toFixed(2) + '%"></div>';
+    /* El intervalo va ENCIMA del relleno y DEBAJO del punto: es el bigote del
+       estimador, no una segunda barra. */
+    if (lo !== null && lo !== undefined && isFinite(lo) && isFinite(hi)) {
+      var a = Math.max(0, Math.min(100, lo)), b = Math.max(0, Math.min(100, hi));
+      h += '<div class="ci-line" style="left:' + a.toFixed(2) + '%;width:' +
+           Math.max(0, b - a).toFixed(2) + '%">' +
+           '<span class="ci-cap a"></span><span class="ci-cap b"></span></div>';
+    }
+    h += '<div class="ci-dot" style="left:' + v.toFixed(2) + '%"></div>' +
+      attrTick(80, 'warn', withLabels) + attrTick(90, 'ok', withLabels) + '</div>';
+    return h;
+  }
+
+  /* El rotulo del intervalo lleva la confianza REAL del estudio, no un 95
+     escrito a mano: alpha es configurable y el resumen tiene que decir la que
+     se uso. */
+  function ciText(lo, hi, alpha) {
+    if (lo === null || lo === undefined || !isFinite(lo) || !isFinite(hi)) return '';
+    return 'IC ' + (100 * (1 - alpha)).toFixed(0) + '%: ' +
+           lo.toFixed(1) + '% a ' + hi.toFixed(1) + '%';
+  }
+
+  function pcPlain(v) {
+    return v === null || v === undefined || !isFinite(v) ? '-' : v.toFixed(2) + '%';
+  }
+
+  /** Una de las tres filas principales. */
+  function attrLead(o) {
+    return '<div class="lead attr-lead">' +
+      '<div class="lead-head">' +
+        '<span class="lead-n">' + o.n + '</span>' +
+        '<span class="lead-k" title="' + esc(o.k + ': ' + o.help) + '">' + esc(o.k) +
+          ' ' + INFO_ICON + '</span>' +
+        '<span class="lead-q">' + esc(o.q) + '</span>' +
+        (o.tag ? '<span class="lead-t t ' + o.tag.level + '">' + esc(o.tag.short) + '</span>' : '') +
+      '</div>' +
+      '<div class="lead-row">' +
+        '<span class="lead-v">' + esc(o.value) + '</span>' +
+        (o.count ? '<span class="lead-n2">' + esc(o.count) + '</span>' : '') +
+        (o.ci ? '<span class="lead-ci">' + esc(o.ci) + '</span>' : '') +
+      '</div>' +
+      '<div class="lead-scale">' + o.scale + '</div>' +
+      '<p class="lead-foot">' + esc(o.foot) + '</p>' +
+    '</div>';
+  }
+
+  /** El elemento del arreglo cuyo `key` es minimo o maximo. */
+  function pick(list, key, wantMax) {
+    var best = null;
+    list.forEach(function (e) {
+      var v = e[key];
+      if (v === null || v === undefined || !isFinite(v)) return;
+      if (!best || (wantMax ? v > best[key] : v < best[key])) best = e;
+    });
+    return best;
+  }
+
+  function renderAttributeSummary(r) {
+    var m = r.metrics, a = r.assessment, alpha = r.meta.alpha;
+    var h = '';
+
+    h += '<div class="card-head">' +
+      '<p class="card-title">Evaluacion del sistema de clasificacion</p>' +
+      '<p class="card-rule">Este analisis evalua el sistema de clasificacion, no a las personas. ' +
+        'La unidad de evaluacion es la pieza. Para contar como concordante, todas las ' +
+        'clasificaciones requeridas deben coincidir. La estimacion puntual debe interpretarse ' +
+        'junto con su IC ' + (100 * (1 - alpha)).toFixed(0) + '%.</p>' +
+      '<p class="card-rule2">Con una cantidad limitada de piezas, el intervalo de confianza ' +
+        'puede ser amplio.</p>' +
+    '</div>';
+
+    /* --- Evaluacion global del sistema ---------------------------------- */
+    var leads = [];
+    if (r.allVsStandard) {
+      leads.push({
+        k: 'Todos los evaluadores contra el estandar', help: ATTR_HELP.vsStd,
+        q: 'El sistema completo clasifica correctamente?',
+        value: pcPlain(m.allVsStandard), tag: attrTag(a.allVsStandard),
+        count: r.allVsStandard.matched + ' de ' + r.allVsStandard.inspected + ' piezas',
+        ci: ciText(r.allVsStandard.ciLow, r.allVsStandard.ciHigh, alpha),
+        scale: attrTrack(m.allVsStandard, a.allVsStandard.level,
+                         r.allVsStandard.ciLow, r.allVsStandard.ciHigh, true),
+        foot: 'En ' + r.allVsStandard.matched + ' de las ' + r.allVsStandard.inspected +
+              ' piezas, todos los evaluadores clasificaron de manera consistente y de acuerdo ' +
+              'con el estandar.'
+      });
+    }
+    leads.push({
+      k: 'Concordancia entre evaluadores', help: ATTR_HELP.between,
+      q: 'Los evaluadores asignan la misma clasificacion?',
+      value: pcPlain(m.between), tag: attrTag(a.between),
+      count: r.betweenAppraisers.matched + ' de ' + r.betweenAppraisers.inspected + ' piezas',
+      ci: ciText(r.betweenAppraisers.ciLow, r.betweenAppraisers.ciHigh, alpha),
+      scale: attrTrack(m.between, a.between.level,
+                       r.betweenAppraisers.ciLow, r.betweenAppraisers.ciHigh, true),
+      foot: 'Coincidir no necesariamente significa acertar. Esta metrica cuenta las piezas en ' +
+            'las que todos asignaron la misma clasificacion, aunque pudiera ser diferente del ' +
+            'estandar.'
+    });
+    var worstW = pick(r.withinAppraiser, 'pct', false);
+    if (worstW) {
+      leads.push({
+        k: 'Consistencia individual minima', help: ATTR_HELP.within,
+        q: 'Las clasificaciones se repiten consistentemente?',
+        value: pcPlain(worstW.pct), tag: attrTag(a.within),
+        count: worstW.matched + ' de ' + worstW.inspected + ' piezas',
+        ci: ciText(worstW.ciLow, worstW.ciHigh, alpha),
+        scale: attrTrack(worstW.pct, a.within.level, worstW.ciLow, worstW.ciHigh, true),
+        foot: 'Se muestra el resultado minimo observado entre los evaluadores. El detalle se ' +
+              'presenta en la seccion inferior.'
+      });
+    }
+    h += '<div class="blk"><div class="blk-head">' +
+      '<span class="blk-k">Evaluacion global del sistema</span></div>' +
+      leads.map(function (o, i) { o.n = i + 1; return attrLead(o); }).join('') + '</div>';
+
+    /* --- Riesgos de clasificacion ---------------------------------------
+     *
+     * Solo existe con estandar y escala binaria, que es cuando el motor
+     * publica efectividad, fuga y falsa alarma. Sin eso el bloque entero no
+     * se dibuja: no hay riesgo a medias. */
+    if (r.effectiveness.length) {
+      var wEff = pick(r.effectiveness, 'effectiveness', false);
+      var wMiss = pick(r.effectiveness, 'missRate', true);
+      var wFa = pick(r.effectiveness, 'falseAlarmRate', true);
+      var riesgo = function (o) {
+        return '<div class="risk-item" title="' + esc(o.k + ': ' + o.help) + '">' +
+          '<div class="risk-k">' + esc(o.k) + '</div>' +
+          '<div class="risk-r"><span class="risk-v">' + esc(o.value) + '</span>' +
+            (o.tag ? '<span class="t ' + o.tag.level + '">' + esc(o.tag.short) + '</span>' : '') +
+          '</div>' +
+          '<span class="risk-n">' + esc(o.count) + '</span>' +
+          (o.ci ? '<span class="risk-ci">' + esc(o.ci) + '</span>' : '') +
+          '<p class="risk-s">' + esc(o.desc) +
+            '<span class="risk-lim">Limite de la aplicacion: ' + esc(o.lim) + '</span></p>' +
+        '</div>';
+      };
+      var celdas = '';
+      if (wEff) {
+        celdas += riesgo({
+          k: 'Efectividad minima', help: ATTR_HELP.effective, value: pcPlain(wEff.effectiveness),
+          tag: attrTag(a.effectiveness),
+          count: wEff.correct + ' de ' + wEff.inspected + ' piezas',
+          ci: ciText(wEff.effectivenessCiLow, wEff.effectivenessCiHigh, alpha),
+          desc: 'Menor porcentaje de piezas clasificadas correcta y consistentemente por un evaluador.',
+          lim: MSAAttribute.LIMITS.effective.ok + '%'
+        });
+      }
+      if (wMiss && wMiss.missRate !== null) {
+        celdas += riesgo({
+          k: 'Fuga maxima', help: ATTR_HELP.miss, value: pcPlain(wMiss.missRate),
+          tag: attrTag(a.missRate),
+          count: wMiss.missed + ' de ' + wMiss.rejectDecisions + ' decisiones',
+          ci: ciText(wMiss.missRateCiLow, wMiss.missRateCiHigh, alpha),
+          desc: 'Aceptar una pieza cuyo estandar es "' + r.meta.rejectCategory + '". ' +
+                'Mayor tasa individual observada.',
+          lim: MSAAttribute.LIMITS.miss.ok + '%'
+        });
+      }
+      if (wFa && wFa.falseAlarmRate !== null) {
+        celdas += riesgo({
+          k: 'Falsa alarma maxima', help: ATTR_HELP.falseAlarm, value: pcPlain(wFa.falseAlarmRate),
+          tag: attrTag(a.falseAlarmRate),
+          count: wFa.falseAlarms + ' de ' + wFa.acceptDecisions + ' decisiones',
+          ci: ciText(wFa.falseAlarmRateCiLow, wFa.falseAlarmRateCiHigh, alpha),
+          desc: 'Rechazar una pieza cuyo estandar es "' + r.meta.acceptCategory + '". ' +
+                'Mayor tasa individual observada.',
+          lim: MSAAttribute.LIMITS.falseAlarm.ok + '%'
+        });
+      }
+      h += '<div class="blk"><div class="blk-head">' +
+        '<span class="blk-k">Riesgos de clasificacion</span>' +
+        '<span class="blk-q">Como se equivoca el sistema? La fuga y la falsa alarma representan ' +
+          'errores distintos, por lo que utilizan denominadores y limites de evaluacion ' +
+          'diferentes.</span></div>' +
+        '<div class="risk">' + celdas + '</div></div>';
+    }
+
+    /* --- Indicador complementario --------------------------------------- */
+    if (m.kappa !== null && m.kappa !== undefined && isFinite(m.kappa)) {
+      /* La insignia usa el UNICO criterio implementado -adecuado desde 0.75-
+         y no nombra bandas intermedias que el resumen no sostiene. El nivel
+         de color si viene del motor, que es quien clasifica. */
+      var kOk = a.kappa && a.kappa.level === 'ok';
+      h += '<div class="blk"><div class="blk-head">' +
+        '<span class="blk-k">Indicador complementario</span>' +
+        '<span class="blk-q">La concordancia supera la esperada por azar?</span></div>' +
+        '<div class="comp">' +
+          '<span class="comp-k" title="' + esc('Kappa: ' + ATTR_HELP.kappa) + '">Kappa ' +
+            esc(m.kappaSource) + ' ' + INFO_ICON + '</span>' +
+          '<span class="comp-v">' + esc(kfmt(m.kappa)) + '</span>' +
+          (a.kappa ? '<span class="t ' + a.kappa.level + '">' +
+            (kOk ? 'Concordancia adecuada' : 'Por debajo del criterio') + '</span>' : '') +
+          '<span class="comp-ref">Criterio de referencia: minimo recomendado ' +
+            MSAAttribute.LIMITS.kappa.ok.toFixed(2) + '</span>' +
+        '</div>' +
+        '<p class="comp-s">Mide la concordancia ' + esc(m.kappaSource) + ' despues de considerar ' +
+          'la concordancia que podria ocurrir por azar. Complementa los porcentajes de acuerdo y ' +
+          'no sustituye su interpretacion.</p></div>';
+    }
+
+    /* --- Concordancia por evaluador --------------------------------------
+     *
+     * Las dos concordancias de cada evaluador en la MISMA fila. Apiladas en
+     * dos listas obligaban a saltar de una mitad a otra para comparar a una
+     * persona consigo misma, que es justo la lectura que pide la seccion. */
+    var cols = [];
+    if (r.withinAppraiser.length) {
+      cols.push({ list: r.withinAppraiser, h: 'Consistencia consigo mismo', help: ATTR_HELP.within,
+        d: 'Indica si cada evaluador clasifica la misma pieza de la misma manera en todas las replicas.' });
+    }
+    if (r.vsStandard.length) {
+      cols.push({ list: r.vsStandard, h: 'Concordancia contra el estandar', help: ATTR_HELP.vsStd,
+        d: 'Indica si cada evaluador clasifica las piezas de acuerdo con el valor de referencia.' });
+    }
+    if (cols.length) {
+      var cls = 'who-r cols-' + cols.length;
+      h += '<div class="blk"><div class="blk-head">' +
+        '<span class="blk-k">Concordancia por evaluador</span>' +
+        '<span class="blk-q">Donde se encuentran las diferencias?</span></div>';
+      h += '<div class="' + cls + ' who-sub"><span></span>' +
+        cols.map(function (c) {
+          return '<span class="who-h">' + esc(c.h) + '<span class="who-d">' + esc(c.d) + '</span></span>';
+        }).join('') + '</div>';
+      h += r.meta.operators.map(function (op) {
+        var celdas = cols.map(function (c) {
+          var e = null;
+          c.list.forEach(function (x) { if (x.operator === op) e = x; });
+          if (!e) return '<div class="who-cell"></div>';
+          var lvl = e.assessment ? e.assessment.level : 'ok';
+          return '<div class="who-cell">' +
+            attrTrack(e.pct, lvl, e.ciLow, e.ciHigh, false) +
+            '<div class="who-val">' + e.pct.toFixed(1) + '%' +
+              '<span class="who-ci">' + esc(ciText(e.ciLow, e.ciHigh, alpha)) + '</span></div>' +
+          '</div>';
+        }).join('');
+        return '<div class="' + cls + '"><span class="who-n">' + esc(op) + '</span>' + celdas + '</div>';
+      }).join('');
+      h += '<p class="note">' + INFO_ICON + '<span>Las diferencias observadas pertenecen al ' +
+        'sistema de clasificacion. Utiliza estos resultados para identificar criterios ambiguos, ' +
+        'estandares insuficientes, necesidades de entrenamiento o ayudas visuales que deban ' +
+        'mejorarse. No utilices esta vista para calificar el desempeno laboral de personas.' +
+        '</span></p></div>';
+    }
+
+    $('verdicts').innerHTML = h;
   }
 
   function renderAttributeTables(r) {

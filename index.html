@@ -247,7 +247,11 @@
       <div id="resultMsg"></div>
 
       <div id="resultBody" hidden>
-        <div class="verdicts" id="verdicts" data-methods="atributos"></div>
+        <!-- Atributos: UN solo bloque, igual que variables. Antes eran siete
+             tarjetas planas mas una tarjeta aparte de barras, que igualaban
+             concordancia, exactitud, riesgo y un estadistico complementario.
+             Todo lo arma renderAttributeSummary. -->
+        <div class="card attr-summary" id="verdicts" data-methods="atributos"></div>
 
         <!-- Variables: UN solo bloque. Antes esto eran tres cajas contiguas
              -cinco tarjetas, el resumen del R&R total y las barras de
@@ -258,12 +262,6 @@
              confiar en ella. Lo secundario baja a una tira de apoyo. Todo lo
              arma renderMsaSummary. -->
         <div id="msaSummary" data-methods="cruzado anidado" hidden></div>
-
-        <div class="card eval-card" data-methods="atributos">
-          <h3 class="eval-title">Concordancia por evaluador</h3>
-          <p class="chart-subcap">&gt;90 % aceptable &middot; 80&ndash;90 % marginal &middot; &lt;80 % malo</p>
-          <div class="eval-bars" id="attrBars"></div>
-        </div>
 
         <div class="card tabs-card">
           <div class="tabs-bar" role="tablist">

@@ -3,7 +3,7 @@
 Auditoría crítica de los tres motores MSA bajo el supuesto de que la aplicación
 **aprueba o rechaza sistemas de medición en una planta industrial**.
 
-Base auditada: commit `52b6b1e` (`main` = `develop`).
+Base auditada: commit `db8547f` (`main` = `develop`).
 Cada hallazgo marcado como confirmado fue **reproducido ejecutando los motores**,
 no inferido de la lectura del código.
 
@@ -17,8 +17,8 @@ commit, y lo que queda pendiente con su razonamiento.
 
 > **Dónde vive esto.** *(Actualizado el 1 de septiembre de 2026.)* Todas las
 > correcciones de la tabla están **en `main`**, fusionadas desde `develop` con
-> el commit de merge `6da89cc`. Ya no hay que ir a `develop` a buscarlas: la
-> advertencia anterior —«`main` sigue en `52b6b1e`, intacta»— quedó superada
+> el commit de merge `527b440`. Ya no hay que ir a `develop` a buscarlas: la
+> advertencia anterior —«`main` sigue en `db8547f`, intacta»— quedó superada
 > por ese merge.
 >
 > El mapa de commits de F-07 y los puntos a los que volver si hay que deshacer
@@ -27,14 +27,14 @@ commit, y lo que queda pendiente con su razonamiento.
 
 | Hallazgo | Prioridad | Estado | Commit |
 |---|---|---|---|
-| F-04 · Categoría de rechazo por orden de aparición | P0 | **Cerrado** | `04dc8d5` |
-| F-01 · `Var_GRR = 0` tratado como veredicto | P1 (era P0) | **Cerrado** | `3beef45`, `1fc0a3b` |
-| F-03 · El reporte de atributos lanza TypeError | P0 | **Cerrado** | `b1dffdf` |
+| F-04 · Categoría de rechazo por orden de aparición | P0 | **Cerrado** | `426eed7` |
+| F-01 · `Var_GRR = 0` tratado como veredicto | P1 (era P0) | **Cerrado** | `b5bd596`, `e0809ed` |
+| F-03 · El reporte de atributos lanza TypeError | P0 | **Cerrado** | `c6df664` |
 | F-03.1 · Impresión sin cálculo usa el encabezado de variables | P1 | **Cerrado** | este commit |
 | F-02 · Anidado ruteado a cruzado | P0 | **Cerrado** | este commit |
 | F-05 · Reporte con datos nuevos y tablas viejas | P1 | **Cerrado** | este commit |
 | F-06 · Atributos 0/1 → ANOVA de variables | P1 | **Cerrado** | este commit |
-| F-07 · %GRR sin intervalo de confianza | P1 | **CERRADO** (pendiente cotejo con Minitab) | `0105a08` |
+| F-07 · %GRR sin intervalo de confianza | P1 | **CERRADO** (pendiente cotejo con Minitab) | `ea4700c` |
 | F-14 · Inyección de fórmulas en el CSV exportado | P1 | Pendiente | — |
 | F-15 · «Validado contra AIAG» afirmado para los tres métodos | P1 | Pendiente | — |
 | F-08 · `__proto__` como nombre → NaN silencioso | P2 | Pendiente | — |
@@ -47,13 +47,13 @@ commit, y lo que queda pendiente con su razonamiento.
 | F-19 · Chart.js 4.4.1 sin lockfile, SRI ni revisión en CI | P2 | Pendiente | — |
 | F-13 · Filas duplicadas al importar se sobrescriben | P3 | Pendiente | — |
 | F-12 · Categoría llamada «otro» pierde su kappa | P3 | Pendiente | — |
-| F-20 · Duplicación cruzado/anidado; `app.js` monolítico | P3 | Parcial | `1fc0a3b` |
+| F-20 · Duplicación cruzado/anidado; `app.js` monolítico | P3 | Parcial | `e0809ed` |
 | F-21 · Sin persistencia de la captura | P3 | Pendiente | — |
 | F-22 · Cadenas desactualizadas (`<title>`, badge, meta) | P3 | Pendiente | — |
 | F-23 · `num(v, sig)` mal nombrado; escalas inconsistentes | P3 | Pendiente | — |
 | F-24 · Semáforo solo por color | P3 | Pendiente | — |
 | F-25 · `betaInv` 200 iteraciones; `getComputedStyle` en bucle | P3 | Pendiente | — |
-| F-26 · Ninguna suite tocaba el DOM | P3 | Parcial | `b1dffdf`, `ad6cfce` |
+| F-26 · Ninguna suite tocaba el DOM | P3 | Parcial | `c6df664`, `17e42a5` |
 | F-27 · `design.js` es precondición de carga, no dependencia blanda | P2 | Anotado | — |
 
 ---
@@ -81,7 +81,7 @@ inversión de la beta. **La aritmética no es el problema.**
 
 ## Hallazgos cerrados
 
-### F-04 — La categoría de rechazo salía del orden de las filas · `04dc8d5`
+### F-04 — La categoría de rechazo salía del orden de las filas · `426eed7`
 
 > **Precisión añadida el 1 de septiembre de 2026.** Lo que F-04 prohíbe es
 > **deducir** la categoría de rechazo —del orden de aparición de las filas, que
@@ -110,7 +110,7 @@ desplegable abre vacío; las tarjetas de veredicto llevan la categoría en el
 título. La prueba de invariancia de orden que existía enmascaraba el bug porque
 siempre pasaba `categories` explícitas.
 
-### F-01 — `Var_GRR = 0` no es un veredicto · `3beef45`, `1fc0a3b`
+### F-01 — `Var_GRR = 0` no es un veredicto · `b5bd596`, `e0809ed`
 
 **Enunciado original corregido:** afirmé que `Var_GRR = 0` implica falta de
 discriminación. **No la implica.** Un micrómetro excelente lo produce
@@ -213,7 +213,7 @@ veredictos, tablas, notas, CSV, las cinco gráficas y el reporte impreso son
 idénticos. Lo que antes era un error ahora es un caso válido; nada que antes
 funcionara dejó de funcionar.
 
-### F-07 — Un punto sin intervalo decidía la aceptación · `0105a08` → `55c921f` · **CERRADO**
+### F-07 — Un punto sin intervalo decidía la aceptación · `ea4700c` → `898579c` · **CERRADO**
 
 > **ACTUALIZACIÓN. El bloqueo de fuente se levantó y el MLS está implementado en
 > los tres modelos**: cruzado con interacción, cruzado sin ella y anidado. Las
@@ -256,7 +256,7 @@ funcionara dejó de funcionar.
 > qué se implementó, qué falta y por qué, con referencia a las secciones
 > exactas del documento largo.
 >
-> #### Lo que quedó implementado (commit `55c921f`)
+> #### Lo que quedó implementado (commit `898579c`)
 >
 > - **Las cuatro afirmaciones falsas sobre Minitab, retiradas** de
 >   `interval.js`, esta auditoría, `README.md` y el documento de validación:
@@ -541,12 +541,12 @@ Calcular»: prometía algo que la aplicación no hacía.
 recalcular, que los campos de opciones **no** dejen el panel caduco porque esos
 sí recalculan solos, y los tres métodos.
 
-### F-03.1 — La impresión sin cálculo usaba el encabezado de variables · `4690438`
+### F-03.1 — La impresión sin cálculo usaba el encabezado de variables · `270e9cf`
 
 **Encontrado revalidando F-03 sobre `develop` después de F-02**, no reportado en
 la auditoría original. **No es regresión de F-02:** el mismo recorrido da un
-encabezado carácter por carácter idéntico en `b1dffdf` (F-03 recién cerrada) y
-en `ad6cfce`. Es una brecha que la corrección de F-03 dejó abierta.
+encabezado carácter por carácter idéntico en `c6df664` (F-03 recién cerrada) y
+en `17e42a5`. Es una brecha que la corrección de F-03 dejó abierta.
 
 **Causa raíz.** F-03 se cerró deduciendo el método de `result.model`, y solo de
 ahí. La página se puede imprimir **sin haber calculado**, y entonces
@@ -593,7 +593,7 @@ pendiente y luego elegida, y la restauración de la interfaz en todos ellos.
 Verificado que tienen dientes: reinyectando el comportamiento viejo caen 3
 pruebas de Node y 6 comprobaciones del navegador.
 
-### F-03 y F-17 — El reporte impreso · `b1dffdf`
+### F-03 y F-17 — El reporte impreso · `c6df664`
 
 `buildPrintHeader` daba por hecha la forma de respuesta de los métodos de
 variables: `r.metrics.pctStudyVar.toFixed(2)` sobre un resultado de atributos

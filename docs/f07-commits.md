@@ -1,12 +1,20 @@
 # F-07 — Mapa de commits y puntos de retorno
 
+> **Actualización — 19 de septiembre de 2026.** Los hashes de este documento
+> **se reescribieron**. Al retirar del historial el libro de Excel privado y el
+> volcado de sus datos, `git filter-repo` recalculó todos los commits desde el
+> primero que los tocaba, así que los identificadores originales ya no existen
+> en el repositorio. Los de aquí son los nuevos, remapeados uno a uno desde el
+> mapa que dejó la reescritura: apuntan al mismo cambio, con otro nombre. Una
+> copia del historial anterior no queda publicada en ningún sitio.
+
 **Para qué sirve este documento.** F-07 es, con diferencia, el hallazgo más
 extenso de la auditoría: ocho commits, dos módulos nuevos y unas 4 000 líneas
 entre código, pruebas y documentación. Si en algún momento hay que deshacer
 parte de ese trabajo, esto dice **qué commit deshace qué** y **a qué punto
 volver**, sin tener que reconstruirlo leyendo el historial.
 
-Escrito el 31 de agosto de 2026, con `develop` en `bbccad8`. Los hashes de los
+Escrito el 31 de agosto de 2026, con `develop` en `fca9c5b`. Los hashes de los
 commits de F-07 y los puntos de retorno **no han cambiado** y siguen siendo
 válidos; lo que sí cambió es dónde está cada rama (ver el recuadro siguiente).
 
@@ -15,7 +23,7 @@ válidos; lo que sí cambió es dónde está cada rama (ver el recuadro siguient
 ## Antes que nada: dónde está cada cosa
 
 > **Actualizado el 1 de septiembre de 2026.** `develop` se fusionó en `main`
-> con el commit de merge `6da89cc`, así que el aviso original de este apartado
+> con el commit de merge `527b440`, así que el aviso original de este apartado
 > —«`main` no tiene nada de la auditoría»— **ya no aplica**.
 >
 > ```
@@ -50,17 +58,17 @@ git log --oneline origin/develop..origin/main      # vacío = main no ha divergi
 
 | # | Commit | Hora | Qué hizo |
 |---|---|---|---|
-| 1 | `0105a08` | 16:18 | **Primera implementación.** Aparece `interval.js` con el intervalo por GPQ, y el veredicto pasa a salir del intervalo. Es el commit que después hubo que corregir en casi todo. |
-| 2 | `81508a9` | 16:41 | **El informe que encontró el error.** Añade `docs/f07-validacion-gpq.md` y `tests/evidencia-f07.js`. No toca la aplicación: mide y documenta que la afirmación «GPQ es el método de Minitab» era falsa. |
-| 3 | `55c921f` | 18:19 | **La corrección de fondo.** El intervalo deja de dictaminar, se retira la atribución a Minitab, el dictamen vuelve a la evaluación puntual AIAG. Toca 12 archivos. |
-| 4 | `cea0c3a` | 20:05 | Sólo documentación: traspaso de sesión. |
-| 5 | `2211ece` | 13:59 | Sólo el documento técnico de referencia, subido desde la web. No toca código. |
-| 6 | `7e229a3` | 20:11 | Sólo documentación: corrige el diagnóstico «las fórmulas son sólo PNG». |
-| 7 | `44a5949` | 21:45 | **MLS en el modelo cruzado.** Módulo nuevo `assets/js/mls.js`, cuantiles χ² y F en `stats.js`, `docs/mls-transcripcion.md`, `tests/tests-mls.js`, `tests/mls-cobertura.js`. |
-| 8 | `bbccad8` | 22:12 | **MLS en el anidado**, y las dos cuadráticas unificadas en una plantilla. |
+| 1 | `ea4700c` | 16:18 | **Primera implementación.** Aparece `interval.js` con el intervalo por GPQ, y el veredicto pasa a salir del intervalo. Es el commit que después hubo que corregir en casi todo. |
+| 2 | `73c9637` | 16:41 | **El informe que encontró el error.** Añade `docs/f07-validacion-gpq.md` y `tests/evidencia-f07.js`. No toca la aplicación: mide y documenta que la afirmación «GPQ es el método de Minitab» era falsa. |
+| 3 | `898579c` | 18:19 | **La corrección de fondo.** El intervalo deja de dictaminar, se retira la atribución a Minitab, el dictamen vuelve a la evaluación puntual AIAG. Toca 12 archivos. |
+| 4 | `2a11ed8` | 20:05 | Sólo documentación: traspaso de sesión. |
+| 5 | `e0c0db5` | 13:59 | Sólo el documento técnico de referencia, subido desde la web. No toca código. |
+| 6 | `ccbb96d` | 20:11 | Sólo documentación: corrige el diagnóstico «las fórmulas son sólo PNG». |
+| 7 | `5a36b66` | 21:45 | **MLS en el modelo cruzado.** Módulo nuevo `assets/js/mls.js`, cuantiles χ² y F en `stats.js`, `docs/mls-transcripcion.md`, `tests/tests-mls.js`, `tests/mls-cobertura.js`. |
+| 8 | `fca9c5b` | 22:12 | **MLS en el anidado**, y las dos cuadráticas unificadas en una plantilla. |
 
-Nota sobre el orden: `2211ece` tiene hora 13:59 pero está **después** de
-`55c921f` en el historial. Se subió desde la interfaz web con otra marca de
+Nota sobre el orden: `e0c0db5` tiene hora 13:59 pero está **después** de
+`898579c` en el historial. Se subió desde la interfaz web con otra marca de
 tiempo. Guíate por el orden del historial, no por la hora.
 
 ---
@@ -69,19 +77,19 @@ tiempo. Guíate por el orden del historial, no por la hora.
 
 Tres sitios donde la aplicación queda coherente y con las pruebas en verde.
 
-### A · Antes de F-07 por completo → `31747ae`
+### A · Antes de F-07 por completo → `18f162a`
 
-Es el commit de F-06, padre de `0105a08`. La aplicación **no tiene intervalo de
+Es el commit de F-06, padre de `ea4700c`. La aplicación **no tiene intervalo de
 confianza de ninguna clase**: publica el %GRR puntual y dictamina con las bandas
 AIAG. Las correcciones de F-01 a F-06 están todas.
 
-### B · Con intervalo, pero sin MLS → `7e229a3`
+### B · Con intervalo, pero sin MLS → `ccbb96d`
 
 El intervalo existe y es GPQ, rotulado como experimental, y **no dictamina**.
 Es el estado que dejó la sesión anterior. Si lo que falla es el MLS y no el
 concepto de publicar un intervalo, éste es el punto al que volver.
 
-### C · MLS sólo en el cruzado → `44a5949`
+### C · MLS sólo en el cruzado → `5a36b66`
 
 El anidado sigue con GPQ experimental. Útil si el problema aparece en el
 anidado, cuyos coeficientes `a` y `b` son **derivados**, no leídos de la fuente
@@ -93,8 +101,8 @@ algo no cuadra.
 ## Cómo volver, sin romper nada
 
 **Lo primero, y va en serio: no uses `git revert` sobre un commit intermedio de
-F-07.** Los ocho se pisan entre sí — `55c921f` reescribe 222 líneas de
-`interval.js` que `0105a08` acababa de crear, y `44a5949` y `bbccad8` vuelven a
+F-07.** Los ocho se pisan entre sí — `898579c` reescribe 222 líneas de
+`interval.js` que `ea4700c` acababa de crear, y `5a36b66` y `fca9c5b` vuelven a
 reescribirlas. Revertir uno del medio deja conflictos en casi todos los archivos
 y, peor, puede dejar el código en un estado que nunca existió y que nadie ha
 probado.

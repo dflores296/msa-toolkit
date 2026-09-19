@@ -1,9 +1,10 @@
 /* ============================================================================
  * anova.js - Motor de calculo Gage R&R, metodo ANOVA cruzado (crossed).
  *
- * Reemplaza el motor VBA del libro Gage_RR_Study.xlsm corrigiendo los errores
- * documentados en docs/auditoria-motor-excel.md. Validado contra el dataset
- * del apendice del manual AIAG MSA 4a ed. (= gageaiag.mtw de Minitab).
+ * Validado contra el dataset del apendice del manual AIAG MSA 4a ed.
+ * (= gageaiag.mtw de Minitab). Nacio para corregir los errores de un libro de
+ * Excel con macros que resolvia el mismo estudio, auditado en su momento en
+ * docs/auditoria-motor-excel.md.
  *
  * Sin dependencias. Sin DOM. Determinista. Reutilizable desde los tests.
  * ==========================================================================*/

@@ -7,3 +7,10 @@ node_modules/
 # (ver docs/f07-cabos-sueltos.md). El proyecto no tiene dependencias.
 package.json
 package-lock.json
+
+# Material privado: el libro de Excel auditado en docs/auditoria-motor-excel.md
+# y el volcado de sus datos se retiraron del repositorio, que es publico.
+# Estas lineas evitan que vuelvan a entrar por descuido.
+*.xlsm
+*.xls
+datasets/estudio-excel-original.json

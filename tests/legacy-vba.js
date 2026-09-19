@@ -1,11 +1,11 @@
 /* ============================================================================
- * legacy-vba.js - Reimplementacion FIEL del motor VBA original del libro
- * Gage_RR_Study.xlsm, incluidos sus errores. NO se usa en la aplicacion:
- * existe solo para mostrar lado a lado el efecto de cada correccion.
+ * legacy-vba.js - Reimplementacion FIEL del motor VBA de un libro de Excel con
+ * macros que resolvia este mismo estudio, incluidos sus errores. NO se usa en
+ * la aplicacion: existe solo para mostrar lado a lado el efecto de cada
+ * correccion, y es la evidencia que sostiene docs/auditoria-motor-excel.md.
  *
- * Reproduce exactamente, sobre los datos del propio libro del usuario, los
- * valores de las hojas SS_Calculos y Varianza (SC_Parte = 0.0019037,
- * Total Gage R&R = 0.26 %, %Study Variation = 5.09 %, NDC = 27).
+ * El libro era material privado y no esta en el repositorio. Las cantidades
+ * que reproducia digito por digito quedan anotadas en esa auditoria.
  * ==========================================================================*/
 (function (global) {
   'use strict';

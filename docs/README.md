@@ -5,8 +5,7 @@ estado actual o es un registro histórico**, que es la distinción que más se
 presta a confusión en esta carpeta: varios documentos son informes fechados y
 hay que leerlos como tales, no como referencia viva.
 
-Última revisión: **1 de septiembre de 2026**, con `main` en `6da89cc` y
-`develop` en `91032f5`.
+Última revisión: **19 de septiembre de 2026**.
 
 ---
 
@@ -17,7 +16,12 @@ es un defecto de este documento.
 
 | Documento | Qué es |
 |---|---|
-| [`../README.md`](../README.md) | Punto de entrada del proyecto: qué hace, cómo se usa, cómo se prueba y qué **no** cubre. |
+| [`../README.md`](../README.md) | **Portada del proyecto**: qué es la herramienta, para qué sirve, cómo se usa y contra qué está validada. Descriptivo, sin notas de desarrollo. |
+| [`motores.md`](motores.md) | Los tres motores de cálculo: contra qué se valida cada uno, cómo se identifica una pieza en cada método y cómo se elige la categoría de rechazo. |
+| [`discriminacion-y-resolucion.md`](discriminacion-y-resolucion.md) | Qué significa un `%GRR = 0 %`, cómo se infiere el escalón con que se anotaron las lecturas, contra qué se compara el 10 % y qué constantes intervienen. |
+| [`intervalo-de-confianza.md`](intervalo-de-confianza.md) | El intervalo del %GRR: qué método lo calcula (MLS, con el GPQ de segunda opinión) y por qué **no** dictamina. Puerta de entrada a los documentos de F-07. |
+| [`pruebas.md`](pruebas.md) | Qué cubre cada suite, las tres herramientas de navegador que no corren en CI, y **qué sigue sin cubrirse**. |
+| [`despliegue.md`](despliegue.md) | Publicar en GitHub Pages, el versionado de los assets y el uso sin servidor. |
 | [`estandar-de-diseno.md`](estandar-de-diseno.md) | El estándar de interfaz y de redacción que sigue la aplicación. Se aplica a cualquier cambio de pantalla. |
 | [`mls-transcripcion.md`](mls-transcripcion.md) | **De dónde salió cada fórmula de `assets/js/mls.js`**: qué se leyó verbatim, las diez erratas de la fuente, y los puntos donde la implementación se aparta de lo impreso con el álgebra que lo justifica. Es el respaldo del intervalo de confianza. |
 | [`mls-fuente-minitab.md`](mls-fuente-minitab.md) | El documento técnico de referencia sobre el método MLS del que se trabajó. Material de origen, no escrito por este proyecto. |
@@ -45,6 +49,7 @@ antes que el cuerpo del documento.**
 
 | Archivo | Qué es |
 |---|---|
+| `portada.png` | Captura de la aplicación que encabeza el README. Se regenera con Playwright cargando el ejemplo AIAG en el método cruzado. |
 | `Gage R&R Study.xlsm` | El libro Excel original, con el motor VBA que esta aplicación reemplaza. **Su nombre no se normaliza**: es el archivo tal como se recibió, y se cita por ese nombre en `auditoria-motor-excel.md`. |
 
 ---

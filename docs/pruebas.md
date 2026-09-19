@@ -10,6 +10,8 @@ Qué cubre cada suite, qué **no** cubre, y qué hace falta para correrla.
 
 230 pruebas de regresión entre los modelos puros —todas sobre el cálculo:
 corren en Node, sin navegador, y no tocan la pantalla.
+
+`tests/index.html` corre 204 de ellas: no carga `tests-interval.js` ni `tests-carga.js`.
 <!-- CIFRAS:FIN pruebas -->
 
 Para correrlas:

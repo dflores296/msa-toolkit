@@ -41,7 +41,7 @@ antes que el cuerpo del documento.**
 | Documento | Fecha | Estado |
 |---|---|---|
 | [`auditoria-2026-08-31.md`](auditoria-2026-08-31.md) | 31 ago 2026 | **Vigente como lista de hallazgos.** Quince siguen pendientes, dos de ellos P1 (F-14, F-15). La tabla de estado está al día; el cuerpo de cada hallazgo cerrado es histórico. |
-| [`auditoria-motor-excel.md`](auditoria-motor-excel.md) | — | Auditoría de un libro de Excel con macros que resolvía el mismo estudio: 12 defectos en su motor de cálculo, con la evidencia numérica de cada uno. **Material interno**, histórico y cerrado. No describe a la aplicación. |
+| [`auditoria-motor-excel.md`](auditoria-motor-excel.md) | — | Auditoría de un libro de Excel con macros que resolvía el mismo estudio: 12 defectos en su motor de cálculo, con la evidencia numérica de cada uno. Histórico y cerrado; **el libro auditado no está en el repositorio** y el documento no describe a la aplicación. |
 | [`f07-validacion-gpq.md`](f07-validacion-gpq.md) | 31 ago 2026 | **Superado en parte.** Describe el GPQ cuando era el método de la aplicación. Hoy el GPQ es solo segunda opinión. Lleva recuadro de actualización. |
 | [`f07-commits.md`](f07-commits.md) | 31 ago 2026 | Mapa de los ocho commits de F-07 y puntos de retorno. Los hashes siguen siendo válidos; el estado de las ramas lleva recuadro de actualización. |
 
@@ -50,7 +50,6 @@ antes que el cuerpo del documento.**
 | Archivo | Qué es |
 |---|---|
 | `portada.png` | Captura de la aplicación que encabeza el README. Se regenera con Playwright cargando el ejemplo AIAG en el método cruzado. |
-| `Gage R&R Study.xlsm` | El libro de Excel que audita `auditoria-motor-excel.md`, conservado como su material de referencia. **Material interno**, no parte de la herramienta. Su nombre no se normaliza porque la auditoría lo cita así. |
 
 ---
 

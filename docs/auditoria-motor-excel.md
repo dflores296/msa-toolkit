@@ -1,5 +1,13 @@
 # Auditoría del motor de cálculo `Gage R&R Study.xlsm`
 
+> **Actualización — 19 de septiembre de 2026.** El libro auditado era material
+> privado y **ya no está en el repositorio**, igual que el volcado de sus datos
+> que vivía en `datasets/`. Este informe se conserva íntegro porque documenta
+> qué se sabía y cuándo, y porque la evidencia numérica de cada hallazgo se
+> sostiene sola: las cantidades citadas están reproducidas en
+> `tests/legacy-vba.js`. Las referencias al archivo `.xlsm` y a sus hojas
+> describen un original que el lector no puede abrir desde aquí.
+
 Revisión del código VBA del libro actual, los errores encontrados, su efecto
 numérico y cómo quedan corregidos en `assets/js/anova.js`.
 

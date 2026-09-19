@@ -87,20 +87,37 @@ function validacion() {
  * report(): report() imprime y fija process.exitCode, y aqui solo hace falta el
  * total. La lista se lee de run-node.js para que agregar una suite alla no deje
  * este conteo corto sin que nadie lo note.
+ *
+ * Cuenta ademas cuantas de esas pruebas corren en tests/index.html, que no
+ * carga todas las suites. Las dos cifras salen de contar, no de teclearlas, y
+ * por eso la documentacion puede nombrar la diferencia sin despegarse.
  */
-function totalPruebas() {
-  var runner = fs.readFileSync(path.join(ROOT, 'tests/run-node.js'), 'utf8');
-  var suites = [];
-  var re = /require\('\.\/(tests[^']*\.js)'\)/g, m;
-  while ((m = re.exec(runner)) !== null) suites.push(m[1]);
-  if (!suites.length) throw new Error('No se encontraron suites en tests/run-node.js.');
+function conteos() {
+  function suitesDe(archivo, re) {
+    var texto = fs.readFileSync(path.join(ROOT, archivo), 'utf8');
+    var out = [], m;
+    while ((m = re.exec(texto)) !== null) if (out.indexOf(m[1]) === -1) out.push(m[1]);
+    if (!out.length) throw new Error('No se encontraron suites en ' + archivo + '.');
+    return out;
+  }
+  var enNode      = suitesDe('tests/run-node.js',   /require\('\.\/(tests[^']*\.js)'\)/g);
+  var enNavegador = suitesDe('tests/index.html', /src="(tests[^"]*\.js)(?:\?[^"]*)?"/g);
 
   require(path.join(ROOT, 'tests/harness.js'));
-  suites.forEach(function (s) { require(path.join(ROOT, 'tests', s)); });
+  var kit = globalThis.MSATestKit;
+  var porSuite = {}, previo = 0;
+  enNode.forEach(function (s) {
+    require(path.join(ROOT, 'tests', s));
+    porSuite[s] = kit.results.length - previo;
+    previo = kit.results.length;
+  });
 
-  var total = globalThis.MSATestKit.results.length;
+  var total = kit.results.length;
   if (!total) throw new Error('Las suites no registraron ninguna prueba.');
-  return total;
+
+  var navegador = enNavegador.reduce(function (n, s) { return n + (porSuite[s] || 0); }, 0);
+  var faltan = enNode.filter(function (s) { return enNavegador.indexOf(s) === -1; });
+  return { total: total, navegador: navegador, faltan: faltan };
 }
 
 // --- Comparacion contra Minitab ----------------------------------------------
@@ -147,13 +164,19 @@ function tablaValidacion(v) {
   ].join('\n');
 }
 
-function conteoPruebas(total) {
-  return [
+function conteoPruebas(c) {
+  var lineas = [
     AVISO,
     '',
-    total + ' pruebas de regresión entre los modelos puros —todas sobre el cálculo:',
+    c.total + ' pruebas de regresión entre los modelos puros —todas sobre el cálculo:',
     'corren en Node, sin navegador, y no tocan la pantalla.'
-  ].join('\n');
+  ];
+  if (c.faltan.length) {
+    lineas.push('');
+    lineas.push('`tests/index.html` corre ' + c.navegador + ' de ellas: no carga ' +
+                c.faltan.map(function (s) { return '`' + s + '`'; }).join(' ni ') + '.');
+  }
+  return lineas.join('\n');
 }
 
 // --- Reescritura de los marcadores -------------------------------------------
@@ -183,7 +206,7 @@ function sustituir(texto, archivo, nombre, cuerpo) {
 function main() {
   cargarMotor();
   var v = validacion();
-  var total = totalPruebas();
+  var c = conteos();
 
   if (CHECK) {
     var desviados = comprobarContraMinitab(v);
@@ -198,7 +221,7 @@ function main() {
   var bloques = [
     { archivo: 'README.md',        nombre: 'validacion', cuerpo: tablaValidacion(v) },
     { archivo: 'docs/motores.md',  nombre: 'validacion', cuerpo: tablaValidacion(v) },
-    { archivo: 'docs/pruebas.md',  nombre: 'pruebas',    cuerpo: conteoPruebas(total) }
+    { archivo: 'docs/pruebas.md',  nombre: 'pruebas',    cuerpo: conteoPruebas(c) }
   ];
 
   var despegados = [];
@@ -220,11 +243,11 @@ function main() {
       console.error('  node tools/build-cifras.js');
       process.exit(1);
     }
-    console.log('Las cifras de la documentacion coinciden con los datos (' + total + ' pruebas).');
+    console.log('Las cifras de la documentacion coinciden con los datos (' + c.total + ' pruebas).');
     return;
   }
 
-  console.log('Cifras al dia: ' + total + ' pruebas, %GRR ' + d(v.pctStudyVar, 2) + ' %, NDC ' + v.ndc + '.');
+  console.log('Cifras al dia: ' + c.total + ' pruebas, %GRR ' + d(v.pctStudyVar, 2) + ' %, NDC ' + v.ndc + '.');
 }
 
 try {

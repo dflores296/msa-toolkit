@@ -19,10 +19,12 @@ página, se capturan las mediciones y sale el estudio listo para imprimir.
 
 ## Para qué sirve
 
-Reemplaza el libro de Excel con macros que se usaba para los Gage R&R, con el
-motor de cálculo corregido: el original tenía
-[12 defectos](docs/auditoria-motor-excel.md) en la tabla ANOVA, y cuatro de
-ellos podían cambiar el veredicto.
+Antes de confiar en una medición hay que saber cuánta de su variación viene de
+la pieza y cuánta del sistema que la mide: el instrumento, el método y el
+operador. Eso es un **estudio MSA**, y es requisito habitual en IATF 16949 y en
+los PPAP de automotriz.
+
+Esta herramienta hace los tres estudios que cubren la mayoría de los casos:
 
 | Método | Cuándo se usa | Qué devuelve |
 |---|---|---|
@@ -41,7 +43,7 @@ estudio que parece válido y no lo es. Se pregunta antes, y cancelar no toca nad
 1. **Configuración** — número de operadores, piezas y réplicas, con nombres
    editables.
 2. **Captura** — se genera la tabla; escribes las mediciones o pegas un bloque
-   copiado de Excel directamente en la primera celda.
+   copiado de una hoja de cálculo directamente en la primera celda.
 3. **Resultados** — tabla ANOVA, componentes de varianza, evaluación del sistema
    de medición y las gráficas. Los límites de especificación son opcionales.
 
@@ -60,6 +62,10 @@ El motor cruzado se compara contra el dataset del apéndice del manual **AIAG MS
 4.ª ed.** (10 piezas × 3 operadores × 3 réplicas), el mismo que Minitab
 distribuye como `gageaiag.mtw`:
 
+<!-- CIFRAS:INICIO validacion -->
+<!-- Generado por tools/build-cifras.js desde datasets/ y tests/.
+     No editar a mano: se regenera, y el CI lo verifica con --check. -->
+
 | Cantidad | MSA Toolkit | Minitab publicado |
 |---|---|---|
 | SC Parte / Operador / Interacción / Repetibilidad | 88.3619 / 3.1673 / 0.3590 / 2.7589 | idem |
@@ -67,6 +73,7 @@ distribuye como `gageaiag.mtw`:
 | % Contribución Gage R&R | 7.76 % | 7.76 % |
 | % Study Variation Gage R&R | 27.86 % | 27.86 % |
 | NDC | 4 | 4 |
+<!-- CIFRAS:FIN validacion -->
 
 El anidado y el de atributos no tienen todavía un dataset publicado de
 referencia, y **no** se validan contra números inventados: se anclan en
@@ -80,8 +87,7 @@ node tests/run-node.js
 ```
 
 o abriendo [`tests/index.html`](https://dflores296.github.io/msa-toolkit/tests/)
-en el navegador, que además muestra lado a lado los resultados del motor
-corregido y los del motor VBA original.
+en el navegador, que muestra el detalle de cada prueba.
 
 ## Estructura
 
@@ -91,7 +97,8 @@ corregido y los del motor VBA original.
 | `assets/js/` | Los motores de cálculo (puros, sin DOM) y la interfaz |
 | `assets/vendor/` | Chart.js, servido desde el propio repositorio |
 | `datasets/` | Casos de validación con resultados publicados |
-| `tests/` | Suite de regresión y reimplementación del VBA original |
+| `tests/` | Suite de regresión de los motores |
+| `tools/` | Utilidades del repositorio, no de la aplicación |
 | `docs/` | Documentación, auditorías y estándar de diseño |
 
 `assets/js/anova.js` no depende del DOM ni de ninguna librería: se puede
@@ -114,14 +121,14 @@ consultan:
   interfaz y de redacción. Cada método nuevo debe cumplirlo, o cambiarlo primero
 - [`docs/despliegue.md`](docs/despliegue.md) — publicar en GitHub Pages
 - [`docs/auditoria-2026-08-31.md`](docs/auditoria-2026-08-31.md) — auditoría
-  crítica de los tres motores bajo el supuesto de que la aplicación aprueba o
-  rechaza sistemas de medición en planta, con el estado de cada hallazgo
+  crítica de los tres motores bajo el supuesto de que de su resultado depende
+  aprobar o rechazar un sistema de medición real, con el estado de cada hallazgo
 
 ## Alcance
 
-**El alcance planeado está cubierto.** Los tres métodos que se usan en planta
-—mediciones normales, pruebas destructivas e inspección por atributos— están
-hechos, cada uno con su suite de regresión.
+**El alcance planeado está cubierto.** Los tres diseños de estudio más
+habituales —mediciones normales, pruebas destructivas e inspección por
+atributos— están hechos, cada uno con su suite de regresión.
 
 Lo que se evaluó y se decidió **no** hacer, con su razón, está en
 [`docs/plan-siguientes-metodos.md`](docs/plan-siguientes-metodos.md): Promedio y

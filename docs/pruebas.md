@@ -4,15 +4,22 @@ Qué cubre cada suite, qué **no** cubre, y qué hace falta para correrla.
 
 ## La suite de motor
 
+<!-- CIFRAS:INICIO pruebas -->
+<!-- Generado por tools/build-cifras.js desde datasets/ y tests/.
+     No editar a mano: se regenera, y el CI lo verifica con --check. -->
+
 230 pruebas de regresión entre los modelos puros —todas sobre el cálculo:
-corren en Node, sin navegador, y no tocan la pantalla. Para correrlas:
+corren en Node, sin navegador, y no tocan la pantalla.
+<!-- CIFRAS:FIN pruebas -->
+
+Para correrlas:
 
 ```bash
 node tests/run-node.js      # en terminal
 ```
 
-o abre `tests/index.html` en el navegador, que además muestra lado a lado los
-resultados del motor corregido y los del motor VBA original.
+o abre `tests/index.html` en el navegador, que muestra el detalle de cada
+prueba.
 
 Es lo único que corre en integración continua (`.github/workflows/ci.yml`).
 

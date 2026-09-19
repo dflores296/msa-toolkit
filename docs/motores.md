@@ -23,6 +23,10 @@ El motor está validado contra el dataset del apéndice del manual **AIAG MSA
 4.ª ed.** (10 piezas × 3 operadores × 3 réplicas), el mismo que Minitab
 distribuye como `gageaiag.mtw`:
 
+<!-- CIFRAS:INICIO validacion -->
+<!-- Generado por tools/build-cifras.js desde datasets/ y tests/.
+     No editar a mano: se regenera, y el CI lo verifica con --check. -->
+
 | Cantidad | MSA Toolkit | Minitab publicado |
 |---|---|---|
 | SC Parte / Operador / Interacción / Repetibilidad | 88.3619 / 3.1673 / 0.3590 / 2.7589 | idem |
@@ -30,6 +34,7 @@ distribuye como `gageaiag.mtw`:
 | % Contribución Gage R&R | 7.76 % | 7.76 % |
 | % Study Variation Gage R&R | 27.86 % | 27.86 % |
 | NDC | 4 | 4 |
+<!-- CIFRAS:FIN validacion -->
 
 ## Motor anidado
 

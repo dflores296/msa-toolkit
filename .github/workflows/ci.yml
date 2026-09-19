@@ -15,3 +15,9 @@ jobs:
           node-version: '20'
       - name: Suite de regresion del motor ANOVA
         run: node tests/run-node.js
+
+      # --check no escribe: falla el build si las cifras de la documentacion se
+      # despegaron de los datos, o si el motor dejo de reproducir los valores
+      # publicados de Minitab. Regenerarlas es parte del cambio, no del deploy.
+      - name: Verificar las cifras de la documentacion
+        run: node tools/build-cifras.js --check

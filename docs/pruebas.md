@@ -11,7 +11,7 @@ Qué cubre cada suite, qué **no** cubre, y qué hace falta para correrla.
 230 pruebas de regresión entre los modelos puros —todas sobre el cálculo:
 corren en Node, sin navegador, y no tocan la pantalla.
 
-`tests/index.html` corre 204 de ellas: no carga `tests-interval.js` ni `tests-carga.js`.
+`tests/index.html` corre 224 de ellas: no carga `tests-carga.js`.
 <!-- CIFRAS:FIN pruebas -->
 
 Para correrlas:
@@ -35,6 +35,11 @@ orden correcto funcione **y que cargar en el orden equivocado falle**. Existe
 porque `anova-nested.js` dereferencia `MSADesign` al evaluarse: es una
 precondición real, y se prueba en vez de disimularse con una degradación
 silenciosa.
+
+Es la única suite que no corre en `tests/index.html`, y no por descuido: lee los
+tres cargadores del disco con `fs` y evalúa cada módulo en un sandbox de `vm`,
+cosa que un navegador no puede hacer. La propia suite se salta a sí misma si no
+encuentra `require`.
 
 ## Que un método no mueva al otro
 

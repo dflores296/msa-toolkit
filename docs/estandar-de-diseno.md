@@ -31,8 +31,10 @@ Banco de trabajo de dos columnas, `.workbench`:
 Tres encabezados, uno por seccion: **1 Configuracion**, **2 Captura**,
 **3 Resultados en vivo**. Los tres son identicos:
 
-- Insignia `.step`: cuadro de 20x20, radio 6, fondo `--accent`, texto mono 11 px.
-- Titulo 13.5 px / 600, a 10 px de la insignia, `align-items: center`
+- Insignia `.step`: casilla neutra de 22x22, radio 6, fondo `--surface-2` con borde
+  fino, numero en mono 11 px y `--ink-soft`. Sin relleno de color: el color de la
+  pantalla queda para lo que se pulsa y para el semaforo.
+- Titulo Inter 15 px / 600, a 10 px de la insignia, `align-items: center`
   (no `baseline`: deja la insignia 1.5 px baja).
 - Las tarjetas de entrada son `<details class="card">` con `summary.config-summary`:
   se pliegan, y la flecha va a la derecha (`::after`), nunca a los dos lados.
@@ -42,7 +44,9 @@ Tres encabezados, uno por seccion: **1 Configuracion**, **2 Captura**,
 ### Selector de metodo
 
 La barra superior lleva un selector segmentado con los metodos disponibles
-(`.method-switch`), con la misma caja que el interruptor de tema. No es un menu
+(`.method-switch`), con el mismo riel que el interruptor de tema (pildora en
+claro, 8 px en oscuro; el tema se elige con dos iconos SVG, sol y luna, con su
+nombre en `.sr-only`). No es un menu
 que se oculta: con pocas entradas conviene verlas todas, y esconderlas oculta
 tambien que el producto tiene mas de un metodo.
 
@@ -64,6 +68,18 @@ tambien que el producto tiene mas de un metodo.
 - Cuando la lista pase de unas ocho entradas o aparezcan familias distintas
   (MSA, cartas de control, capacidad), el paso siguiente es un desplegable
   agrupado anclado en la barra, no un cajon lateral.
+
+### Barra superior y estado vacio
+
+- **Un renglon desde 1200 px.** A la izquierda la marca y, debajo, el estudio
+  citado (la insignia) y su tamano; es lo unico que cede, recortado con puntos
+  suspensivos. Ejemplo AIAG, Importar y Exportar son botones de texto
+  (`.quiet`); Recalcular (contorno) e Imprimir (primaria) van al final, juntos.
+- **Por debajo de 760 px la barra no es fija**: en telefono se comia dos
+  tercios de la pantalla.
+- **Antes de calcular**, el panel de resultados muestra `.empty-state`: que
+  hacer, y las mismas dos salidas que la barra (ejemplo AIAG e importar). Un
+  solo resaltado en el titular.
 
 ### Un metodo no se lleva su propia pantalla
 
@@ -162,8 +178,9 @@ el metodo activo.
 | Elemento | Valor |
 |---|---|
 | Separacion entre tarjetas de una columna | 14 px (captura) / 18 px (resultados) |
-| Relleno de tarjeta | 14 px 16 px (12 px 16 px si es `details`) |
-| Radio de tarjeta | 10 px |
+| Relleno de tarjeta | 18 px 20 px en captura, 22 px 24 px en resultados |
+| Radio de tarjeta | `--r-card`: 10 px en claro, 8 px en oscuro (16 px el dictamen y el estado vacio en claro) |
+| Radio de boton y riel | `--r-ctl`: pildora en claro, 8 px en oscuro |
 | Rejilla de campos | `gap: 14px 16px` |
 | Rejilla de graficas | `gap: 14px` |
 
@@ -207,7 +224,7 @@ La regla que queda, y que vale para cualquier metodo que publique un dictamen:
 
 | | Tratamiento |
 |---|---|
-| **Indicadores que deciden** | Cifra de 30 px, insignia con su categoria, escala con los umbrales y —si existe— su intervalo en el carril de abajo |
+| **Indicadores que deciden** | Cifra Inter 40 px / 500, rotulo en mono, insignia con su categoria, escala con los umbrales y —si existe— su intervalo en el carril de abajo |
 | **Indicadores de apoyo** | Tira horizontal, cifra de 17 px, micro-pastilla y una sub-linea. Un tercio del peso |
 
 - **Una cifra se publica UNA vez.** Si aparece dos veces en la misma pantalla,
@@ -388,6 +405,35 @@ Dos temas, claro y oscuro, con tokens en `:root` y `:root[data-theme="dark"]`.
 Todo color de interfaz sale de un token; ninguno se escribe literal en el CSS de
 componentes.
 
+Desde octubre de 2026 (ver [`propuesta-rediseno.md`](propuesta-rediseno.md)):
+
+| Rol | Claro (estilo Seline) | Oscuro (estilo Dovetail) |
+|---|---|---|
+| Lienzo / banda de resultados | `#fafaf9` / `#f5f5f4` | `#0a0a0a` / `#0f0f0f` con rejilla de 48 px |
+| Tarjeta | `#ffffff` + borde `#e8e6e5` | `#1e1e1e` + borde `#313131`, sin sombra |
+| Tinta / suave / tenue | `#0c0a09` / `#57534e` / `#6f6964` | `#ffffff` / `#a7a7a7` / `#8a8a8a` |
+| Primaria (`--accent`) | cian `#3ba6f1` con texto tinta | blanco con texto `#0a0a0a` |
+| Enlaces, pestana activa, foco (`--accent-ink`) | `#1f6fae` | `#6798ff` |
+| Informacion e interpretacion | `--surface-2` con borde fino, texto tinta | igual |
+
+- **El cian, una vez por vista.** Es lo unico con color que se pulsa. Por eso
+  Regenerar tabla, que vive junto a Calcular, va en tinta.
+- **Texto tinta sobre cian**, no blanco: blanco sobre `#3ba6f1` da 2.6:1.
+- Todo par de texto y fondo cumple 4.5:1 en los dos temas.
+- **Sombra solo en el dictamen** (y el estado vacio) en claro; en oscuro no hay
+  sombras, la jerarquia va por tono.
+
+### Tipografia
+
+Dos familias, autoalojadas en `assets/fonts/` (la app funciona sin conexion):
+
+- **Inter** en todo el texto. Titulos 15-16 px / 600 con tracking negativo;
+  cifras que deciden 40 px / 500 tabulares.
+- **JetBrains Mono** en los rotulos de seccion (`.lead-k`, `.blk-k`,
+  encabezados de tabla, rotulo de familia del selector), en mayusculas con
+  +0.07em, y en las cifras de tablas, celdas e intervalos.
+- Sin serif.
+
 ### Un boton pesa lo que pesa su consecuencia
 
 `.primary` (Calcular) y `.danger` (Limpiar mediciones, Reiniciar estudio) van
@@ -423,6 +469,18 @@ Los tonos elegidos son legibles sobre fondo claro y oscuro:
 Al imprimir se fuerza `print-color-adjust: exact`: si el semaforo se va en
 blanco y negro, el reporte pierde el dato.
 
+### Colores que el tema no toca
+
+Requisito tecnico: estos colores son los mismos en los dos temas y no salen
+de la paleta del estilo.
+
+- **El semaforo de las graficas de resumen**: `.eval-fill`, `.eval-tick`, las
+  pastillas `.t.ok/.warn/.bad` y los tokens `--sem-*`.
+- **La grafica de Componentes de variacion**: azul `#0b5cad` (% Contribucion),
+  rojo `#b3261e` (% Study Variation) y `--sem-warn` (% Tolerance). Estan fijos
+  en `COMPONENT_COLORS` de `charts.js`, no en la hoja: un cambio de estilo no
+  puede moverlos.
+
 ---
 
 ## 4. Graficas
@@ -430,6 +488,10 @@ blanco y negro, el reporte pierde el dato.
 Sobre Chart.js, servido desde el repositorio (la app funciona sin conexion).
 Nada de paquetes extra: lo que falte se resuelve con un plugin propio
 (`thresholdLines`, `boxWhiskers`, `operatorBands` son los tres que existen).
+
+Las series salen de `--chart-series` (una lista de `#rrggbb` por tema), que
+`charts.js` lee en cada dibujo. La excepcion es Componentes de variacion,
+con sus colores fijos (seccion 3).
 
 ### Ejes
 

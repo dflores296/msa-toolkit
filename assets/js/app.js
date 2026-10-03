@@ -2534,6 +2534,9 @@
     $('recalcBtn').addEventListener('click', calculate);
     $('staleRecalcBtn').addEventListener('click', calculate);
     $('demoBtn').addEventListener('click', loadDemo);
+    // El estado vacio ofrece las mismas dos salidas que la barra.
+    $('emptyDemoBtn').addEventListener('click', loadDemo);
+    $('emptyImportBtn').addEventListener('click', function () { $('importFile').click(); });
     $('clearDataBtn').addEventListener('click', clearData);
     $('resetBtn').addEventListener('click', resetAll);
     $('exportCsvBtn').addEventListener('click', exportCSV);

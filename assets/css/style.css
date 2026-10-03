@@ -1,19 +1,44 @@
 /* MSA Toolkit - Gage R&R (ANOVA) */
+/* --- Tipografia autoalojada: la app funciona sin conexion, asi que las
+   fuentes viven en assets/fonts/ (licencia OFL en OFL.txt), no en un CDN. --- */
+@font-face {
+  font-family: "Inter"; font-style: normal; font-display: swap; font-weight: 100 900;
+  src: url("../fonts/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono"; font-style: normal; font-display: swap; font-weight: 100 800;
+  src: url("../fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --- Tokens. Claro: estilo Seline (piedra calida, tarjetas blancas de borde
+   fino, un solo acento cian). Oscuro: estilo Dovetail (casi negro, tono sobre
+   tono, primaria blanca, azul solo de acento). Ver docs/estandar-de-diseno.md. */
 :root {
-  --page-bg: #f6f7f9;
+  --page-bg: #fafaf9;
   --surface: #ffffff;
-  --surface-2: #f0f2f5;
-  --header-bg: #ffffff;
+  --surface-2: #f5f5f4;
+  --surface-band: #f5f5f4;     /* banda del panel de resultados */
+  --header-bg: rgba(250, 250, 249, .9);
   --input-bg: #ffffff;
-  --border: #dfe3e8;
-  --border-strong: #b9c0c9;
-  --ink: #1c2430;
-  --ink-soft: #5a6673;
-  --ink-faint: #8b959f;
-  --accent: #0b5cad;
-  --accent-hover: #094a8d;
-  --accent-ink: #0b5cad;
-  --accent-soft: #e7f0fa;
+  --border: #e8e6e5;           /* hairline: la estructura ES el borde */
+  --border-strong: #d6d3d1;
+  --ink: #0c0a09;
+  --ink-soft: #57534e;         /* 7.0:1 sobre la banda */
+  --ink-faint: #6f6964;        /* 5.0:1 sobre la banda */
+  /* La accion primaria es el unico cian que se pulsa, y lleva texto tinta:
+     blanco sobre #3ba6f1 da 2.6:1. */
+  --accent: #3ba6f1;
+  --accent-hover: #2f97e2;
+  --accent-border: #3398e1;
+  --on-accent: #0c0a09;
+  --accent-ink: #1f6fae;       /* enlaces, pestana activa, foco: 5.3:1 */
+  --accent-soft: #f5f5f4;
+  --info-border: #e8e6e5;
+  --mark-ink: #175d93;         /* resaltado de titular: 5.1:1 sobre --mark-bg */
+  --mark-bg: #c1e1f7;
+  --ghost-border: #e8e6e5;
   --ok: #1c7a4a;
   --ok-soft: #e3f4ea;
   --warn: #9a6206;
@@ -24,16 +49,19 @@
   --bad-solid: #b3261e;
   --bad-solid-hover: #971f19;
   --warn-border: #f0dcb4;
-  --info-border: #c9dcf1;
-  --toggle-track-bg: #f2f4f6;
-  --toggle-track-border: #dfe3e8;
+  --toggle-track-bg: #f5f5f4;
+  --toggle-track-border: #e8e6e5;
   --toggle-active-bg: #ffffff;
-  --toggle-active-ink: #1c2430;
-  --toggle-inactive-ink: #8b959f;
-  --chart-grid: #e6e9ed;
-  --chart-tick: #5a6673;
+  --toggle-active-ink: #0c0a09;
+  --toggle-inactive-ink: #57534e;
+  --chart-grid: #efedec;
+  --chart-tick: #57534e;
   --chart-track: #d9d9d9;
   --chart-track-border: #bfbfbf;
+  /* Series de las graficas que siguen al tema (cartas, cajas, rangos,
+     interaccion, atributos). La de Componentes de variacion NO sale de aqui:
+     sus colores estan fijos en charts.js (COMPONENT_COLORS). */
+  --chart-series: #3398e1, #0c0a09, #78716c, #9984d8, #0f9d6e, #a8a29e, #44403c;
   /* Semaforo del criterio AIAG. Deliberadamente FUERA del bloque de tema:
      el color de las barras y de los umbrales codifica el nivel de alerta
      (bueno / marginal / malo), asi que no debe cambiar entre claro y oscuro.
@@ -41,25 +69,42 @@
   --sem-ok: #2e9e63;
   --sem-warn: #e0a63a;
   --sem-bad: #d1453b;
-  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Forma: en claro pildora y radio 10; en oscuro todo a 8 px. */
+  --r-card: 10px;
+  --r-feature: 16px;
+  --r-ctl: 9999px;
+  --r-field: 6px;
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, .05);
+  --shadow-chip: 0 1px 2px rgba(0, 0, 0, .05);
+  --ring: 0 0 0 2px rgba(59, 166, 241, .45);
+  --grid-motif: none;
 }
 
 :root[data-theme="dark"] {
-  --page-bg: #161c24;
-  --surface: #232c38;
-  --surface-2: #1a212b;
-  --header-bg: #232c38;
-  --input-bg: #1a212b;
-  --border: #384454;
-  --border-strong: #4a5666;
-  --ink: #e8ecf1;
-  --ink-soft: #a3aebb;
-  --ink-faint: #7d8896;
-  --accent: #2f7fc4;
-  --accent-hover: #3b8fd6;
-  --accent-ink: #6fb2ef;
-  --accent-soft: #14304d;
+  --page-bg: #0a0a0a;
+  --surface: #1e1e1e;
+  --surface-2: #141414;
+  --surface-band: #0f0f0f;
+  --header-bg: rgba(10, 10, 10, .9);
+  --input-bg: #141414;
+  --border: #313131;
+  --border-strong: #454545;
+  --ink: #ffffff;
+  --ink-soft: #a7a7a7;
+  --ink-faint: #8a8a8a;
+  /* Dovetail: la primaria es blanca; el azul es acento, nunca relleno. */
+  --accent: #ffffff;
+  --accent-hover: #e8eaee;
+  --accent-border: #ffffff;
+  --on-accent: #0a0a0a;
+  --accent-ink: #6798ff;
+  --accent-soft: #141414;
+  --info-border: #313131;
+  --mark-ink: #6798ff;
+  --mark-bg: rgba(103, 152, 255, .15);
+  --ghost-border: #454545;
   --ok: #5fc98d;
   --ok-soft: #14331f;
   --warn: #e0a63a;
@@ -70,16 +115,25 @@
   --bad-solid: #c5372c;
   --bad-solid-hover: #d64a3d;
   --warn-border: #4a3a12;
-  --info-border: #2a4f70;
-  --toggle-track-bg: #1a212b;
-  --toggle-track-border: #384454;
-  --toggle-active-bg: #384454;
-  --toggle-active-ink: #e8ecf1;
-  --toggle-inactive-ink: #7d8896;
-  --chart-grid: #384454;
-  --chart-tick: #a3aebb;
+  --toggle-track-bg: #141414;
+  --toggle-track-border: #313131;
+  --toggle-active-bg: #ffffff;
+  --toggle-active-ink: #0a0a0a;
+  --toggle-inactive-ink: #a7a7a7;
+  --chart-grid: #262626;
+  --chart-tick: #a7a7a7;
   --chart-track: #4a5666;
   --chart-track-border: #5a6673;
+  --chart-series: #6798ff, #ffffff, #a7a7a7, #9984d8, #3fcb7f, #7c7c7c, #d6d3d1;
+  --r-card: 8px;
+  --r-feature: 8px;
+  --r-ctl: 8px;
+  --r-field: 8px;
+  --shadow-card: none;
+  --shadow-chip: none;
+  --ring: 0 0 0 2px rgba(103, 152, 255, .5);
+  /* El motivo de rejilla de Dovetail, solo detras de los resultados. */
+  --grid-motif: linear-gradient(#1b1b1b 1px, transparent 1px), linear-gradient(90deg, #1b1b1b 1px, transparent 1px);
 }
 
 * { box-sizing: border-box; }
@@ -95,8 +149,23 @@ html { -webkit-text-size-adjust: 100%; color-scheme: light; }
 html[data-theme="dark"] { color-scheme: dark; }
 body {
   margin: 0; background: var(--page-bg); color: var(--ink);
-  font-family: var(--sans); font-size: 15px; line-height: 1.5;
-  scrollbar-color: var(--border-strong) transparent;
+  font-family: var(--sans); font-size: 14px; line-height: 1.6;
+  scrollbar-color: var(--border-strong) transparent; -webkit-font-smoothing: antialiased;
+}
+strong, b { font-weight: 600; }
+:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+button, .tab-btn, .method-opt, .theme-opt { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+/* Rotulo de seccion tipo panel de instrumentos: mono, mayusculas, espaciado. */
+.lead-k, .blk-k, .method-family, .empty-k, thead th, .namelist-group {
+  font-family: var(--mono); text-transform: uppercase; letter-spacing: .07em;
+}
+/* Texto solo para lectores de pantalla (el tema se elige con iconos). */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 * { scrollbar-color: var(--border-strong) transparent; }
 ::-webkit-scrollbar { width: 12px; height: 12px; }
@@ -126,60 +195,71 @@ header.site nav a:hover { color: var(--accent-ink); text-decoration: underline; 
 header.toolbar {
   background: var(--header-bg); border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 30;
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
 .toolbar-inner {
   display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   padding: 12px 24px;
 }
-.brand { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
-.badge {
-  padding: 2px 8px; border-radius: 999px; background: var(--accent-soft);
-  color: var(--accent-ink); font-size: 11px; font-weight: 600; letter-spacing: .02em;
+/* Un renglon desde 1200 px. Lo que cede es la linea del estudio, que se
+   recorta con puntos suspensivos (el nombre completo sigue en su campo y en el
+   reporte); las acciones no se parten. Antes la barra se partia en dos
+   renglones incluso a 1440 px. */
+@media (min-width: 1200px) { .toolbar-inner { flex-wrap: nowrap; } }
+.toolbar-inner > button, .toolbar-inner > .method-switch, .toolbar-inner > .theme-toggle { flex: none; white-space: nowrap; }
+
+/* Cabecera: el triangulo del favicon, la marca y, debajo, el estudio citado
+   (la insignia del metodo) y su tamano. */
+.masthead { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 0 1 auto; }
+.brand-mark { width: 22px; height: 22px; flex: none; color: var(--ink); }
+.masthead-text { display: flex; flex-direction: column; min-width: 0; }
+.brand { font: 600 15px/1.2 var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+.dateline {
+  display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden;
+  font-size: 12px; color: var(--ink-soft); white-space: nowrap;
 }
+.dateline .badge { flex: none; }
+.dateline .sep { color: var(--ink-faint); }
+.dateline:has(#studyLabel:empty):has(#captureCount:empty) .sep { display: none; }
+/* La insignia cita el estudio: es una etiqueta, no una pastilla de color. */
+.badge { color: var(--ink-soft); font-size: 12px; font-weight: 500; }
 .vsep { width: 1px; height: 20px; background: var(--border); flex: none; }
-.study-summary { font-size: 12.5px; color: var(--ink-soft); display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.study-summary { font-size: 12px; color: var(--ink-soft); display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden; }
 .study-summary strong { color: var(--ink); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.study-summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .study-summary strong:empty { display: none; }
 .study-name { margin-bottom: 12px; }
 .toolbar-inner .spacer { flex: 1 1 auto; }
 
-.theme-toggle {
-  display: flex; padding: 2px; border-radius: 7px;
+/* Interruptor de tema y selector de metodo: el mismo riel. El tema se elige
+   con dos iconos SVG (sol y luna) con su nombre para lectores de pantalla. */
+.theme-toggle, .method-switch {
+  display: flex; align-items: center; padding: 3px; border-radius: var(--r-ctl);
   background: var(--toggle-track-bg); border: 1px solid var(--toggle-track-border);
 }
-.theme-toggle .theme-opt {
-  border: none; padding: 4px 9px; border-radius: 5px; background: transparent;
-  color: var(--toggle-inactive-ink); font-size: 11.5px; font-weight: 500; cursor: pointer;
+.theme-toggle .theme-opt, .method-switch .method-opt {
+  border: none; padding: 5px 13px; border-radius: var(--r-ctl); background: transparent;
+  color: var(--toggle-inactive-ink); font-size: 13px; font-weight: 500; cursor: pointer;
 }
-.theme-toggle .theme-opt.active {
+.theme-toggle .theme-opt { display: inline-flex; align-items: center; padding: 5px 8px; }
+.theme-toggle .theme-opt svg { width: 16px; height: 16px; display: block; }
+.theme-toggle .theme-opt:hover, .method-switch .method-opt:hover { color: var(--ink); background: transparent; }
+.theme-toggle .theme-opt.active, .method-switch .method-opt.active {
   background: var(--toggle-active-bg); color: var(--toggle-active-ink); font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+  box-shadow: var(--shadow-chip);
 }
 
-/* Selector de metodo: comparte la caja del interruptor de tema para no inventar
-   un control nuevo. Los metodos que todavia no existen se ven, deshabilitados:
-   asi se sabe que vienen sin prometer que ya estan. */
-.method-switch {
-  display: flex; align-items: center; padding: 2px; border-radius: 7px;
-  background: var(--toggle-track-bg); border: 1px solid var(--toggle-track-border);
-}
+/* Selector de metodo. Los metodos que todavia no existen se ven,
+   deshabilitados: asi se sabe que vienen sin prometer que ya estan. */
 /* Rotulo de familia. Va dentro del mismo riel que los botones para que se lea
    como un grupo y no como un titulo suelto encima. */
 .method-family {
-  padding: 0 7px 0 6px; font-size: 9.5px; font-weight: 700; letter-spacing: .07em;
-  text-transform: uppercase; color: var(--ink-faint); white-space: nowrap; user-select: none;
+  padding: 0 8px 0 10px; font-size: 10px; font-weight: 500;
+  color: var(--ink-faint); white-space: nowrap; user-select: none;
 }
 .method-sep {
-  width: 1px; align-self: stretch; margin: 3px 4px;
-  background: var(--toggle-track-border);
-}
-.method-switch .method-opt {
-  border: none; padding: 4px 10px; border-radius: 5px; background: transparent;
-  color: var(--toggle-inactive-ink); font-size: 11.5px; font-weight: 500; cursor: pointer;
-}
-.method-switch .method-opt.active {
-  background: var(--toggle-active-bg); color: var(--toggle-active-ink); font-weight: 600;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+  width: 1px; align-self: stretch; margin: 6px 6px;
+  background: var(--border-strong);
 }
 .method-switch .method-opt[disabled] { opacity: .5; cursor: not-allowed; }
 
@@ -199,22 +279,37 @@ header.toolbar {
    El pie legal vive dentro de esta columna (ver index.html) porque fuera del
    banco de trabajo quedaria en una pagina que ya no se desplaza. */
 .col-capture {
-  padding: 16px 18px; display: flex; flex-direction: column; gap: 14px;
+  padding: 20px 20px 8px; display: flex; flex-direction: column; gap: 14px;
   border-right: 1px solid var(--border); min-width: 0;
   max-height: calc(100vh - var(--header-h, 0px)); overflow-y: auto;
 }
 .col-results { min-width: 0; align-self: start; }
 .results-panel {
-  background: var(--surface-2); padding: 22px 28px;
+  background-color: var(--surface-band); padding: 22px 28px 40px;
+  background-image: var(--grid-motif); background-size: 48px 48px;
   max-height: calc(100vh - var(--header-h, 0px));
   overflow-y: auto; display: flex; flex-direction: column; gap: 18px;
 }
 .results-head { display: flex; align-items: center; gap: 10px; }
-.results-title { font-size: 13.5px; font-weight: 600; }
+.results-title { font: 600 15px/1.3 var(--sans); letter-spacing: -0.015em; }
 .results-head .spacer { flex: 1 1 auto; }
-.results-live { font-size: 11.5px; color: var(--ink-faint); }
+.results-live { font-size: 12px; color: var(--ink-faint); }
 .results-placeholder { margin: 0; color: var(--ink-faint); }
+/* Estado vacio: antes de calcular, una tarjeta que dice que hacer y ofrece el
+   ejemplo AIAG. Un solo resaltado en el titular. */
+.empty-state {
+  padding: 32px 32px 30px; border-radius: var(--r-feature);
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); color: var(--ink);
+}
+.empty-state .empty-k { margin: 0 0 16px; font-size: 11px; color: var(--ink-faint); }
+.empty-state .empty-h { margin: 0; max-width: 22ch; font: 500 32px/1.2 var(--sans); letter-spacing: -0.03em; color: var(--ink); }
+.empty-state mark { color: var(--mark-ink); background: var(--mark-bg); padding: 0 6px; border-radius: 4px; }
+.empty-state .empty-p { margin: 14px 0 0; max-width: 56ch; font-size: 14px; line-height: 1.65; color: var(--ink-soft); }
+.empty-state .empty-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 #resultsSection { display: flex; flex-direction: column; gap: 18px; }
+/* Con las columnas lado a lado, la banda de resultados llega al pie de la
+   pantalla aunque el estado vacio sea corto. */
+@media (min-width: 1101px) { .results-panel { min-height: calc(100vh - var(--header-h, 0px)); } }
 #resultsSection[hidden] { display: none; }
 #resultsSection:not([hidden]) ~ .results-placeholder { display: none; }
 /* #resultBody solo alterna [hidden]: sin esto sus hijos (veredictos,
@@ -237,9 +332,14 @@ header.toolbar {
 
 /* --- Tarjetas --- */
 .card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
-  padding: 14px 16px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card);
+  padding: 18px 20px;
 }
+.results-panel .card { padding: 22px 24px; }
+/* El dictamen -Evaluacion del sistema de medicion / de clasificacion- es la
+   unica tarjeta con sombra en claro (en oscuro no hay sombras: la jerarquia
+   va por tono). */
+#msaSummary > .card:first-child, #verdicts.card { border-radius: var(--r-feature); box-shadow: var(--shadow-card); }
 .card > h2 {
   margin: 0 0 4px; font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em;
   display: flex; align-items: baseline; gap: 10px;
@@ -253,13 +353,17 @@ header.toolbar {
   /* center, no baseline: con baseline la insignia del paso quedaba 1.5 px mas
      abajo que el centro del titulo, mientras que el encabezado de Resultados
      (.results-head) si la centra. Ahora los tres pasos se ven igual. */
-  display: flex; align-items: center; gap: 10px; margin: 0 0 4px;
-  font-size: 13.5px; font-weight: 600; letter-spacing: -0.005em; color: var(--ink);
+  display: flex; align-items: center; gap: 10px; margin: 0 0 6px;
+  font: 600 15px/1.3 var(--sans); letter-spacing: -0.015em; color: var(--ink);
   cursor: pointer; list-style: none;
 }
 .config-summary::-webkit-details-marker { display: none; }
-.config-summary::after { content: "\25BE"; font-size: 10px; color: var(--ink-faint); margin-left: auto; }
-details.card:not([open]) > .config-summary::after { content: "\25B8"; }
+.config-summary::after {
+  content: ""; width: 8px; height: 8px; margin: 0 4px 0 auto; flex: none;
+  border-right: 1.5px solid var(--ink-faint); border-bottom: 1.5px solid var(--ink-faint);
+  transform: translateY(-2px) rotate(45deg);
+}
+details.card:not([open]) > .config-summary::after { transform: rotate(-45deg); }
 details.card:not([open]) > .config-summary { margin-bottom: 0; }
 
 .card-head-row { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
@@ -267,16 +371,17 @@ details.card:not([open]) > .config-summary { margin-bottom: 0; }
 .card-head-row .spacer { flex: 1 1 auto; }
 .step {
   display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; border-radius: 6px; flex: none;
-  background: var(--accent); color: #fff; font: 700 11px/20px var(--mono); text-align: center;
+  width: 22px; height: 22px; border-radius: 6px; flex: none;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-soft);
+  font: 500 11px/20px var(--mono); text-align: center;
 }
-.hint { margin: 0 0 14px 0; color: var(--ink-soft); font-size: 13px; }
-.card > .hint { margin-left: 30px; }
-.subhead { font-size: 13.5px; font-weight: 600; margin: 24px 0 4px; color: var(--ink); }
+.hint { margin: 0 0 14px 0; color: var(--ink-soft); font-size: 13px; line-height: 1.6; }
+.card > .hint { margin-left: 32px; }
+.subhead { font: 600 14px/1.3 var(--sans); letter-spacing: -0.01em; margin: 26px 0 6px; color: var(--ink); }
 section.card[hidden], details.card[hidden] { display: none; }
 
 .status-pill {
-  font: 600 11.5px var(--mono); padding: 3px 9px; border-radius: 999px;
+  font: 500 11px var(--mono); padding: 3px 9px; border-radius: 999px;
   background: color-mix(in srgb, currentColor 15%, transparent);
 }
 
@@ -290,7 +395,7 @@ section.card[hidden], details.card[hidden] { display: none; }
    align-items:end alinea los inputs entre si aunque un rotulo ocupe dos
    lineas ("Tolerancia directa (opcional)") y otro solo una. */
 .grid { display: grid; gap: 14px 16px; align-items: end; }
-.grid.cols-4 { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.grid.cols-4 { grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); }
 .grid.cols-3 { grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); }
 .grid.cols-2 { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 
@@ -305,28 +410,44 @@ section.card[hidden], details.card[hidden] { display: none; }
 
 label.field { display: flex; flex-direction: column; justify-content: flex-end; min-width: 0; font-size: 12.5px; }
 label.field > span { display: block; margin-bottom: 5px; color: var(--ink-soft); font-weight: 500; line-height: 1.3; }
+/* El denominador de F va solo en su fila, y su opcion larga ("CM
+   repetibilidad (ejemplo AIAG p.127)") no cabia en una columna a ningun
+   ancho: toma la fila entera, con tope para no estirarse sin sentido. */
+label.field:has(#fDenominator) { grid-column: 1 / -1; }
+label.field:has(#fDenominator) select { max-width: 340px; }
 label.field > span .opt { color: var(--ink-faint); font-weight: 400; }
 
 input[type="text"], input[type="number"], select, textarea {
-  width: 100%; padding: 6px 9px; font: inherit; font-size: 13.5px;
-  border: 1px solid var(--border-strong); border-radius: 6px; background: var(--input-bg); color: var(--ink);
+  width: 100%; padding: 7px 10px; font: inherit; font-size: 13.5px;
+  border: 1px solid var(--border-strong); border-radius: var(--r-field); background: var(--input-bg); color: var(--ink);
 }
+input::placeholder, textarea::placeholder { color: var(--ink-faint); opacity: 1; }
 /* Un <select> no recorta solo: sin esto "CM interaccion (Minitab)" se cortaba
    a media palabra al angostarse la columna. */
 select { text-overflow: ellipsis; }
 input:focus, select:focus, textarea:focus {
-  outline: 2px solid var(--accent); outline-offset: -1px; border-color: var(--accent);
+  outline: none; border-color: var(--accent-border); box-shadow: var(--ring);
 }
 textarea { font-family: var(--mono); font-size: 13px; resize: vertical; }
 
 button {
-  font: inherit; font-size: 13px; font-weight: 500; padding: 7px 12px; border-radius: 6px;
-  border: 1px solid var(--border-strong); background: var(--surface); color: var(--ink); cursor: pointer;
+  font: inherit; font-size: 13.5px; font-weight: 500; padding: 7px 16px; border-radius: var(--r-ctl);
+  border: 1px solid var(--ghost-border); background: transparent; color: var(--ink); cursor: pointer;
 }
-button:hover { background: var(--toggle-track-bg); }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-button.primary:hover { background: var(--accent-hover); }
-button.ghost { color: var(--accent-ink); border-color: var(--border-strong); }
+button:hover { background: var(--surface-2); }
+button.primary { background: var(--accent); border-color: var(--accent-border); color: var(--on-accent); }
+button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+button.ghost { color: var(--ink); border-color: var(--ghost-border); }
+button.ghost:hover { border-color: var(--ink-faint); background: transparent; }
+/* Acciones de archivo de la barra (Ejemplo, Importar, Exportar): botones de
+   texto. Se usan, pero no deciden nada; con el mismo peso que Imprimir la
+   barra tenia seis botones iguales. */
+button.quiet { border-color: transparent; background: none; padding: 7px 6px; color: var(--ink-soft); white-space: nowrap; }
+button.quiet:hover { background: none; color: var(--ink); }
+/* El cian, una vez por vista. Regenerar tabla vive junto a Calcular y a
+   Imprimir: va en tinta para no repetir el relleno de color. */
+#generateBtn { background: var(--ink); border-color: var(--ink); color: var(--page-bg); }
+#generateBtn:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
 /* Solido, como el boton primario. Borrar mediciones o reiniciar el estudio no
    se deshace, asi que el boton se ve igual de decidido que el que calcula: en
    contorno pesaba menos que su consecuencia. El rojo de relleno es un token
@@ -336,18 +457,18 @@ button.danger {
   background: var(--bad-solid); border-color: var(--bad-solid); color: #fff;
 }
 button.danger:hover { background: var(--bad-solid-hover); border-color: var(--bad-solid-hover); }
-button:disabled { opacity: .5; cursor: not-allowed; }
+button:disabled { opacity: .4; cursor: not-allowed; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
 .actions .spacer { flex: 1 1 auto; }
 
 /* --- Nombres editables: lista vertical, operadores y piezas en columnas lado a lado --- */
 .namelist { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
-.namelist input { width: 100%; font-size: 13px; padding: 5px 8px; }
+.namelist input { width: 100%; font-size: 13px; padding: 6px 10px; }
 
 /* Anidado: las piezas se listan bajo el operador que las midio. Sin este
    encabezado, treinta nombres corridos no dicen de quien es cada uno. */
 .namelist-group {
-  font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase;
+  font-size: 10px; font-weight: 500;
   color: var(--ink-faint); margin-top: 6px; padding-bottom: 3px;
   border-bottom: 1px solid var(--border);
 }
@@ -367,24 +488,27 @@ html[data-method="anidado"] #partNames .namelist-group { grid-column: 1 / -1; }
 
 /* --- Tablas --- */
 .table-scroll { overflow-x: auto; margin: 0 -4px; padding: 0 4px; }
-table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
 caption {
-  caption-side: top; text-align: left; font-style: italic; color: var(--ink-soft);
+  caption-side: top; text-align: left; font-weight: 500; color: var(--ink-soft);
   padding: 0 0 8px; font-size: 12.5px;
 }
-th, td { padding: 5px 8px; text-align: right; white-space: nowrap; }
+th, td { padding: 6px 10px; text-align: right; white-space: nowrap; }
 th:first-child, td:first-child { text-align: left; }
+/* Filas separadas por borde fino, encabezado en mono: la tabla se lee como
+   un panel, no como una hoja con reglas gruesas. */
 thead th {
   position: sticky; top: 0; background: var(--surface);
-  border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--ink);
-  font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: var(--ink-soft);
+  border-bottom: 1px solid var(--border-strong);
+  font-weight: 500; font-size: 10px; color: var(--ink-faint);
 }
-tbody tr:last-child td { border-bottom: 1.5px solid var(--ink); }
+tbody td { border-bottom: 1px solid var(--border); }
+tbody tr:last-child td { border-bottom: 1px solid var(--border-strong); }
 tbody tr.total td { font-weight: 600; color: var(--ink); }
 td.num, th.num { font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12px; }
 .indent-1 { padding-left: 24px !important; }
 .indent-2 { padding-left: 40px !important; }
-p.note { font-style: italic; color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 0; }
+p.note { color: var(--ink-soft); font-size: 12.5px; margin: 10px 0 0; }
 
 /* La categoria de rechazo se marca igual que un campo numerico invalido
    cuando falta elegirla y el estudio la necesita (dos categorias y
@@ -396,7 +520,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
    Pieza miden lo que necesitan; las columnas de replica se reparten el resto. */
 #dataTable { width: 100%; }
 #dataTable td, #dataTable th { padding: 3px 8px; }
-#dataTable tbody tr:last-child td { border-bottom: none; }
+#dataTable tbody td, #standardTable tbody td { border-bottom: none; }
 
 #dataTable .col-op {
   width: 1%; text-align: left; font-weight: 600; vertical-align: middle;
@@ -407,9 +531,13 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 #dataTable .col-meas { text-align: center; }
 
 #dataTable td.col-meas input {
-  width: 100%; min-width: 76px; max-width: 160px; padding: 4px 7px; font-size: 12.5px;
+  width: 100%; min-width: 76px; max-width: 160px; padding: 4px 8px; font-size: 12.5px;
   text-align: right; font-family: var(--mono);
 }
+/* Celdas de categoria (atributos). A 1280 px cortaban "No pasa": la celda
+   pide su ancho y la tabla se desplaza dentro de .table-scroll. */
+#dataTable select, #standardTable select { padding: 4px 4px 4px 8px; font-size: 13px; }
+#dataTable td.col-meas select { min-width: 86px; }
 #dataTable input.invalid { border-color: var(--bad); background: var(--bad-soft); }
 
 /* Separacion visual entre bloques de operador */
@@ -419,12 +547,12 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .capture-scroll { max-height: 460px; overflow-y: auto; }
 
 /* --- Mensajes --- */
-.msg { border-radius: 8px; padding: 11px 14px; font-size: 13px; margin-bottom: 14px; }
+.msg { border-radius: var(--r-card); padding: 12px 14px; font-size: 13px; line-height: 1.55; margin-bottom: 14px; }
 .msg ul { margin: 6px 0 0; padding-left: 20px; }
 .msg li { margin: 2px 0; }
 .msg.err  { background: var(--bad-soft);  color: var(--bad);  border: 1px solid var(--bad-border); }
 .msg.warn { background: var(--warn-soft); color: var(--warn); border: 1px solid var(--warn-border); }
-.msg.info { background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--info-border); }
+.msg.info { background: var(--surface-2); color: var(--ink); border: 1px solid var(--info-border); }
 .msg strong { font-weight: 600; }
 
 /* --- F-05: resultado obsoleto ---
@@ -452,16 +580,16 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
  * tres de apoyo, un tercio del peso. La regla de lectura se dice una vez, en
  * el encabezado, y por eso ningun indicador la repite.
  * --------------------------------------------------------------------- */
-.card-title { margin: 0; font-size: 13.5px; font-weight: 600; color: var(--ink); }
-.card-rule { margin: 4px 0 0; font-size: 11.5px; color: var(--ink-soft); }
-.card-head { padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.card-title { margin: 0; font: 600 16px/1.3 var(--sans); letter-spacing: -0.02em; color: var(--ink); }
+.card-rule { margin: 4px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+.card-head { padding-bottom: 14px; border-bottom: 1px solid var(--border); margin-bottom: 18px; }
 
 .lead { display: flex; flex-direction: column; }
 .lead + .lead { margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
 .lead-head { display: flex; align-items: baseline; gap: 12px; }
-.lead-k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--ink-faint); cursor: help; }
-.lead-t { margin-left: auto; font-size: 11.5px; font-weight: 500; padding: 2px 8px; border-radius: 4px; }
-.lead-v { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1; margin-top: 8px; }
+.lead-k { font-size: 10.5px; font-weight: 500; color: var(--ink-faint); cursor: help; }
+.lead-t { margin-left: auto; font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 9999px; }
+.lead-v { font: 500 40px/1 var(--sans); letter-spacing: -0.035em; font-variant-numeric: tabular-nums; margin-top: 10px; }
 /* El aire de arriba no es estetico: el rotulo de 10 % vive por ENCIMA de la
    pista, asi que sin este margen quedaria a la altura de la cifra grande y
    competiria con ella. 34 px dejan el rotulo despegado del numero. */
@@ -479,8 +607,8 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
    reservado para los avisos del motor. Aqui se usan los tokens de .msg.info,
    que ya existen; el estandar dice que no se inventa lenguaje visual. */
 .interp {
-  margin: 12px 0 0; padding: 8px 10px; border-radius: 6px; font-size: 12px;
-  background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--info-border);
+  margin: 12px 0 0; padding: 9px 12px; border-radius: var(--r-card); font-size: 12.5px;
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--info-border);
 }
 
 /* La escala del bloque de variables va MAS GRANDE que la de las barras de
@@ -612,9 +740,9 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .blk { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border); }
 .card-head + .blk { margin-top: 0; padding-top: 0; border-top: 0; }
 .blk-head { margin-bottom: 14px; }
-.blk-k { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; font-weight: 600; color: var(--ink); }
+.blk-k { font-size: 10.5px; font-weight: 500; color: var(--ink); }
 .blk-q { display: block; margin-top: 3px; font-size: 11.5px; color: var(--ink-faint); }
-.card-rule2 { margin: 3px 0 0; font-size: 11px; color: var(--ink-faint); }
+.card-rule2 { margin: 3px 0 0; font-size: 12px; color: var(--ink-faint); }
 
 /* La fila principal va 18 % mas baja que la de variables -123 px frente a
    150 px, medido-: son tres y no dos, y a la altura original el bloque no se
@@ -622,11 +750,11 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
    El aire ENTRE filas -20 px y su regla, de .lead + .lead- no se toca: es lo
    que separa tres decisiones distintas. */
 .attr-lead .lead-k {
-  font-size: 12.5px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink);
+  font-family: var(--sans); font-size: 13.5px; font-weight: 600; text-transform: none; letter-spacing: -0.01em; color: var(--ink);
 }
 .attr-lead .lead-q { font-size: 11.5px; color: var(--ink-faint); }
 .attr-lead .lead-row { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
-.attr-lead .lead-v { font-size: 28px; margin-top: 0; }
+.attr-lead .lead-v { font-size: 32px; letter-spacing: -0.03em; margin-top: 0; }
 .attr-lead .lead-n2 { font-size: 11.5px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 .attr-lead .lead-ci { font: 11.5px var(--mono); color: var(--ink-soft); }
 .attr-lead .lead-scale { margin-top: 20px; }
@@ -638,7 +766,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .lead-n {
   flex: none; width: 18px; height: 18px; border-radius: 50%; align-self: center;
   background: var(--surface-2); color: var(--ink-soft); border: 1px solid var(--border);
-  font: 600 10.5px/17px var(--sans); text-align: center;
+  font: 500 10.5px/17px var(--mono); text-align: center;
 }
 .info-i { width: 12px; height: 12px; vertical-align: -1px; color: var(--ink-faint); }
 
@@ -650,7 +778,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .risk-item:last-child { padding-right: 0; border-right: 0; }
 .risk-k { font-size: 12px; font-weight: 600; color: var(--ink); }
 .risk-r { display: flex; align-items: baseline; gap: 8px; margin: 6px 0 2px; }
-.risk-v { font-size: 21px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.risk-v { font-size: 24px; font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .risk-n { font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 .risk-ci { display: block; margin-top: 2px; font: 10.5px var(--mono); color: var(--ink-soft); }
 .risk-s { margin: 5px 0 0; font-size: 11px; color: var(--ink-soft); line-height: 1.4; }
@@ -659,7 +787,7 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 /* Kappa: un tercio del peso de una fila principal. Matiza, no dictamina. */
 .comp { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .comp-k { font-size: 12px; font-weight: 600; color: var(--ink); cursor: help; }
-.comp-v { font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.comp-v { font-size: 21px; font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
 .comp-ref { font: 11px var(--mono); color: var(--ink-faint); margin-left: auto; }
 .comp-s { margin: 6px 0 0; font-size: 11.5px; color: var(--ink-soft); line-height: 1.45; }
 
@@ -690,8 +818,8 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 /* Encuadre del final: mismos tokens de .msg.info, sin lenguaje visual nuevo. */
 .note {
   display: flex; gap: 8px; align-items: flex-start;
-  margin: 16px 0 0; padding: 10px 12px; border-radius: 6px; font-size: 12px; line-height: 1.5;
-  background: var(--accent-soft); color: var(--accent-ink); border: 1px solid var(--info-border);
+  margin: 16px 0 0; padding: 10px 12px; border-radius: var(--r-card); font-size: 12.5px; line-height: 1.5;
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--info-border);
 }
 .note .info-i { width: 15px; height: 15px; flex: none; margin-top: 2px; color: var(--accent-ink); }
 
@@ -716,10 +844,10 @@ input.invalid, select.invalid { border-color: var(--bad); background: var(--bad-
 .support-item { flex: 1 1 0; padding: 11px 14px; border-right: 1px solid var(--border); min-width: 0; cursor: help; }
 .support-item:first-child { padding-left: 0; }
 .support-item:last-child { padding-right: 0; border-right: 0; }
-.support-item .k { font-size: 12px; color: var(--ink-soft); }
+.support-item .k { font-size: 12.5px; color: var(--ink-soft); }
 .support-item .r { display: flex; align-items: baseline; gap: 8px; margin: 3px 0 2px; }
-.support-item .v { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.support-item .m { font-size: 10px; font-weight: 500; padding: 1px 6px; border-radius: 3px; }
+.support-item .v { font-size: 22px; font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.support-item .m { font-size: 10px; font-weight: 500; padding: 1px 7px; border-radius: 9999px; }
 .support-item .s { font-size: 11px; color: var(--ink-faint); line-height: 1.35; }
 /* En pantalla angosta la tira se apila: tres columnas de 90 px no caben. */
 @media (max-width: 640px) { .support { flex-direction: column; }
@@ -739,16 +867,17 @@ label.field[title] > span { cursor: help; }
 /* Segunda y tercera linea dentro de una celda numerica: el intervalo y el
    conteo del que sale. Pesan menos que la cifra, que es la que se lee primero,
    pero el intervalo pesa mas que el conteo porque matiza el veredicto. */
-.cell-ci  { font-size: 11px; font-weight: 400; color: var(--ink-soft); }
+.cell-ci  { font: 400 11px var(--mono); color: var(--ink-soft); }
 .cell-sub { font-size: 11px; font-weight: 400; color: var(--ink-faint); }
 
 /* --- Gráficas --- */
 .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 8px; }
 .chart-box.chart-empty { display: none; }
-.chart-box h3 { margin: 0 0 8px; font-size: 12.5px; font-weight: 600; text-align: center; }
+.results-panel .card.chart-box { padding: 14px 14px 12px; }
+.chart-box h3 { margin: 0 0 8px; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; text-align: center; }
 .chart-box .holder { position: relative; height: 220px; }
-.chart-box p.cap { margin: 8px 0 0; font-size: 11px; color: var(--ink-faint); text-align: center; }
-.chart-subcap { font-weight: 400; font-size: 11.5px; color: var(--ink-faint); margin: 2px 0 12px; }
+.chart-box p.cap { margin: 8px 0 0; font-size: 11.5px; color: var(--ink-soft); text-align: center; }
+.chart-subcap { font-weight: 400; font-size: 11.5px; color: var(--ink-soft); margin: 2px 0 12px; }
 
 /* --- Evaluacion de la variacion: barras HTML/CSS, sin depender de Chart.js --- */
 .eval-track { position: relative; height: 16px; border-radius: 3px; background: var(--toggle-track-bg); overflow: visible; }
@@ -775,13 +904,13 @@ label.field[title] > span { cursor: help; }
 .eval-tick-label.warn { --tick-color: var(--sem-warn); }
 
 /* --- Pestañas del panel de resultados --- */
-.tabs-bar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin: -14px -16px 14px; padding: 0 10px; }
+.tabs-bar { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin: -22px -24px 18px; padding: 0 14px; }
 .tab-btn {
-  background: none; border: none; padding: 10px 12px; font: inherit; font-size: 12.5px; font-weight: 500;
+  background: none; border: none; border-radius: 0; padding: 12px 12px; font: inherit; font-size: 13px; font-weight: 500;
   color: var(--ink-soft); cursor: pointer; box-shadow: inset 0 -2px 0 transparent;
 }
-.tab-btn:hover { color: var(--ink); }
-.tab-btn.active { color: var(--accent-ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+.tab-btn:hover { color: var(--ink); background: none; }
+.tab-btn.active { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent-ink); }
 .tab-panel[hidden] { display: none; }
 
 /* --- Detalles / acordeón --- */
@@ -804,7 +933,7 @@ details:not(.card) > div { margin-top: 12px; }
 .test-row .m { color: var(--bad); font-family: var(--mono); font-size: 12px; display: block; margin-top: 3px; }
 .summary-line { font-size: 16px; font-weight: 600; padding: 12px 0; }
 
-footer.site { color: var(--ink-faint); font-size: 12.5px; text-align: center; padding: 20px 20px; }
+footer.site { color: var(--ink-faint); font-size: 12px; text-align: center; padding: 24px 8px 18px; }
 footer.site a { color: var(--ink-soft); }
 footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760px; margin-left: auto; margin-right: auto; }
 
@@ -814,10 +943,28 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
 @media (max-width: 860px) {
   .charts { grid-template-columns: minmax(0, 1fr); }
 }
+/* En telefono la barra fija se comia dos tercios de la pantalla (238 de
+   844 px): aqui se desplaza con la pagina, la marca toma su renglon y el
+   selector de metodo va al final, a todo el ancho. */
+@media (max-width: 760px) {
+  header.toolbar { position: relative; }
+  .toolbar-inner { gap: 8px 10px; padding: 10px 16px; }
+  .toolbar-inner .spacer, .toolbar-inner .vsep { display: none; }
+  .masthead { flex-basis: 100%; }
+  .dateline { white-space: normal; flex-wrap: wrap; }
+  .method-switch { order: 9; width: 100%; justify-content: space-between; }
+  button.quiet { font-size: 13px; padding: 6px 4px; }
+  .results-panel { padding: 18px 16px 30px; }
+  .results-panel .card { padding: 18px 16px; }
+  .tabs-bar { margin: -18px -16px 16px; padding: 0 6px; overflow-x: auto; }
+  .card > .hint { margin-left: 0; }
+  .lead-v { font-size: 34px; }
+  .empty-state { padding: 24px 20px; }
+  .empty-state .empty-h { font-size: 26px; }
+}
 @media (max-width: 560px) {
-  .toolbar-inner { padding-left: 14px; padding-right: 14px; }
-  .col-capture, .results-panel { padding: 14px; }
-  .card { padding: 14px; }
+  .col-capture { padding: 14px; }
+  .card, details.card { padding: 14px; }
 }
 
 /* --- Reporte impreso -----------------------------------------------------
@@ -845,7 +992,8 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
 
   .workbench { display: block; max-width: none; }
   .col-results { position: static; }
-  .results-panel { max-height: none; overflow: visible; background: #fff; padding: 0; gap: 14px; }
+  .results-panel { max-height: none; min-height: 0; overflow: visible; background: #fff; background-image: none; padding: 0; gap: 14px; }
+  .empty-state { display: none !important; }
   #resultBody { gap: 14px; }
 
   /* Sin pestanas, los paneles se imprimen uno tras otro, cada uno con su
@@ -862,22 +1010,22 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
   .tab-panel[data-panel="componentes"] { break-before: auto; }
   .tab-panel::before {
     content: attr(data-print-title);
-    display: block; font-size: 13pt; font-weight: 600; margin: 0 0 10px;
-    padding-bottom: 4px; border-bottom: 1px solid #999;
+    display: block; font-size: 13pt; font-weight: 600; letter-spacing: -0.01em; margin: 0 0 10px;
+    padding-bottom: 4px; border-bottom: 1px solid #d6d3d1;
   }
 
-  .card { border: none; padding: 0; margin-bottom: 14px; break-inside: avoid; }
+  .card, .results-panel .card { border: none; border-radius: 0; box-shadow: none; padding: 0; margin-bottom: 14px; break-inside: avoid; }
   .tabs-card { padding: 0; }
 
   /* Encabezado del reporte */
   #printHeader { margin-bottom: 14px; }
-  #printHeader .rep-title { font-size: 17pt; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+  #printHeader .rep-title { font-size: 20pt; font-weight: 600; margin: 0; letter-spacing: -0.02em; }
   #printHeader .rep-sub { font-size: 10.5pt; color: #444; margin: 2px 0 10px; }
   #printHeader .rep-meta {
     display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 14px;
     font-size: 9pt; border-top: 1px solid #999; border-bottom: 1px solid #999; padding: 8px 0;
   }
-  #printHeader .rep-meta div span { color: #555; display: block; font-size: 8pt; text-transform: uppercase; letter-spacing: .04em; }
+  #printHeader .rep-meta div span { color: #555; display: block; font: 8pt var(--mono); text-transform: uppercase; letter-spacing: .04em; }
   #printHeader .rep-meta div strong { font-weight: 600; }
 
   /* El resumen de atributos se corta por SECCION, no a media fila: cada
@@ -895,7 +1043,7 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
      terminan encima del pie de la grafica. Por eso el contenedor crece con la
      imagen (height:auto) y el lienzo se escala manteniendo su proporcion. */
   .charts { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .chart-box { break-inside: avoid; border: 1px solid #ddd; padding: 8px; border-radius: 6px; }
+  .chart-box, .results-panel .card.chart-box { break-inside: avoid; border: 1px solid #e8e6e5; padding: 8px; border-radius: 8px; }
   .chart-box .holder { position: static; height: auto; }
   .chart-box .holder canvas {
     display: block; width: 100% !important; height: auto !important;

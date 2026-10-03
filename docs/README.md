@@ -23,7 +23,6 @@ es un defecto de este documento.
 | [`pruebas.md`](pruebas.md) | Qué cubre cada suite, las tres herramientas de navegador que no corren en CI, y **qué sigue sin cubrirse**. |
 | [`despliegue.md`](despliegue.md) | Publicar en GitHub Pages, el versionado de los assets y el uso sin servidor. |
 | [`estandar-de-diseno.md`](estandar-de-diseno.md) | El estándar de interfaz y de redacción que sigue la aplicación. Se aplica a cualquier cambio de pantalla. |
-| [`propuesta-rediseno.md`](propuesta-rediseno.md) | **Propuesta, no estado actual**: rediseño visual con tema claro estilo Seline y oscuro estilo Dovetail (Inter + JetBrains Mono), con el semáforo y la gráfica de Componentes en sus colores originales. Capturas antes/después y maqueta navegable en [`../propuesta/`](../propuesta/), que genera `tools/build-propuesta.js`. |
 | [`mls-transcripcion.md`](mls-transcripcion.md) | **De dónde salió cada fórmula de `assets/js/mls.js`**: qué se leyó verbatim, las diez erratas de la fuente, y los puntos donde la implementación se aparta de lo impreso con el álgebra que lo justifica. Es el respaldo del intervalo de confianza. |
 | [`mls-fuente-minitab.md`](mls-fuente-minitab.md) | El documento técnico de referencia sobre el método MLS del que se trabajó. Material de origen, no escrito por este proyecto. |
 | [`f07-cabos-sueltos.md`](f07-cabos-sueltos.md) | Lo que a F-07 le queda por rematar, con el cotejo contra Minitab a la cabeza. **Es la lista de trabajo pendiente del intervalo.** |
@@ -44,6 +43,7 @@ antes que el cuerpo del documento.**
 | [`auditoria-2026-08-31.md`](auditoria-2026-08-31.md) | 31 ago 2026 | **Vigente como lista de hallazgos.** Quince siguen pendientes, dos de ellos P1 (F-14, F-15). La tabla de estado está al día; el cuerpo de cada hallazgo cerrado es histórico. |
 | [`auditoria-motor-excel.md`](auditoria-motor-excel.md) | — | Auditoría de un libro de Excel con macros que resolvía el mismo estudio: 12 defectos en su motor de cálculo, con la evidencia numérica de cada uno. Histórico y cerrado; **el libro auditado no está en el repositorio** y el documento no describe a la aplicación. |
 | [`f07-validacion-gpq.md`](f07-validacion-gpq.md) | 31 ago 2026 | **Superado en parte.** Describe el GPQ cuando era el método de la aplicación. Hoy el GPQ es solo segunda opinión. Lleva recuadro de actualización. |
+| [`propuesta-rediseno.md`](propuesta-rediseno.md) | 3 oct 2026 | **Adoptada.** El rediseño visual (claro estilo Seline, oscuro estilo Dovetail, Inter + JetBrains Mono, semáforo y Componentes con sus colores originales), con capturas antes/después. Lo vigente está en `estandar-de-diseno.md`. |
 | [`f07-commits.md`](f07-commits.md) | 31 ago 2026 | Mapa de los ocho commits de F-07 y puntos de retorno. Los hashes siguen siendo válidos; el estado de las ramas lleva recuadro de actualización. |
 
 ## Binarios

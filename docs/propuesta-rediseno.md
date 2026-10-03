@@ -1,10 +1,10 @@
 # Propuesta de rediseño: Seline (claro) + Dovetail (oscuro)
 
-> **Propuesta, no estado actual.** La aplicación publicada sigue la hoja de
-> siempre y el contrato vigente es [`estandar-de-diseno.md`](estandar-de-diseno.md).
-> Esta propuesta se puede **ver funcionando** en
-> [`propuesta/`](../propuesta/) — la misma app, el mismo motor y el mismo
-> HTML, con una hoja de estilo encima — y compararla con la versión actual.
+> **Adoptada el 3 de octubre de 2026.** Este documento es el registro de la
+> propuesta y de por qué se eligió así. Lo vigente está en
+> [`estandar-de-diseno.md`](estandar-de-diseno.md). La maqueta con la que se
+> revisó (`propuesta/`, `assets/css/propuesta.css`, `tools/build-propuesta.js`)
+> se retiró al integrar el diseño en `style.css` e `index.html`.
 
 Fecha: 3 de octubre de 2026. Versión 2: sustituye a una primera propuesta
 (serif editorial sobre papel, estilo Steep) que se descartó.
@@ -134,7 +134,7 @@ OFL en `assets/fonts/OFL.txt`): la app funciona sin conexión.
 - **Reporte impreso.** Papel blanco, sin bandas ni rejilla; títulos en Inter,
   metadatos en mono. Las reglas del §7 del estándar no cambian.
 
-### Defectos de producción que la propuesta corrige
+### Defectos de producción que se corrigieron
 
 Aparecieron al revisar recortes (§2 del estándar: ningún texto de `<select>`
 cortado), y existen hoy:
@@ -156,7 +156,7 @@ Conviene llevarlos a `style.css` aunque el rediseño no se adopte.
 - **La redacción**, salvo el estado vacío.
 - **El orden y las reglas del reporte impreso.**
 
-## Qué cambiaría en el estándar de diseño
+## Qué cambió en el estándar de diseño
 
 | Sección | Cambio |
 |---|---|
@@ -167,26 +167,13 @@ Conviene llevarlos a `style.css` aunque el rediseño no se adopte.
 | §3 nuevo | Tipografía: Inter + JetBrains Mono autoalojadas |
 | §4 Gráficas | Paleta de series vía `--chart-series`, salvo Componentes |
 
-## Cómo está hecha la maqueta
+## Cómo se adoptó
 
-| Archivo | Qué |
-|---|---|
-| [`assets/css/propuesta.css`](../assets/css/propuesta.css) | La propuesta entera: tokens de los dos temas y componentes. Solo la carga la maqueta |
-| [`propuesta/index.html`](../propuesta/index.html) | **Generado** por `node tools/build-propuesta.js` desde `index.html`. Si `index.html` cambia y una sustitución deja de encontrar su texto, el script falla y dice cuál; CI corre `--check` |
-| `assets/fonts/` | Inter y JetBrains Mono, woff2 latino |
-| [`assets/js/charts.js`](../assets/js/charts.js) | Lee la paleta de `--chart-series` si la hoja la define, y fija `COMPONENT_COLORS`. En producción el dibujo es idéntico: `tests/regresion-visual.js` no encuentra diferencias en cruzado ni en anidado |
-
-Abierta con doble clic (`file://`), Firefox no carga fuentes de una carpeta
-superior y la maqueta usa las de sistema. Servida por GitHub Pages o un
-servidor local se ve completa.
-
-## Adopción por fases
-
-1. **Tokens y tipografía** a `style.css`. Es el 80 % del cambio visible y no
-   toca HTML.
-2. **Barra y estado vacío** a `index.html`; menú «Archivo» en teléfono.
-3. **Estándar**: reescribir las secciones de la tabla anterior, regenerar
-   `docs/portada.png` y retirar la maqueta.
+Las tres fases previstas se hicieron juntas: los tokens, la tipografía y los
+componentes pasaron a `assets/css/style.css`; la cabecera, los botones de
+texto, los iconos de tema y el estado vacío, a `index.html` (los botones del
+estado vacío se cablean en `app.js`); el estándar de diseño se actualizó y
+`docs/portada.png` se regeneró.
 
 ## Verificación hecha
 

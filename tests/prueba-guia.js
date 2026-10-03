@@ -279,6 +279,35 @@ function guia(page) {
     g.titulo === 'Capturar' && /faltan \d+ celda/.test(await pie()) && await page.evaluate(function () {
       return document.activeElement === document.querySelectorAll('#dataTable input')[1];
     }), g.titulo + ' / ' + await pie());
+  /* Con la tabla ya hecha, el hito "tabla generada" ya estaba cumplido:
+     Regenerar tabla no lo cambia, y aun asi el asistente tiene que pasar del
+     boton a la captura. Fue un fallo reportado: se quedaba en el boton. */
+  await page.focus('#numOperators');
+  for (var j = 0; j < 3 + nombres; j++) await page.keyboard.press('Enter');
+  g = await guia(page);
+  check('volviendo a la configuracion con la tabla hecha, Enter llega al boton',
+    g.titulo === 'Generar la tabla' && (await foco()) === 'generateBtn', g.titulo + ' / ' + await foco());
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  g = await guia(page);
+  check('y Regenerar tabla tambien lleva a la captura, con el foco en la primera celda vacia',
+    g.titulo === 'Capturar' && await page.evaluate(function () {
+      var vacia = [].slice.call(document.querySelectorAll('#dataTable input'))
+        .filter(function (i) { return i.value.trim() === ''; })[0];
+      return document.activeElement === vacia;
+    }), g.titulo + ' / ' + await foco());
+  await page.click('#demoBtn');
+  await page.waitForTimeout(600);
+  await page.click('#calcBtn');
+  await page.waitForTimeout(600);
+  await page.click('[data-guide="prev"]');
+  g = await guia(page);
+  check('de vuelta en Calcular con el resultado ya hecho', g.titulo === 'Calcular', g.titulo);
+  await page.click('#calcBtn');
+  await page.waitForTimeout(600);
+  g = await guia(page);
+  check('recalcular tambien lleva al dictamen', g.titulo === 'Leer el dictamen', g.titulo);
+
   await page.click('#resetBtn');
   check('al reiniciar el estudio el boton vuelve a decir Generar tabla',
     (await page.textContent('#generateBtn')).trim() === 'Generar tabla', await page.textContent('#generateBtn'));

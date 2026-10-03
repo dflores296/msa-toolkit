@@ -121,6 +121,10 @@ pone el anillo a cada uno, no a la fila que los contiene.
   paso de boton, el foco ya esta en el boton y otro Enter lo pulsa. Al generar
   la tabla el foco pasa a la primera celda; al completar la captura NO se
   mueve, porque ese aviso llega mientras se escribe la ultima celda.
+- **Un paso de boton se cumple cuando el boton hace su trabajo** (`doneOn`),
+  aunque su hito ya estuviera cumplido: con la tabla ya hecha, Regenerar tabla
+  no cambia el hito «tabla generada», y aun asi el asistente pasa a la
+  captura. Lo mismo al recalcular.
 - Si el foco esta en un campo de otro paso (se hizo clic ahi), el asistente se
   pone en ese paso: manda lo que el usuario esta haciendo. Siguiente, con el
   raton, sigue permitiendo saltar un paso.

@@ -116,7 +116,7 @@
           'y en el reporte.'
       } },
 
-    { id: 'tabla', target: '#generateBtn', milestone: tableReady,
+    { id: 'tabla', target: '#generateBtn', milestone: tableReady, doneOn: 'table',
       need: function () { return tableReady() ? '' : 'pulsa Generar tabla'; },
       title: 'Generar la tabla',
       text: 'Pulsa Generar tabla para armar la rejilla de captura con este tamano y estos nombres. ' +
@@ -161,7 +161,7 @@
           'probar, por eso no hay alfa ni denominador.'
       } },
 
-    { id: 'calcular', target: '#calcBtn', milestone: resultReady,
+    { id: 'calcular', target: '#calcBtn', milestone: resultReady, doneOn: 'result',
       need: function () { return resultReady() ? '' : 'pulsa Calcular'; },
       title: 'Calcular',
       text: 'Con la captura completa, pulsa Calcular. Si despues cambias un dato, el resultado se ' +
@@ -392,6 +392,11 @@
     if (!on) { snapshot(); return; }
     if (reason === 'demo') { snapshot(); goTo('calcular'); return; }
     var moved = evaluate();
+    /* Un paso de boton se cumple cuando el boton hace su trabajo, aunque su
+       hito ya estuviera cumplido: con la tabla ya hecha, Regenerar tabla no
+       cambia el hito, y sin esto el asistente se quedaba en el boton. Lo
+       mismo al recalcular. */
+    if (!moved && current().doneOn === reason && index < steps().length - 1) { index++; moved = true; }
     render(moved);
     /* Recien generada la tabla, el foco va a la primera celda: es lo que
        sigue, y asi Enter ya recorre la captura. Solo con este hito: al

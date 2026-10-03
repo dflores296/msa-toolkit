@@ -86,7 +86,7 @@ claro 5.3:1; azul de Dovetail 6.0:1 sobre tarjeta; resaltado del titular
 
 **Una desviación de Seline:** su botón cian lleva texto blanco, que da 2.6:1.
 Aquí lleva tinta (7.4:1). Y, como pide Seline, el cian aparece una vez por
-vista: «Regenerar tabla», que vive junto a Calcular, va en tinta.
+vista: «Generar tabla», que vive junto a Calcular, va en tinta.
 
 ### Tipografía
 

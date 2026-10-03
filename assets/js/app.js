@@ -406,7 +406,7 @@
   /* Validacion de los tres tamanos del estudio. Antes solo se recortaban en
      silencio (clamp): escribir 1 operador dejaba el campo en 1 pero el estudio
      se armaba con 2, sin marca ni aviso. Ahora el campo se marca en rojo, el
-     motivo aparece en el mensaje de la tarjeta y "Regenerar tabla" se bloquea
+     motivo aparece en el mensaje de la tarjeta y "Generar tabla" se bloquea
      hasta corregirlo. Los limites salen de los atributos min/max del propio
      input, para no repetirlos aqui. */
   var CONFIG_FIELDS = [
@@ -612,12 +612,20 @@
     $('dataTable').innerHTML = thead + body;
     if (isAttribute()) buildStandardTable();
     $('captureSection').hidden = false;
+    syncGenerateLabel();
     $('captureCount').textContent = ops.length + ' operadores x ' + partsPerOperator() + ' ' +
       activeMethod().countLabel + ' x ' + state.replicates + ' replicas = ' +
       (ops.length * partsPerOperator() * state.replicates) + ' mediciones';
     wirePaste();
     notifyState('table');
     return true;
+  }
+
+  /* En un estudio nuevo el boton GENERA la tabla; ya generada, la REGENERA
+     con el tamano y los nombres nuevos. Decir "Regenerar" antes de que exista
+     ninguna tabla hacia pensar que ya habia una. */
+  function syncGenerateLabel() {
+    $('generateBtn').textContent = $('captureSection').hidden ? 'Generar tabla' : 'Regenerar tabla';
   }
 
   function trimOrDefault(prefix) {
@@ -2395,6 +2403,7 @@
     renderNameInputs();
     validateConfig();
     $('captureSection').hidden = true;
+    syncGenerateLabel();
     $('resultsSection').hidden = true;
     resetResultViz();
     clearMessages($('configMsg'));

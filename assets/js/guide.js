@@ -82,11 +82,12 @@
   }
 
   var STEPS = [
-    { id: 'nombre', target: '#studyName',
+    { id: 'nombre', target: '#studyName', fields: '#studyName',
       title: 'Nombre del estudio',
       text: 'Opcional. Da nombre al archivo exportado y encabeza el reporte impreso.' },
 
     { id: 'tamano', target: '#numOperators, #numParts, #numReplicates', need: needSize,
+      fields: '#numOperators, #numParts, #numReplicates',
       title: 'Tamano del estudio',
       text: {
         cruzado: 'Operadores, piezas y replicas. AIAG sugiere 3 operadores, 10 piezas y 3 replicas; ' +
@@ -98,11 +99,13 @@
       } },
 
     { id: 'categorias', methods: ['atributos'], target: '#categories', need: needCategories,
+      fields: '#categories, #rejectCategory',
       title: 'Categorias y categoria de rechazo',
       text: 'Las clasificaciones posibles, separadas por coma. Con dos, elige cual es la de rechazo: ' +
         'sin ella no se calculan efectividad, fuga ni falsa alarma.' },
 
     { id: 'nombres', area: '.namelist-cols', need: needNames,
+      fields: '#operatorNames input, #partNames input',
       title: 'Nombres',
       text: {
         cruzado: 'Opcional. Escribe los nombres reales de operadores y piezas; salen en las graficas ' +
@@ -114,18 +117,23 @@
       } },
 
     { id: 'tabla', target: '#generateBtn', milestone: tableReady,
-      need: function () { return tableReady() ? '' : 'pulsa Regenerar tabla'; },
+      need: function () { return tableReady() ? '' : 'pulsa Generar tabla'; },
       title: 'Generar la tabla',
-      text: 'Pulsa Regenerar tabla para armar la rejilla de captura con este tamano y estos nombres.' },
+      text: 'Pulsa Generar tabla para armar la rejilla de captura con este tamano y estos nombres. ' +
+        'Si despues cambias el tamano, el boton dice Regenerar tabla.' },
 
-    { id: 'estandar', methods: ['atributos'], area: '#standardTable',
+    { id: 'estandar', methods: ['atributos'], area: '#standardTable', fields: '#standardTable select',
       title: 'Estandar de cada pieza',
       text: 'Opcional. La clasificacion correcta de cada pieza. Sin estandar solo se sabe si los ' +
         'evaluadores coinciden, no si aciertan.' },
 
     { id: 'captura', area: '#captureSection .capture-scroll', milestone: captureDone,
+      fields: '#dataTable input, #dataTable select',
       need: function () {
-        return captureDone() ? '' : 'faltan celdas por capturar (' + (($('captureStatus') || {}).textContent || '') + ')';
+        if (captureDone()) return '';
+        var empty = [].slice.call(document.querySelectorAll('#dataTable input, #dataTable select'))
+          .filter(function (f) { return f.value.trim() === ''; }).length;
+        return empty ? 'faltan ' + empty + ' celda(s) por capturar' : 'corrige las celdas marcadas en rojo';
       },
       title: 'Capturar',
       text: {
@@ -138,11 +146,13 @@
       } },
 
     { id: 'especificacion', methods: ['cruzado', 'anidado'], target: '#lsl', need: needSpecs,
+      fields: '#lsl, #usl, #tolerance, #historicalSigma, #processMean',
       title: 'Especificacion',
       text: 'Opcional. Con LSL y USL, o con la tolerancia directa, aparece el % Tolerance. Sin ellos ' +
         'solo se juzga contra la variacion del estudio.' },
 
     { id: 'opciones', methods: ['cruzado', 'anidado'], target: '#svMultiplier',
+      fields: '#svMultiplier, #interactionMode, #alpha, #confLevel, #fDenominator',
       title: 'Opciones de calculo',
       text: {
         cruzado: 'Multiplicador, interaccion, alfa y denominador de F. Si no tienes una razon para ' +
@@ -290,34 +300,66 @@
     if (warn) setTimeout(function () { h.classList.remove('shake'); }, 400);
   }
 
-  /* Al avanzar con el teclado, el foco va a lo que pide el paso nuevo: el
-     primer campo, el boton (y otro Enter lo pulsa), o la primera celda vacia
-     de la rejilla. Asi el estudio se puede llevar entero sin raton. */
+  /* Los campos de un paso, en el orden de la pagina, sin los ocultos ni los
+     deshabilitados: es el recorrido de Enter dentro del paso. */
+  function fieldsOf(step) {
+    var sel = step && pick(step.fields);
+    if (!sel) return [];
+    return [].slice.call(document.querySelectorAll(sel)).filter(function (f) { return visible(f) && !f.disabled; });
+  }
+  function focusField(el) {
+    if (!el) return;
+    el.focus();
+    // Un nombre puesto por el programa ("Operador 2") se sobrescribe al teclear.
+    if (el.tagName === 'INPUT' && el.select) el.select();
+  }
+
+  /* Al avanzar con el teclado, el foco va a lo que pide el paso nuevo: su
+     primer campo vacio (o el primero), o su boton -y otro Enter lo pulsa-.
+     Asi el estudio se puede llevar entero sin raton. */
   function focusStep(step) {
-    var sel = pick(step.target), el = null;
-    if (sel) el = document.querySelector(sel);
-    else if (step.area) {
-      var box = document.querySelector(pick(step.area));
-      if (box) {
-        var fields = [].slice.call(box.querySelectorAll('input, select'));
-        el = fields.filter(function (f) { return f.value.trim() === ''; })[0] || fields[0] || null;
-      }
+    var fl = fieldsOf(step);
+    if (fl.length) {
+      focusField(fl.filter(function (f) { return f.value.trim() === ''; })[0] || fl[0]);
+      return;
     }
+    var sel = pick(step.target), el = sel ? document.querySelector(sel) : null;
     if (el && visible(el) && !el.disabled) el.focus({ preventScroll: true });
   }
 
+  /* Enter recorre el paso CASILLA POR CASILLA: del campo en que esta al
+     siguiente del mismo paso. En el ultimo, si el paso esta completo, pasa al
+     paso que sigue -en la configuracion, despues de los campos vienen los
+     botones-; si no, dice que falta y lleva a la primera casilla vacia.
+     Si el foco esta en un campo de otro paso (se hizo clic ahi), el asistente
+     se pone en ese paso: manda lo que el usuario esta haciendo. */
   function onKey(e) {
     if (!on || e.key !== 'Enter' || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     if (e.defaultPrevented) return;
     var t = e.target;
     /* Enter en un boton, un enlace o un texto largo hace lo suyo: pulsar,
-       seguir, saltar de linea. Solo se toma en campos de una linea y fuera de
-       ellos. */
+       seguir, saltar de linea. */
     if (t && t.closest && (t.closest('button, a, textarea, [contenteditable], .guide-card'))) return;
     var list = steps();
+    for (var i = 0; i < list.length; i++) {
+      if (i !== index && fieldsOf(list[i]).indexOf(t) >= 0) { index = i; render(false); break; }
+    }
+    var step = list[index], fl = fieldsOf(step), pos = fl.indexOf(t);
+    if (pos >= 0 && pos < fl.length - 1) {
+      e.preventDefault();
+      focusField(fl[pos + 1]);
+      updateHint(false);
+      return;
+    }
     if (index >= list.length - 1) return;
     e.preventDefault();
-    if (needOf(list[index])) { updateHint(true); return; }
+    var need = needOf(step);
+    if (need) {
+      updateHint(true);
+      var empty = fl.filter(function (f) { return f.value.trim() === ''; })[0];
+      if (empty) focusField(empty);
+      return;
+    }
     index++;
     render(true);
     focusStep(list[index]);
@@ -351,6 +393,11 @@
     if (reason === 'demo') { snapshot(); goTo('calcular'); return; }
     var moved = evaluate();
     render(moved);
+    /* Recien generada la tabla, el foco va a la primera celda: es lo que
+       sigue, y asi Enter ya recorre la captura. Solo con este hito: al
+       completar la captura el foco NO se mueve, porque ese aviso llega
+       mientras se escribe la ultima celda y robaria las teclas que faltan. */
+    if (moved && reason === 'table' && current().id === 'captura') focusStep(current());
   }
 
   function enable() { on = true; snapshot(); syncButton(); render(true); }

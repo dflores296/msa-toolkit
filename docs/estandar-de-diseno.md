@@ -38,6 +38,8 @@ Tres encabezados, uno por seccion: **1 Configuracion**, **2 Captura**,
   (no `baseline`: deja la insignia 1.5 px baja).
 - Las tarjetas de entrada son `<details class="card">` con `summary.config-summary`:
   se pliegan, y la flecha va a la derecha (`::after`), nunca a los dos lados.
+- El boton de la configuracion dice **Generar tabla** en un estudio nuevo y
+  **Regenerar tabla** cuando la tabla ya existe (`syncGenerateLabel`).
 - Un indicador de estado (`.status-pill`) vive **dentro** del encabezado, para
   que siga visible con la tarjeta plegada.
 
@@ -104,18 +106,25 @@ pone el anillo a cada uno, no a la fila que los contiene.
   cuentan los CAMBIOS de un hito: si el usuario vuelve atras a releer, el
   asistente no lo empuja otra vez hacia adelante. Si un hito deja de
   cumplirse (se reinicio el estudio), regresa a el.
-- **Enter avanza solo con el paso completo.** Cada paso que exige algo define
-  `need()`: devuelve lo que le falta en una frase, o '' si esta completo (el
-  tamano dentro de rango, al menos dos categorias y la de rechazo, nombres sin
-  repetir, especificaciones numericas con USL > LSL, la tabla generada, la
-  captura llena, el resultado calculado). Los opcionales y de lectura no lo
-  definen: Enter siempre avanza. El pie de la tarjeta dice «Enter para seguir»
-  o «Para seguir: ...», y si Enter no puede avanzar la frase se sacude. Enter
-  en un boton, un enlace o un texto largo hace lo suyo, no avanza. Siguiente,
-  con el raton, sigue permitiendo saltar un paso.
-- **Al avanzar con el teclado, el foco va a lo que pide el paso nuevo**: el
-  primer campo, el boton (otro Enter lo pulsa) o la primera celda vacia. El
-  estudio se puede llevar entero sin raton.
+- **Enter va casilla por casilla.** Cada paso declara sus campos (`fields`) en
+  el orden de la pagina; Enter pasa al siguiente del mismo paso, y la casilla
+  queda seleccionada para sobrescribir el valor puesto por el programa. En la
+  ultima casilla, Enter pasa al paso que sigue -en la configuracion, despues
+  de los campos vienen los botones- **solo si el paso esta completo**. Cada
+  paso que exige algo define `need()`: lo que le falta en una frase, o '' si
+  esta completo (tamano dentro de rango, al menos dos categorias y la de
+  rechazo, nombres sin repetir, especificaciones numericas con USL > LSL, la
+  tabla generada, la captura llena, el resultado calculado). Si no lo esta, el
+  pie de la tarjeta dice «Para seguir: ...», la frase se sacude y el foco va a
+  la primera casilla vacia. Con el paso completo dice «Enter para seguir».
+- Enter en un boton, un enlace o un texto largo hace lo suyo, no avanza: en un
+  paso de boton, el foco ya esta en el boton y otro Enter lo pulsa. Al generar
+  la tabla el foco pasa a la primera celda; al completar la captura NO se
+  mueve, porque ese aviso llega mientras se escribe la ultima celda.
+- Si el foco esta en un campo de otro paso (se hizo clic ahi), el asistente se
+  pone en ese paso: manda lo que el usuario esta haciendo. Siguiente, con el
+  raton, sigue permitiendo saltar un paso.
+- El estudio se puede llevar entero con el teclado.
 - **Solo lleva a la vista lo que no esta a la vista.** Mover la columna
   mientras alguien escribe en otra celda desorienta.
 - **Encendido en cada carga de la pagina.** La X o el boton «Asistente» de la
@@ -468,7 +477,7 @@ Desde octubre de 2026 (ver [`propuesta-rediseno.md`](propuesta-rediseno.md)):
 | Informacion e interpretacion | `--surface-2` con borde fino, texto tinta | igual |
 
 - **El cian, una vez por vista.** Es lo unico con color que se pulsa. Por eso
-  Regenerar tabla, que vive junto a Calcular, va en tinta.
+  Generar tabla, que vive junto a Calcular, va en tinta.
 - **Texto tinta sobre cian**, no blanco: blanco sobre `#3ba6f1` da 2.6:1.
 - Todo par de texto y fondo cumple 4.5:1 en los dos temas.
 - **Sombra solo en el dictamen** (y el estado vacio) en claro; en oscuro no hay

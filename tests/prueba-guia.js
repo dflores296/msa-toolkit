@@ -20,10 +20,12 @@
  *      guia otra vez hacia adelante.
  *   4. Cerrarla la apaga; al recargar vuelve a encenderse (no se recuerda);
  *      el boton Asistente la enciende y la apaga.
- *   5. Enter avanza solo con el paso completo: un tamano invalido o nombres
- *      repetidos lo detienen y la tarjeta dice que falta; al avanzar, el foco
- *      va al campo o boton del paso nuevo, asi que el estudio se lleva entero
- *      con el teclado.
+ *   5. Enter va casilla por casilla dentro del paso y, en la ultima, pasa al
+ *      paso siguiente solo si esta completo (un tamano invalido, nombres
+ *      repetidos o celdas vacias lo detienen, y la tarjeta dice que falta);
+ *      despues de los campos de la configuracion va al boton Generar tabla,
+ *      que otro Enter pulsa. El boton dice Generar en un estudio nuevo y
+ *      Regenerar con la tabla hecha.
  *   6. Cambiar de metodo reinicia la guia y devuelve al inicio el scroll de la
  *      captura y de los resultados.
  *   7. Ningun error de pagina.
@@ -202,54 +204,84 @@ function guia(page) {
   check('la tarjeta va centrada en la pagina, al pie', Math.abs(pos.centro - pos.mitad) <= 1 && pos.pie >= 8 && pos.pie <= 24,
     JSON.stringify(pos));
 
-  console.log('\n===== ENTER =====\n');
+  console.log('\n===== ENTER, CASILLA POR CASILLA =====\n');
   await page.goto('about:blank');
   await page.goto(base + '#cruzado', { waitUntil: 'networkidle' });
   var foco = function () {
-    return page.evaluate(function () { var a = document.activeElement; return a ? (a.id || a.tagName) : ''; });
+    return page.evaluate(function () { var a = document.activeElement; return a ? (a.id || a.getAttribute('data-idx') || a.tagName) : ''; });
+  };
+  var focoValor = function () {
+    return page.evaluate(function () { var a = document.activeElement; return a && 'value' in a ? a.value : ''; });
   };
   var pie = function () {
     return page.evaluate(function () { return (document.getElementById('guideHint') || {}).textContent || ''; });
   };
+  check('en un estudio nuevo el boton dice Generar tabla',
+    (await page.textContent('#generateBtn')).trim() === 'Generar tabla', await page.textContent('#generateBtn'));
   check('el pie avisa que Enter sigue', /Enter para seguir/.test(await pie()), await pie());
   await page.focus('#studyName');
   await page.keyboard.press('Enter');
   g = await guia(page);
-  check('Enter en el nombre avanza al tamano', g.titulo === 'Tamano del estudio', g.titulo);
-  check('y el foco pasa al primer campo del tamano', (await foco()) === 'numOperators', await foco());
-
-  await page.fill('#numParts', '1');
-  await page.focus('#numParts');
+  check('Enter en el nombre avanza al tamano, en su primera casilla',
+    g.titulo === 'Tamano del estudio' && (await foco()) === 'numOperators', g.titulo + ' / ' + await foco());
+  await page.keyboard.press('Enter');
+  check('Enter pasa de Operadores a Piezas sin cambiar de paso',
+    (await foco()) === 'numParts' && (await guia(page)).titulo === 'Tamano del estudio', await foco());
+  await page.keyboard.type('1');               // la casilla queda seleccionada: se sobrescribe
+  await page.keyboard.press('Enter');
+  check('y de Piezas a Replicas', (await foco()) === 'numReplicates', await foco());
   await page.keyboard.press('Enter');
   g = await guia(page);
-  check('con un tamano invalido Enter no avanza', g.titulo === 'Tamano del estudio', g.titulo);
-  check('y la tarjeta dice que falta', /Para seguir/.test(await pie()), await pie());
+  check('en la ultima casilla, con el tamano invalido, no avanza y dice que falta',
+    g.titulo === 'Tamano del estudio' && /Para seguir/.test(await pie()), g.titulo + ' / ' + await pie());
   await page.fill('#numParts', '10');
-  await page.waitForTimeout(100);
+  await page.focus('#numReplicates');
   await page.keyboard.press('Enter');
   g = await guia(page);
-  check('corregido, Enter avanza a los nombres', g.titulo === 'Nombres', g.titulo);
+  check('corregido, Enter en la ultima casilla avanza a los nombres', g.titulo === 'Nombres', g.titulo);
+  check('con el foco en el primer nombre de operador', (await focoValor()) === 'Operador 1', await focoValor());
 
-  var op2 = '#operatorNames input >> nth=1';
-  var original = await page.inputValue(op2);
-  await page.fill(op2, await page.inputValue('#operatorNames input >> nth=0'));
+  var nombres = await page.$$eval('#operatorNames input, #partNames input', function (l) { return l.length; });
+  var segundo = await page.inputValue('#operatorNames input >> nth=1');
+  await page.fill('#operatorNames input >> nth=1', 'Operador 1');
+  await page.focus('#operatorNames input >> nth=0');
+  for (var k = 0; k < nombres - 1; k++) await page.keyboard.press('Enter');
+  check('Enter recorre los ' + nombres + ' nombres, de operadores a piezas', (await focoValor()) === 'Pieza 10',
+    await focoValor());
   await page.keyboard.press('Enter');
   g = await guia(page);
-  check('con nombres de operador repetidos Enter no avanza', g.titulo === 'Nombres' && /repetidos/.test(await pie()),
+  check('con un operador repetido, el ultimo Enter no avanza', g.titulo === 'Nombres' && /repetidos/.test(await pie()),
     g.titulo + ' / ' + await pie());
-  await page.fill(op2, original);
+  await page.fill('#operatorNames input >> nth=1', segundo);
+  await page.focus('#partNames input >> nth=9');
   await page.keyboard.press('Enter');
   g = await guia(page);
-  check('sin repetidos, Enter avanza a generar la tabla', g.titulo === 'Generar la tabla', g.titulo);
-  check('con el foco en el boton', (await foco()) === 'generateBtn', await foco());
+  check('sin repetidos, despues de los campos va al boton', g.titulo === 'Generar la tabla' && (await foco()) === 'generateBtn',
+    g.titulo + ' / ' + await foco());
   await page.keyboard.press('Enter');          // el Enter del boton: lo pulsa
   await page.waitForTimeout(300);
   g = await guia(page);
   check('otro Enter genera la tabla y el asistente pasa a capturar', g.titulo === 'Capturar', g.titulo);
+  check('ya generada, el boton dice Regenerar tabla',
+    (await page.textContent('#generateBtn')).trim() === 'Regenerar tabla', await page.textContent('#generateBtn'));
+  check('con el foco en la primera celda', await page.evaluate(function () {
+    return document.activeElement === document.querySelector('#dataTable input');
+  }));
+  await page.keyboard.type('0.5');
+  await page.keyboard.press('Enter');
+  check('Enter pasa a la celda siguiente', await page.evaluate(function () {
+    return document.activeElement === document.querySelectorAll('#dataTable input')[1];
+  }));
+  await page.focus('#dataTable input >> nth=-1');
   await page.keyboard.press('Enter');
   g = await guia(page);
-  check('con la captura vacia Enter no avanza', g.titulo === 'Capturar' && /faltan celdas/.test(await pie()),
-    g.titulo + ' / ' + await pie());
+  check('en la ultima celda, con la captura incompleta, no avanza y vuelve a la primera vacia',
+    g.titulo === 'Capturar' && /faltan \d+ celda/.test(await pie()) && await page.evaluate(function () {
+      return document.activeElement === document.querySelectorAll('#dataTable input')[1];
+    }), g.titulo + ' / ' + await pie());
+  await page.click('#resetBtn');
+  check('al reiniciar el estudio el boton vuelve a decir Generar tabla',
+    (await page.textContent('#generateBtn')).trim() === 'Generar tabla', await page.textContent('#generateBtn'));
 
   console.log('\n===== ERRORES =====\n');
   check('ningun error de pagina en todo el recorrido', errores.length === 0, errores.join(' | '));

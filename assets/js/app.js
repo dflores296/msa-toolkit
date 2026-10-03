@@ -2239,6 +2239,26 @@
 
   function cssEsc(s) { return String(s).replace(/["\\]/g, '\\$&'); }
 
+  /* Despues de cargar el ejemplo, el siguiente paso es Calcular: se lleva la
+     columna hasta el boton y se resalta un momento. Antes la carga dejaba la
+     vista arriba de la tabla de captura y el boton quedaba fuera de pantalla,
+     sin pista de que hacer. El resalte se quita solo, o al pulsar. */
+  var attentionTimer = null;
+  function guideToCalculate() {
+    var btn = $('calcBtn');
+    if (!btn || btn.disabled) return;
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    btn.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    btn.classList.remove('attention');
+    clearTimeout(attentionTimer);
+    // Se espera a que termine el desplazamiento: un pulso que ocurre mientras
+    // la columna todavia se mueve no se alcanza a ver.
+    attentionTimer = setTimeout(function () {
+      btn.classList.add('attention');
+      attentionTimer = setTimeout(function () { btn.classList.remove('attention'); }, 2600);
+    }, reduce ? 0 : 450);
+  }
+
   /* Ejemplo del metodo de atributos. NO es un dataset publicado: es un caso
      construido a mano para que se vea el metodo funcionando, con 30 piezas,
      3 evaluadores y 3 replicas. El estandar alterna buena/mala (15 y 15), que
@@ -2290,6 +2310,7 @@
     $('lsl').value = '-5'; $('usl').value = '5';
     $('tolerance').value = ''; $('processMean').value = ''; $('historicalSigma').value = '';
     loadPayload({ data: rows });
+    guideToCalculate();
     if (nested) {
       showMessages($('configMsg'), [], ['Ejemplo cargado: son las mediciones del apendice del manual ' +
         'AIAG MSA 4a ed. con las piezas renumeradas 1 a 30, para que ninguna la midan dos operadores. ' +
@@ -2321,6 +2342,7 @@
       'Cada evaluador falla distinto a proposito: Ana rechaza de mas una pieza buena, Beto deja ' +
       'pasar dos malas sin contradecirse nunca, y Cruz se contradice en tres. Fijate en que las ' +
       'cifras separan los tres problemas.']);
+    guideToCalculate();
   }
 
   function clearData() {
@@ -2530,7 +2552,9 @@
       });
     });
     $('generateBtn').addEventListener('click', function () { buildDataTable(true); });
-    $('calcBtn').addEventListener('click', calculate);
+    $('calcBtn').addEventListener('click', function () {
+      clearTimeout(attentionTimer); $('calcBtn').classList.remove('attention'); calculate();
+    });
     $('recalcBtn').addEventListener('click', calculate);
     $('staleRecalcBtn').addEventListener('click', calculate);
     $('demoBtn').addEventListener('click', loadDemo);

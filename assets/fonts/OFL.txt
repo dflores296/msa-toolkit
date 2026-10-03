@@ -96,9 +96,9 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
 
 --------------------------------------------------------------------------
 
-Source Serif 4 (assets/fonts/source-serif-4-*.woff2). Copyright 2014-2021 Adobe (http://www.adobe.com/), with Reserved Font Name 'Source'.
+JetBrains Mono (assets/fonts/jetbrains-mono-*.woff2)
 
-Google Inc.
+Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono) JetBrainsMono-Italic[wght].ttf: Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

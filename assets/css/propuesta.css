@@ -1,14 +1,16 @@
 /* ============================================================================
- * propuesta.css - Propuesta de rediseno: "el reporte de laboratorio sobre papel"
+ * propuesta.css - Propuesta de rediseno v2: Seline (claro) + Dovetail (oscuro)
  *
  * Capa que se carga DESPUES de style.css y solo en la vista previa
  * (propuesta/index.html). La app de produccion no la carga. Redefine tokens y
- * el aspecto de los componentes; no toca estructura, medidas del carril del
- * intervalo, umbrales ni el semaforo (--sem-* sigue saliendo de style.css).
+ * el aspecto de los componentes; no toca estructura ni medidas del carril.
  *
- * Referencia: estilo Steep (serif editorial sobre papel blanco, un solo acento
- * durazno, botones pildora, sombra solo en lo que flota), adaptado a una
- * herramienta densa de captura. Ver docs/propuesta-rediseno.md.
+ * COLORES QUE NO SE TOCAN (requisito tecnico): el semaforo de las graficas de
+ * resumen (--sem-*, .eval-fill, .eval-tick, pastillas .t.*) y las barras de
+ * Componentes de variacion (azul, rojo y ambar, fijos en charts.js). Esta hoja
+ * no redefine ninguno de esos tokens ni de esas clases.
+ *
+ * Ver docs/propuesta-rediseno.md.
  * ==========================================================================*/
 
 /* --- Tipografia autoalojada: la app funciona sin conexion --------------- */
@@ -18,415 +20,374 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 @font-face {
-  font-family: "Source Serif 4"; font-style: normal; font-display: swap; font-weight: 200 900;
-  src: url("../fonts/source-serif-4-latin-wght-normal.woff2") format("woff2-variations");
-  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-  font-family: "Source Serif 4"; font-style: italic; font-display: swap; font-weight: 200 900;
-  src: url("../fonts/source-serif-4-latin-wght-italic.woff2") format("woff2-variations");
+  font-family: "JetBrains Mono"; font-style: normal; font-display: swap; font-weight: 100 800;
+  src: url("../fonts/jetbrains-mono-latin-wght-normal.woff2") format("woff2-variations");
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-/* --- Tokens: claro ------------------------------------------------------ */
+/* --- Tokens: claro, Seline ---------------------------------------------- */
 :root {
   --sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --serif: "Source Serif 4", ui-serif, Georgia, "Times New Roman", serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  --page-bg: #ffffff;          /* Paper */
-  --surface: #ffffff;
-  --surface-2: #f2f2f3;        /* Mist: tarjetas de captura, pistas */
-  --surface-fog: #fafafb;      /* Fog: banda del panel de resultados */
-  --header-bg: rgba(255, 255, 255, .88);
+  --page-bg: #fafaf9;          /* Stone Canvas: papel, no pantalla */
+  --surface: #ffffff;          /* tarjetas */
+  --surface-2: #f5f5f4;        /* pistas, campos atenuados, info */
+  --surface-band: #f5f5f4;     /* banda del panel de resultados */
+  --header-bg: rgba(250, 250, 249, .9);
   --input-bg: #ffffff;
-  --border: #ececec;           /* hairline */
-  --border-strong: #d6d7da;
-  --ink: #17191c;
-  --ink-soft: #5f636c;         /* Slate oscurecido: 5.9:1 sobre blanco, 5.3:1 sobre Mist */
-  --ink-faint: #6a6d75;        /* 5.2:1 sobre blanco, 4.6:1 sobre Mist; rotulos que no deciden */
+  --border: #e8e6e5;           /* hairline: la estructura ES el borde */
+  --border-strong: #d6d3d1;
+  --ink: #0c0a09;
+  --ink-soft: #57534e;         /* 7.0:1 sobre la banda */
+  --ink-faint: #6f6964;        /* 5.0:1 sobre la banda */
 
-  /* La accion primaria es tinta, no azul: el unico color de la pantalla es el
-     que codifica algo (semaforo) o el acento de marca. */
-  --accent: #17191c;
-  --accent-hover: #33363b;
-  --accent-ink: #17191c;
-  --accent-soft: #f2f2f3;
-  --on-accent: #ffffff;
-  --info-border: transparent;
+  /* Accion primaria: el cian es lo unico con color que se pulsa. Lleva texto
+     tinta, no blanco: blanco sobre #3ba6f1 da 2.6:1. */
+  --accent: #3ba6f1;
+  --accent-hover: #2f97e2;
+  --accent-border: #3398e1;
+  --on-accent: #0c0a09;
+  --accent-ink: #1f6fae;       /* enlaces, pestana activa: 5.3:1 */
+  --accent-soft: #f5f5f4;
+  --info-border: #e8e6e5;
+  --mark-ink: #175d93;         /* resaltado de titular: 5.1:1 sobre --mark-bg */
+  --mark-bg: #c1e1f7;
+  --ghost-border: #e8e6e5;
 
-  /* Acento de marca, UNA vez por pantalla y nunca junto al semaforo: su
-     durazno se confundiria con el ambar de --warn-soft. */
-  --brand-wash: #fbe1d1;
-  --brand-ink: #5d2a1a;
-
-  --warn-soft: #fcf3dc;
-  --warn-border: #f1e2b8;
-
-  --toggle-track-bg: #f2f2f3;
-  --toggle-track-border: transparent;
+  --toggle-track-bg: #f5f5f4;
+  --toggle-track-border: #e8e6e5;
   --toggle-active-bg: #ffffff;
-  --toggle-active-ink: #17191c;
-  --toggle-inactive-ink: #5f636c;
+  --toggle-active-ink: #0c0a09;
+  --toggle-inactive-ink: #57534e;
 
-  --chart-grid: #eeeef0;
-  --chart-tick: #5f636c;
-  /* Tinta, terracota, acero, ocre, ciruela, verde agua, gris. El primero es
-     la serie principal; el segundo marca limites de control. */
-  --chart-series: #17191c, #b0532f, #4f6f8f, #a0782c, #6d5a8a, #3f7f78, #8a8d95;
+  --chart-grid: #efedec;
+  --chart-tick: #57534e;
+  /* Series del resto de las graficas (cartas, cajas, interaccion). La de
+     Componentes NO sale de aqui: sus colores estan fijos en charts.js. */
+  --chart-series: #3398e1, #0c0a09, #78716c, #9984d8, #0f9d6e, #a8a29e, #44403c;
 
-  --shadow-float: 0 0 0 1px rgba(4, 23, 43, .05), 0 20px 25px -5px rgba(0, 0, 0, .08), 0 8px 10px -6px rgba(0, 0, 0, .08);
-  --shadow-pop: 0 0 0 1px rgba(0, 0, 0, .05), 0 4px 24px rgba(0, 0, 0, .08);
-  --shadow-chip: 0 0 0 1px rgba(0, 0, 0, .05), 0 1px 2px rgba(0, 0, 0, .06);
-  --ring: 0 0 0 3px rgba(23, 25, 28, .14);
-
-  --r-card: 20px;              /* tarjetas de captura */
-  --r-result: 24px;            /* tarjetas de resultado */
-  --r-field: 10px;
-  --r-cell: 8px;
+  --r-card: 10px;
+  --r-feature: 16px;
+  --r-ctl: 9999px;             /* botones y selectores: pildora */
+  --r-field: 6px;
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, .05);
+  --shadow-chip: 0 1px 2px rgba(0, 0, 0, .05);
+  --ring: 0 0 0 2px rgba(59, 166, 241, .45);
+  --grid-motif: none;
 }
 
-/* --- Tokens: oscuro, "papel de noche" ----------------------------------- */
+/* --- Tokens: oscuro, Dovetail ------------------------------------------- */
 :root[data-theme="dark"] {
-  --page-bg: #121315;
-  --surface: #1a1b1e;
-  --surface-2: #222326;
-  --surface-fog: #161719;
-  --header-bg: rgba(18, 19, 21, .88);
-  --input-bg: #121315;
-  --border: #2a2b2f;
-  --border-strong: #3b3d42;
-  --ink: #ececed;
-  --ink-soft: #a6a9b1;
-  --ink-faint: #8d9098;
-  --accent: #ececed;
-  --accent-hover: #ffffff;
-  --accent-ink: #ececed;
-  --accent-soft: #222326;
-  --on-accent: #17191c;
-  --info-border: transparent;
-  --brand-wash: #3a2419;
-  --brand-ink: #f3c9b1;
-  --warn-soft: #33270f;
-  --warn-border: #4a3a12;
-  --toggle-track-bg: #222326;
-  --toggle-track-border: transparent;
-  --toggle-active-bg: #3b3d42;
-  --toggle-active-ink: #ececed;
-  --toggle-inactive-ink: #a6a9b1;
-  --chart-grid: #2a2b2f;
-  --chart-tick: #a6a9b1;
-  --chart-series: #d9dade, #e07a52, #7fa3c7, #d4a64a, #a58fc9, #6fb3aa, #8a8d95;
-  --shadow-float: 0 0 0 1px rgba(255, 255, 255, .06), 0 20px 25px -5px rgba(0, 0, 0, .45), 0 8px 10px -6px rgba(0, 0, 0, .4);
-  --shadow-pop: 0 0 0 1px rgba(255, 255, 255, .06), 0 4px 24px rgba(0, 0, 0, .4);
-  --shadow-chip: 0 0 0 1px rgba(255, 255, 255, .06);
-  --ring: 0 0 0 3px rgba(236, 236, 237, .18);
+  --page-bg: #0a0a0a;
+  --surface: #1e1e1e;
+  --surface-2: #141414;
+  --surface-band: #0f0f0f;
+  --header-bg: rgba(10, 10, 10, .9);
+  --input-bg: #141414;
+  --border: #313131;
+  --border-strong: #454545;
+  --ink: #ffffff;
+  --ink-soft: #a7a7a7;
+  --ink-faint: #8a8a8a;
+
+  /* Dovetail: la primaria es blanca; el azul es solo acento, nunca relleno. */
+  --accent: #ffffff;
+  --accent-hover: #e8eaee;
+  --accent-border: #ffffff;
+  --on-accent: #0a0a0a;
+  --accent-ink: #6798ff;
+  --accent-soft: #141414;
+  --info-border: #313131;
+  --mark-ink: #6798ff;
+  --mark-bg: rgba(103, 152, 255, .15);
+  --ghost-border: #454545;
+
+  --toggle-track-bg: #141414;
+  --toggle-track-border: #313131;
+  --toggle-active-bg: #313131;
+  --toggle-active-ink: #ffffff;
+  --toggle-inactive-ink: #a7a7a7;
+
+  --chart-grid: #262626;
+  --chart-tick: #a7a7a7;
+  --chart-series: #6798ff, #ffffff, #a7a7a7, #9984d8, #3fcb7f, #7c7c7c, #d6d3d1;
+
+  --r-card: 8px;
+  --r-feature: 8px;
+  --r-ctl: 8px;
+  --r-field: 8px;
+  --shadow-card: none;
+  --shadow-chip: none;
+  --ring: 0 0 0 2px rgba(103, 152, 255, .5);
+  /* El motivo de rejilla de Dovetail, solo detras de los resultados. */
+  --grid-motif: linear-gradient(#1b1b1b 1px, transparent 1px), linear-gradient(90deg, #1b1b1b 1px, transparent 1px);
 }
 
 /* --- Base ---------------------------------------------------------------- */
 body {
-  font-family: var(--sans); font-size: 14.5px; font-weight: 430; line-height: 1.5;
-  -webkit-font-smoothing: antialiased; font-feature-settings: "cv11" 1;
+  font-family: var(--sans); font-size: 14px; line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
-strong, b { font-weight: 560; }
-a { color: var(--ink); text-underline-offset: 3px; text-decoration-thickness: 1px; }
-:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
-button, .tab-btn, .method-opt, .theme-opt, summary { transition: background-color .16s ease, color .16s ease, border-color .16s ease, box-shadow .16s ease; }
+strong, b { font-weight: 600; }
+a { color: var(--accent-ink); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+button, .tab-btn, .method-opt, .theme-opt { transition: background-color .15s ease, color .15s ease, border-color .15s ease; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; }
+}
+/* Rotulo de seccion tipo panel de instrumentos (eyebrow de Dovetail). */
+.eyebrow, .lead-k, .blk-k, .method-family, .empty-k, thead th, .namelist-group {
+  font-family: var(--mono); text-transform: uppercase; letter-spacing: .07em;
 }
 
 /* --- Aviso de vista previa ----------------------------------------------- */
 .preview-note {
   display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
   padding: 6px 16px; font-size: 12px; color: var(--ink-soft);
-  background: var(--surface-fog); border-bottom: 1px solid var(--border);
+  background: var(--surface-2); border-bottom: 1px solid var(--border);
 }
 .preview-note a { color: var(--ink); }
 
-/* --- Barra superior: una cabecera de publicacion, no una botonera -------- */
+/* --- Barra superior ------------------------------------------------------ */
 header.toolbar {
   background: var(--header-bg); border-bottom: 1px solid var(--border);
-  -webkit-backdrop-filter: saturate(1.4) blur(10px); backdrop-filter: saturate(1.4) blur(10px);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
-.toolbar-inner { gap: 14px; padding: 12px 28px; }
-/* La barra cabe en UN renglon desde 1200 px: lo que cede es la linea del
-   estudio, que se recorta con puntos suspensivos (el nombre completo sigue en
-   el campo y en el reporte), no las acciones. */
+.toolbar-inner { gap: 14px; padding: 12px 24px; }
+/* Un renglon desde 1200 px: lo que cede es la linea del estudio, que se
+   recorta con puntos suspensivos, no las acciones. */
 @media (min-width: 1200px) { .toolbar-inner { flex-wrap: nowrap; } }
 .toolbar-inner > button, .toolbar-inner > .method-switch, .toolbar-inner > .theme-toggle { flex: none; white-space: nowrap; }
-.masthead { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 0 1 auto; }
-.brand {
-  font: 400 22px/1.1 var(--serif); letter-spacing: -0.015em; color: var(--ink);
-}
-.brand em { font-style: italic; }
+.masthead { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 0 1 auto; }
+.brand-mark { width: 22px; height: 22px; flex: none; color: var(--ink); }
+.masthead-text { display: flex; flex-direction: column; min-width: 0; }
+.brand { font: 600 15px/1.2 var(--sans); letter-spacing: -0.02em; color: var(--ink); }
 .dateline {
-  display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden;
+  display: flex; align-items: baseline; gap: 6px; min-width: 0; overflow: hidden;
   font-size: 12px; color: var(--ink-soft); white-space: nowrap;
 }
 .dateline .badge { flex: none; }
 .dateline .study-summary { overflow: hidden; }
 .dateline .study-summary span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .dateline:has(#studyLabel:empty):has(#captureCount:empty) .sep { display: none; }
-/* La insignia deja de ser una pastilla azul: es una etiqueta tipografica,
-   como las categorias de Steep. Cita el estudio; no compite con las acciones. */
-.badge {
-  padding: 0; border-radius: 0; background: none; color: var(--ink);
-  font-size: 12px; font-weight: 520; letter-spacing: 0;
-}
 .dateline .sep { color: var(--ink-faint); }
+/* La insignia cita el estudio: etiqueta, no pastilla de color. */
+.badge { padding: 0; border-radius: 0; background: none; color: var(--ink-soft); font-size: 12px; font-weight: 500; letter-spacing: 0; }
 .study-summary { font-size: 12px; gap: 6px; }
-.study-summary strong { font-weight: 520; }
-.vsep { height: 22px; background: var(--border); }
+.vsep { height: 20px; background: var(--border); }
 
-/* Selector de metodo y de tema: riel pildora */
 .method-switch, .theme-toggle {
-  padding: 3px; border-radius: 999px; border: 0; background: var(--toggle-track-bg);
+  padding: 3px; border-radius: var(--r-ctl); background: var(--toggle-track-bg);
+  border: 1px solid var(--toggle-track-border);
 }
-.method-family { padding: 0 8px 0 10px; font-size: 10.5px; font-weight: 600; letter-spacing: .08em; color: var(--ink-faint); }
+.method-family { padding: 0 8px 0 10px; font-size: 10px; font-weight: 500; color: var(--ink-faint); }
 .method-sep { margin: 6px 6px; background: var(--border-strong); }
 .method-switch .method-opt, .theme-toggle .theme-opt {
-  padding: 6px 14px; border-radius: 999px; font-size: 13px; font-weight: 480;
+  padding: 5px 13px; border-radius: var(--r-ctl); font-size: 13px; font-weight: 500;
 }
 .method-switch .method-opt:hover, .theme-toggle .theme-opt:hover { color: var(--ink); background: transparent; }
 .method-switch .method-opt.active, .theme-toggle .theme-opt.active {
-  background: var(--toggle-active-bg); color: var(--toggle-active-ink); font-weight: 560; box-shadow: var(--shadow-chip);
+  background: var(--toggle-active-bg); color: var(--toggle-active-ink); font-weight: 600; box-shadow: var(--shadow-chip);
 }
-.theme-toggle .theme-opt { display: inline-flex; align-items: center; padding: 6px 9px; }
+:root[data-theme="dark"] .method-switch .method-opt.active { background: #ffffff; color: #0a0a0a; }
+.theme-toggle .theme-opt { display: inline-flex; align-items: center; padding: 5px 8px; }
 .theme-toggle .theme-opt svg { width: 16px; height: 16px; display: block; }
 .sr-only {
   position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-/* --- Botones: pildora. El par relleno + fantasma es la firma ------------- */
+/* --- Botones ------------------------------------------------------------- */
 button {
-  font-size: 13.5px; font-weight: 500; padding: 8px 16px; border-radius: 999px;
-  border: 1px solid var(--border-strong); background: transparent; color: var(--ink);
+  font-size: 13.5px; font-weight: 500; padding: 7px 16px; border-radius: var(--r-ctl);
+  border: 1px solid var(--ghost-border); background: transparent; color: var(--ink);
 }
 button:hover { background: var(--surface-2); }
-button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+button.primary { background: var(--accent); border-color: var(--accent-border); color: var(--on-accent); }
 button.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
-button.ghost { color: var(--ink); border-color: var(--ink); }
-button.ghost:hover { background: var(--surface-2); }
+button.ghost { color: var(--ink); border-color: var(--ghost-border); }
+button.ghost:hover { border-color: var(--ink-faint); background: transparent; }
 button.danger { color: #fff; }
-/* Acciones de archivo: botones de texto. Se usan, pero no deciden nada; con
-   el mismo peso que Imprimir la barra tenia seis botones iguales. */
-button.quiet { border-color: transparent; background: none; padding: 8px 6px; color: var(--ink); white-space: nowrap; }
-button.quiet:hover { background: none; text-decoration: underline; text-underline-offset: 4px; }
-button:disabled, button.primary:disabled { opacity: .35; }
+/* Seline: el cian, una vez por vista. Regenerar tabla vive junto a Calcular
+   y a Imprimir; va en tinta para no repetir el relleno de color. */
+#generateBtn { background: var(--ink); border-color: var(--ink); color: var(--page-bg); }
+#generateBtn:hover { background: var(--ink-soft); border-color: var(--ink-soft); }
+/* Acciones de archivo: botones de texto (navegacion de Seline). */
+button.quiet { border-color: transparent; background: none; padding: 7px 6px; color: var(--ink-soft); white-space: nowrap; }
+button.quiet:hover { background: none; color: var(--ink); }
+button:disabled, button.primary:disabled { opacity: .4; }
 
-/* --- Banco de trabajo ------------------------------------------------------ */
-.col-capture { padding: 24px 24px 8px; gap: 16px; border-right: 1px solid var(--border); background: var(--page-bg); }
-.results-panel { background: var(--surface-fog); padding: 26px 32px 40px; gap: 20px; }
+/* --- Banco de trabajo ---------------------------------------------------- */
+.col-capture { padding: 20px 20px 8px; gap: 14px; border-right: 1px solid var(--border); background: var(--page-bg); }
+.results-panel {
+  background-color: var(--surface-band); padding: 22px 28px 40px; gap: 18px;
+  background-image: var(--grid-motif); background-size: 48px 48px;
+}
 @media (min-width: 1101px) { .results-panel { min-height: calc(100vh - var(--header-h, 0px)); } }
-#resultsSection, #resultBody { gap: 20px; }
+#resultsSection, #resultBody { gap: 18px; }
 
-/* --- Tarjetas ---------------------------------------------------------------
-   Captura: Mist, sin borde ni sombra (Steep "Neutral Card").
-   Resultados: papel blanco con hairline. Solo el dictamen flota. */
-.card { background: var(--surface-2); border: 0; border-radius: var(--r-card); padding: 20px 22px; }
-details.card { padding: 18px 22px 22px; }
-.results-panel .card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-result); padding: 24px 28px;
-}
-/* El dictamen: lo unico que flota en la pantalla. */
-#msaSummary > .card:first-child, #verdicts.card {
-  border-color: transparent; box-shadow: var(--shadow-float);
-}
+/* --- Tarjetas: blanco con hairline (claro) / tono sobre tono (oscuro) ---- */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); padding: 18px 20px; }
+details.card { padding: 16px 20px 20px; }
+.results-panel .card { padding: 22px 24px; }
+/* El dictamen: la unica tarjeta con sombra en claro. En oscuro, ninguna. */
+#msaSummary > .card:first-child, #verdicts.card { border-radius: var(--r-feature); box-shadow: var(--shadow-card); }
 
-/* Encabezados de paso: numeral serif tenue + titulo serif. */
-.config-summary, .results-head { gap: 12px; }
-.config-summary {
-  font: 400 21px/1.2 var(--serif); letter-spacing: -0.01em; margin-bottom: 6px;
-}
+.config-summary, .results-head { gap: 10px; }
+.config-summary { font: 600 15px/1.3 var(--sans); letter-spacing: -0.015em; margin-bottom: 6px; }
 .config-summary::after {
-  content: ""; width: 9px; height: 9px; margin-right: 4px; flex: none;
+  content: ""; width: 8px; height: 8px; margin-right: 4px; flex: none;
   border-right: 1.5px solid var(--ink-faint); border-bottom: 1.5px solid var(--ink-faint);
-  transform: translateY(-3px) rotate(45deg); transition: transform .16s ease;
+  transform: translateY(-2px) rotate(45deg);
 }
 details.card:not([open]) > .config-summary::after { content: ""; transform: rotate(-45deg); }
+/* Paso: casilla de 20 px con el numero en mono, sin color de relleno. */
 .step {
-  width: auto; height: auto; border-radius: 0; background: none;
-  color: var(--ink-faint); font: italic 400 21px/1 var(--serif);
+  width: 22px; height: 22px; border-radius: 6px; background: var(--surface-2);
+  border: 1px solid var(--border); color: var(--ink-soft); font: 500 11px/20px var(--mono);
 }
-.results-title { font: 400 26px/1.15 var(--serif); letter-spacing: -0.012em; }
-.results-head .step { font-size: 26px; }
-.results-live { font-size: 12.5px; color: var(--ink-soft); }
-.status-pill { font: 560 12px var(--sans); font-variant-numeric: tabular-nums; padding: 3px 10px; }
+.results-title { font: 600 15px/1.3 var(--sans); letter-spacing: -0.015em; }
+.results-live { font-size: 12px; color: var(--ink-faint); }
+.status-pill { font: 500 11px var(--mono); padding: 3px 9px; }
 
-.hint { font-size: 13.5px; line-height: 1.55; color: var(--ink-soft); }
-.card > .hint { margin-left: 0; }
-.subhead { font: 400 18px/1.25 var(--serif); letter-spacing: -0.005em; margin: 28px 0 6px; }
+.hint { font-size: 13px; line-height: 1.6; color: var(--ink-soft); }
+.card > .hint { margin-left: 32px; }
+.subhead { font: 600 14px/1.3 var(--sans); letter-spacing: -0.01em; margin: 26px 0 6px; }
 
-/* --- Formularios ----------------------------------------------------------- */
+/* --- Formularios --------------------------------------------------------- */
 label.field { font-size: 12.5px; }
-/* Inter a 14 px es mas ancha que la fuente de sistema: el minimo sube para
-   que "CM interaccion (Minitab)" no se corte (estandar §2: sube el minimo,
-   no encojas la fuente). */
+label.field > span { font-weight: 500; color: var(--ink-soft); margin-bottom: 5px; }
+/* Inter es mas ancha que la fuente de sistema: el minimo sube para que
+   "CM interaccion (Minitab)" no se corte (estandar §2). */
 .grid.cols-4 { grid-template-columns: repeat(auto-fill, minmax(212px, 1fr)); }
-label.field > span { font-weight: 500; color: var(--ink-soft); margin-bottom: 6px; }
 input[type="text"], input[type="number"], select, textarea {
-  padding: 8px 11px; font-size: 14px; border-radius: var(--r-field);
+  padding: 7px 10px; font-size: 13.5px; border-radius: var(--r-field);
   border: 1px solid var(--border-strong); background: var(--input-bg);
 }
 input::placeholder, textarea::placeholder { color: var(--ink-faint); opacity: 1; }
-input:focus, select:focus, textarea:focus {
-  outline: none; border-color: var(--ink); box-shadow: var(--ring);
-}
-textarea { font-family: var(--sans); font-variant-numeric: tabular-nums; }
-.namelist { gap: 8px; }
-.namelist input { padding: 7px 11px; font-size: 13.5px; }
-.namelist-group { font-size: 10.5px; letter-spacing: .08em; font-weight: 600; }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent-border); box-shadow: var(--ring); }
+textarea { font-family: var(--mono); }
+.namelist input { padding: 6px 10px; font-size: 13px; }
+.namelist-group { font-size: 10px; font-weight: 500; }
 
-/* --- Tablas: reglas de libro (booktabs), cifras tabulares sin monoespaciada */
+/* --- Tablas -------------------------------------------------------------- */
 table { font-size: 13px; }
-caption { font: italic 400 14px var(--serif); color: var(--ink-soft); }
+caption { font-style: normal; font-weight: 500; color: var(--ink-soft); }
 thead th {
-  background: var(--surface); font-size: 10.5px; font-weight: 600; letter-spacing: .07em; color: var(--ink-soft);
-  border-top: 1.5px solid var(--ink); border-bottom: 1px solid var(--ink);
+  background: var(--surface); font-size: 10px; font-weight: 500; color: var(--ink-faint);
+  border-top: 0; border-bottom: 1px solid var(--border-strong);
 }
-.card thead th { background: var(--surface-2); }
-.results-panel .card thead th { background: var(--surface); }
+tbody tr:last-child td { border-bottom: 1px solid var(--border-strong); }
 th, td { padding: 6px 10px; }
-td.num, th.num { font-family: var(--sans); font-size: 13px; font-variant-numeric: tabular-nums; }
-tbody tr:hover td { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
-#dataTable tbody tr:hover td { background: none; }
-#dataTable td.col-meas input {
-  font-family: var(--sans); font-variant-numeric: tabular-nums; font-size: 13.5px;
-  padding: 5px 9px; border-radius: var(--r-cell);
-}
-#dataTable tbody tr.group-start > * { border-top-color: var(--border-strong); }
-/* Celdas de categoria (atributos): sin recortar "No pasa" en columnas de 90 px. */
-#dataTable select, #standardTable select { padding: 5px 4px 5px 8px; font-size: 13px; border-radius: var(--r-cell); }
-/* Defectos que ya tiene produccion y que la propuesta corrige (estandar §2:
-   ningun texto de <select> cortado): a 1280 px las celdas de atributos
-   cortaban "No pasa", y la opcion larga del denominador de F no cabia nunca.
-   La celda pide su ancho y la tabla se desplaza dentro de .table-scroll; el
-   denominador, solo en su fila, toma la fila entera. */
+tbody td { border-bottom: 1px solid var(--border); }
+td.num, th.num { font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+#dataTable tbody td, #standardTable tbody td { border-bottom: 0; }
+#dataTable tbody tr.group-start > * { border-top-color: var(--border); }
+#dataTable td.col-meas input { font-family: var(--mono); font-size: 12.5px; padding: 4px 8px; border-radius: var(--r-field); }
+/* Celdas de categoria (atributos): sin recortar "No pasa". La celda pide su
+   ancho y la tabla se desplaza dentro de .table-scroll; el denominador de F,
+   solo en su fila, toma la fila entera. Son defectos que produccion ya tiene. */
+#dataTable select, #standardTable select { padding: 4px 4px 4px 8px; font-size: 13px; border-radius: var(--r-field); }
 #dataTable td.col-meas select { min-width: 86px; }
 label.field:has(#fDenominator) { grid-column: 1 / -1; }
 label.field:has(#fDenominator) select { max-width: 340px; }
-p.note { font: italic 400 14px var(--serif); }
+p.note { font-style: normal; }
 
-/* --- Mensajes --------------------------------------------------------------
-   Info e interpretacion: Mist y tinta, sin azul. Ambar y rojo conservan su
-   semantica: son los unicos avisos con color, y por eso se leen. */
-.msg { border-radius: 14px; padding: 14px 16px; font-size: 13.5px; line-height: 1.55; border: 0 !important; }
-.msg.info { background: var(--surface-2); color: var(--ink); }
-.card .msg.info { background: var(--surface); }
-.results-panel .msg.info { background: var(--surface-2); }
-.msg.warn strong, .msg.err strong { font-weight: 600; }
+/* --- Mensajes ------------------------------------------------------------ */
+.msg { border-radius: var(--r-card); padding: 12px 14px; font-size: 13px; line-height: 1.55; }
+.msg.info { background: var(--surface-2); color: var(--ink); border: 1px solid var(--info-border); }
 .interp, .note {
-  border: 0; border-radius: 12px; background: var(--surface-2); color: var(--ink);
-  font-size: 12.5px; padding: 10px 14px;
+  border: 1px solid var(--info-border); border-radius: var(--r-card); background: var(--surface-2); color: var(--ink);
+  font-size: 12.5px; padding: 9px 12px;
 }
-.note .info-i { color: var(--ink-soft); }
+.note .info-i { color: var(--accent-ink); }
 
-/* --- El dictamen ------------------------------------------------------------ */
-.card-head { padding-bottom: 16px; margin-bottom: 20px; }
-.card-title { font: 400 22px/1.2 var(--serif); letter-spacing: -0.01em; }
-.card-rule { margin-top: 6px; font-size: 13px; color: var(--ink-soft); }
+/* --- El dictamen --------------------------------------------------------- */
+.card-head { padding-bottom: 14px; margin-bottom: 18px; }
+.card-title { font: 600 16px/1.3 var(--sans); letter-spacing: -0.02em; }
+.card-rule { margin-top: 4px; font-size: 12.5px; color: var(--ink-soft); }
 .card-rule2 { font-size: 12px; }
-.lead + .lead { margin-top: 24px; padding-top: 24px; }
-.lead-k { font-size: 11px; font-weight: 560; letter-spacing: .08em; color: var(--ink-soft); }
-.lead-t { font-size: 12px; font-weight: 520; padding: 3px 11px; border-radius: 999px; }
-/* La cifra que decide, en serif: se lee como el numero de un reporte firmado. */
+.lead-k { font-size: 10.5px; font-weight: 500; color: var(--ink-faint); }
+.lead-t { font-size: 12px; font-weight: 500; padding: 2px 10px; border-radius: 9999px; }
 .lead-v {
-  font: 400 50px/1 var(--serif); letter-spacing: -0.025em; margin-top: 10px;
-  font-variant-numeric: lining-nums tabular-nums;
+  font: 500 40px/1 var(--sans); letter-spacing: -0.035em; margin-top: 10px;
+  font-variant-numeric: tabular-nums;
 }
-.lead-scale .eval-tick-label { font: 600 11.5px var(--sans); }
-.lead-foot { font-size: 12.5px; }
-.eval-track { background: var(--surface-2); }
+.lead-foot { font-size: 12px; }
+.blk-k { font-size: 10.5px; font-weight: 500; }
+.attr-lead .lead-k { font-family: var(--sans); text-transform: none; letter-spacing: -0.01em; font-size: 13.5px; font-weight: 600; color: var(--ink); }
+.attr-lead .lead-v { font: 500 32px/1 var(--sans); letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.attr-lead .lead-ci, .risk-ci, .risk-lim, .comp-ref, .who-val, .who-ci, .cell-ci { font-family: var(--mono); }
+.risk-v, .comp-v, .support-item .v { font-weight: 500; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.risk-v { font-size: 24px; }
+.comp-v { font-size: 21px; }
+.support-item .v { font-size: 22px; }
+.support-item .m { border-radius: 9999px; padding: 1px 7px; }
+.lead-n { background: var(--surface-2); border-color: var(--border); font-family: var(--mono); }
 
-.blk-k { font-size: 10.5px; letter-spacing: .08em; }
-.attr-lead .lead-k { font-size: 13.5px; font-weight: 560; }
-.attr-lead .lead-v { font: 400 36px/1 var(--serif); letter-spacing: -0.02em; font-variant-numeric: lining-nums tabular-nums; }
-.attr-lead .lead-ci, .risk-ci, .risk-lim, .comp-ref, .who-val, .who-ci {
-  font-family: var(--sans); font-variant-numeric: tabular-nums;
-}
-.risk-v, .comp-v, .support-item .v {
-  font-family: var(--serif); font-weight: 400; letter-spacing: -0.015em; font-variant-numeric: lining-nums tabular-nums;
-}
-.risk-v { font-size: 27px; }
-.comp-v { font-size: 23px; }
-.support-item .v { font-size: 24px; }
-.support-item .k { font-size: 12.5px; }
-.support-item .m { font-size: 10.5px; padding: 1px 8px; border-radius: 999px; }
-.lead-n { background: var(--surface-2); border-color: transparent; }
+/* --- Pestanas y graficas ------------------------------------------------- */
+.tabs-bar { margin: -22px -24px 18px; padding: 0 14px; gap: 2px; }
+.tab-btn { padding: 12px 12px; font-size: 13px; font-weight: 500; border-radius: 0; color: var(--ink-soft); }
+.tab-btn:hover { background: none; color: var(--ink); }
+.tab-btn.active { color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent-ink); }
+.charts { gap: 14px; }
+.results-panel .card.chart-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-card); padding: 14px 14px 12px; }
+.chart-box h3 { font: 600 13px/1.3 var(--sans); letter-spacing: -0.01em; }
+.chart-box p.cap { font-size: 11.5px; color: var(--ink-soft); }
+.chart-subcap { color: var(--ink-soft); }
 
-/* --- Pestanas y graficas ---------------------------------------------------- */
-.tabs-bar { margin: -24px -28px 20px; padding: 0 18px; gap: 4px; }
-.tab-btn { padding: 14px 12px; font-size: 13.5px; font-weight: 480; border-radius: 0; color: var(--ink-soft); }
-.tab-btn:hover { background: none; }
-.tab-btn.active { color: var(--ink); font-weight: 560; box-shadow: inset 0 -2px 0 var(--ink); }
-.charts { gap: 16px; }
-.results-panel .card.chart-box {
-  background: var(--surface-fog); border: 1px solid var(--border); border-radius: 16px; padding: 16px 16px 14px;
-}
-.chart-box h3 { font: 400 15.5px/1.3 var(--serif); letter-spacing: -0.005em; margin-bottom: 10px; }
-.chart-box p.cap { font-size: 12px; color: var(--ink-soft); }
-.chart-subcap { font-size: 12.5px; color: var(--ink-soft); }
-
-/* --- Estado vacio: el unico durazno de la pantalla -------------------------- */
+/* --- Estado vacio -------------------------------------------------------- */
 .empty-state {
-  margin: 4px 0 0; padding: 36px 36px 32px; border-radius: var(--r-result);
-  background: var(--brand-wash); color: var(--brand-ink);
+  margin: 0; padding: 32px 32px 30px; border-radius: var(--r-feature);
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-card); color: var(--ink);
 }
-.empty-state .empty-k { margin: 0 0 14px; font-size: 12px; font-weight: 520; letter-spacing: .02em; }
-.empty-state .empty-h {
-  margin: 0; max-width: 18ch; font: 400 40px/1.12 var(--serif); letter-spacing: -0.02em; color: var(--brand-ink);
-}
-.empty-state .empty-h em { font-style: italic; }
-.empty-state .empty-p { margin: 16px 0 0; max-width: 52ch; font-size: 14.5px; line-height: 1.55; color: var(--brand-ink); }
-.empty-state .empty-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
-.empty-state button.primary { background: var(--brand-ink); border-color: var(--brand-ink); color: var(--brand-wash); }
-.empty-state button.ghost { color: var(--brand-ink); border-color: var(--brand-ink); }
-.empty-state button.ghost:hover { background: color-mix(in srgb, var(--brand-ink) 8%, transparent); }
+.empty-state .empty-k { margin: 0 0 16px; font-size: 11px; color: var(--ink-faint); }
+.empty-state .empty-h { margin: 0; max-width: 22ch; font: 500 32px/1.2 var(--sans); letter-spacing: -0.03em; color: var(--ink); }
+/* Un solo resaltado por titular, como en Seline. */
+.empty-state mark { color: var(--mark-ink); background: var(--mark-bg); padding: 0 6px; border-radius: 4px; }
+.empty-state .empty-p { margin: 14px 0 0; max-width: 56ch; font-size: 14px; line-height: 1.65; color: var(--ink-soft); }
+.empty-state .empty-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
 
-footer.site { font-size: 12px; padding: 28px 8px 20px; }
+footer.site { font-size: 12px; padding: 24px 8px 18px; }
 footer.site a { color: var(--ink-soft); }
 
-/* --- Responsive ------------------------------------------------------------- */
+/* --- Responsive ---------------------------------------------------------- */
 @media (max-width: 1100px) {
   .col-capture { border-bottom: 1px solid var(--border); }
 }
 @media (max-width: 760px) {
-  /* En telefono la barra fija se comia dos tercios de la pantalla. Aqui se
-     desplaza con la pagina; las acciones siguen arriba del todo. */
+  /* En telefono la barra fija se comia dos tercios de la pantalla: aqui se
+     desplaza con la pagina. */
   header.toolbar { position: relative; }
   .preview-note { gap: 4px 12px; padding: 6px 12px; }
-  .toolbar-inner { gap: 10px 12px; padding: 10px 16px; }
-  .method-switch { order: 9; width: 100%; justify-content: space-between; }
+  .toolbar-inner { gap: 8px 10px; padding: 10px 16px; }
+  .toolbar-inner .spacer, .vsep { display: none; }
   .masthead { flex-basis: 100%; }
-  button.quiet { font-size: 13px; padding: 6px 4px; }
-  .toolbar-inner > button.primary, .toolbar-inner > button.ghost { padding: 7px 14px; }
   .dateline { white-space: normal; flex-wrap: wrap; }
-  .toolbar-inner .spacer { display: none; }
-  .vsep { display: none; }
-  .results-panel { padding: 20px 16px 32px; }
-  .results-panel .card { padding: 18px 16px; border-radius: 20px; }
+  .method-switch { order: 9; width: 100%; justify-content: space-between; }
+  button.quiet { font-size: 13px; padding: 6px 4px; }
+  .results-panel { padding: 18px 16px 30px; }
+  .results-panel .card { padding: 18px 16px; }
   .tabs-bar { margin: -18px -16px 16px; padding: 0 6px; overflow-x: auto; }
-  .lead-v { font-size: 40px; }
-  .empty-state { padding: 26px 22px; }
-  .empty-state .empty-h { font-size: 30px; }
+  .card > .hint { margin-left: 0; }
+  .lead-v { font-size: 34px; }
+  .empty-state { padding: 24px 20px; }
+  .empty-state .empty-h { font-size: 26px; }
 }
 @media (max-width: 560px) {
-  .col-capture { padding: 16px; }
-  .card, details.card { padding: 16px; }
+  .col-capture { padding: 14px; }
+  .card, details.card { padding: 14px; }
 }
 
-/* --- Reporte impreso: el mayor retorno del estilo --------------------------- */
+/* --- Reporte impreso: papel blanco, sin bandas, tarjetas ni rejilla ------ */
 @media print {
   .preview-note, .empty-state { display: none !important; }
-  /* Papel: sin bandas ni cajas. Las reglas de esta capa pesan mas que las de
-     impresion de style.css, asi que aqui se devuelven a su sitio. */
-  .results-panel { background: #fff; min-height: 0; padding: 0; }
+  .results-panel { background: #fff; background-image: none; min-height: 0; padding: 0; }
   .results-panel .card { background: #fff; box-shadow: none; border: 0; border-radius: 0; padding: 0; }
-  .results-panel .card.chart-box { padding: 8px; border: 1px solid #e4e4e6; }
+  .results-panel .card.chart-box { padding: 8px; border: 1px solid #e8e6e5; border-radius: 8px; }
   #msaSummary > .card:first-child, #verdicts.card { box-shadow: none; }
-  #printHeader .rep-title { font: 400 26pt/1.1 var(--serif); letter-spacing: -0.015em; }
-  #printHeader .rep-sub { font-size: 10.5pt; }
-  .tab-panel::before { font: 400 15pt var(--serif); border-bottom-color: #17191c; }
-  .chart-box { border-color: #e4e4e6; border-radius: 10px; }
+  #printHeader .rep-title { font: 600 20pt/1.15 var(--sans); letter-spacing: -0.02em; }
+  #printHeader .rep-meta div span { font-family: var(--mono); }
+  .tab-panel::before { font: 600 13pt var(--sans); letter-spacing: -0.01em; border-bottom-color: #d6d3d1; }
 }

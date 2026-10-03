@@ -1,4 +1,4 @@
-# Propuesta de rediseño: «el reporte de laboratorio sobre papel»
+# Propuesta de rediseño: Seline (claro) + Dovetail (oscuro)
 
 > **Propuesta, no estado actual.** La aplicación publicada sigue la hoja de
 > siempre y el contrato vigente es [`estandar-de-diseno.md`](estandar-de-diseno.md).
@@ -6,276 +6,197 @@
 > [`propuesta/`](../propuesta/) — la misma app, el mismo motor y el mismo
 > HTML, con una hoja de estilo encima — y compararla con la versión actual.
 
-Fecha: 3 de octubre de 2026.
+Fecha: 3 de octubre de 2026. Versión 2: sustituye a una primera propuesta
+(serif editorial sobre papel, estilo Steep) que se descartó.
 
-Referencias:
+## Referencias
 
-- **Estilo Steep** (documento de estilo entregado como referencia): analítica
-  presentada como editorial. Titulares serif de peso regular sobre papel
-  blanco, un sistema casi acromático con un único acento durazno
-  (`#fbe1d1` / siena `#5d2a1a`), botones píldora, tarjetas planas de radio
-  grande y sombra solo en lo que «flota».
-- **Skill ui-ux-pro-max** ([nextlevelbuilder/ui-ux-pro-max-skill](https://github.com/nextlevelbuilder/ui-ux-pro-max-skill)).
-  Su generador de sistema de diseño, consultado con «engineering quality
-  measurement analysis tool», clasifica el producto como *Data-Dense
-  Dashboard* y devuelve la lista de entrega que se usó como criterio de
-  aceptación: contraste de texto ≥ 4.5:1, foco visible para teclado,
-  `prefers-reduced-motion`, iconos SVG y no emoji, `cursor: pointer` en lo
-  clicable, y responsive a 375 / 768 / 1024 / 1440 px.
-
----
-
-## 1. Por qué
-
-La pantalla de hoy funciona y está muy medida —el estándar de diseño documenta
-cada decisión—, pero visualmente es una aplicación de formulario genérica:
-
-| Lo que se ve hoy | Qué cuesta |
+| Referencia | Qué se toma |
 |---|---|
-| La barra superior se parte en **dos renglones** incluso a 1440 px, con seis botones del mismo peso (Ejemplo, Importar, Exportar, Recalcular, Imprimir y el tema) | El ojo no encuentra la acción que importa; la barra fija se come 110 px de alto |
-| El azul corporativo marca botones, insignias de paso, pestañas, enlaces y los mensajes de información | El color deja de significar algo: compite con el semáforo, que es el único color que **codifica** |
-| Todos los títulos a 13.5 px / 600, todas las tarjetas con el mismo borde | No hay jerarquía entre «Configuración», «Evaluación del sistema de medición» y «Indicadores complementarios» |
-| El dictamen (`27.86 %`) en la misma sans que todo lo demás | El número que se firma no se distingue del resto |
+| **Seline** | El tema **claro**: lienzo de piedra cálido `#fafaf9`, tarjetas blancas cuya estructura es el borde fino `#e8e6e5`, un solo acento cian `#3ba6f1` en la acción principal, botones píldora, un resaltado por titular |
+| **Dovetail** | El tema **oscuro**: casi negro `#0a0a0a`, tarjetas `#1e1e1e` sin sombra, esquinas de 8 px, primaria blanca, azul `#6798ff` solo como acento, rótulos en JetBrains Mono y la rejilla de fondo |
+| **Basedash** | Apoyo del oscuro: la primaria blanca como el objeto más brillante de la pantalla, y el violeta y la menta como colores de serie en las gráficas |
+| **Skill ui-ux-pro-max** | La lista de entrega usada como criterio de aceptación: contraste ≥ 4.5:1, foco visible, `prefers-reduced-motion`, iconos SVG, responsive a 375 / 768 / 1024 / 1440 px |
 
-El producto de MSA Toolkit es un **dictamen que alguien firma e imprime**.
-Steep convierte un tablero en una revista; aquí se propone convertir el banco
-de trabajo en un **reporte de laboratorio**: papel blanco, titulares serif que
-se leen como un documento, la cifra que decide en serif grande, y toda la
-maquinaria de captura en un plano gris quieto.
+Tipografía: **solo Inter y JetBrains Mono**, sin serif.
 
-## 2. Antes y después
+## Colores que no cambian
+
+**Requisito técnico, en los dos temas.** La propuesta no toca:
+
+- **El semáforo de las gráficas de resumen**: las barras de evaluación
+  (`.eval-fill`), las marcas de umbral de 10 % / 30 % y 80 % / 90 %
+  (`.eval-tick`), las pastillas Aceptable / Condicional / No aceptable (`.t.*`)
+  y los tokens `--sem-ok #2e9e63`, `--sem-warn #e0a63a` y `--sem-bad #d1453b`.
+- **La gráfica de Componentes de variación**: azul `#0b5cad` (% Contribución),
+  rojo `#b3261e` (% Study Variation) y ámbar `--sem-warn` (% Tolerance), con
+  sus umbrales verde y ámbar.
+
+Para que eso no dependa de la hoja de estilo, `charts.js` fija esos dos
+colores en `COMPONENT_COLORS` y la gráfica 1 ya no los lee de la paleta del
+tema. Verificado con Playwright en producción y en la maqueta, claro y
+oscuro: las tres barras salen `#0b5cad`, `#b3261e` y `#e0a63a`, y los rellenos
+y umbrales del semáforo, idénticos a los de producción.
+
+El resto de las gráficas (cartas R y X-barra, cajas, rangos, interacción,
+atributos) sí siguen al estilo.
+
+## Antes y después
 
 | Antes | Después |
 |---|---|
 | ![Antes, cruzado](propuesta-rediseno/antes-cruzado-claro.png) | ![Después, cruzado](propuesta-rediseno/despues-cruzado-claro.png) |
+| ![Antes, oscuro](propuesta-rediseno/antes-cruzado-oscuro.png) | ![Después, oscuro](propuesta-rediseno/despues-cruzado-oscuro.png) |
 | ![Antes, vacío](propuesta-rediseno/antes-vacio.png) | ![Después, vacío](propuesta-rediseno/despues-vacio.png) |
 | ![Antes, atributos](propuesta-rediseno/antes-atributos-claro.png) | ![Después, atributos](propuesta-rediseno/despues-atributos-claro.png) |
-| ![Antes, oscuro](propuesta-rediseno/antes-cruzado-oscuro.png) | ![Después, oscuro](propuesta-rediseno/despues-cruzado-oscuro.png) |
 | ![Antes, teléfono](propuesta-rediseno/antes-movil.png) | ![Después, teléfono](propuesta-rediseno/despues-movil.png) |
+
+Atributos en oscuro:
+
+![Después, atributos oscuro](propuesta-rediseno/despues-atributos-oscuro.png)
 
 Reporte impreso (portada, dictamen y gráficas):
 
 ![Antes, impreso](propuesta-rediseno/antes-impreso.png)
 ![Después, impreso](propuesta-rediseno/despues-impreso.png)
 
-Todas las capturas usan el ejemplo AIAG (en cruzado con LSL = −3 y USL = 3)
-a 1440 × 900, salvo la de teléfono (390 px).
+Capturas con el ejemplo AIAG (en cruzado con LSL = −3 y USL = 3) a
+1440 × 900, salvo la de teléfono (390 px).
 
-## 3. Sistema
+## Sistema
 
-### 3.1 Color
+### Color
 
-Regla madre, heredada de Steep y endurecida para esta herramienta: **en
-pantalla solo tiene color lo que codifica algo** (el semáforo AIAG, los
-avisos ámbar y rojo) **o la marca, una vez**. Todo lo demás es tinta sobre
-papel.
-
-| Rol | Hoy | Propuesta (claro) | Propuesta (oscuro) |
+| Rol | Hoy | Claro (Seline) | Oscuro (Dovetail) |
 |---|---|---|---|
-| Canvas | `#f6f7f9` | `#ffffff` Paper | `#121315` |
-| Banda del panel de resultados | `#f0f2f5` | `#fafafb` Fog | `#161719` |
-| Tarjeta de captura | blanca + borde | `#f2f2f3` Mist, sin borde | `#222326` |
-| Tarjeta de resultado | blanca + borde | `#ffffff` + hairline `#ececec` | `#1a1b1e` + `#2a2b2f` |
-| Tinta | `#1c2430` | `#17191c` | `#ececed` |
-| Tinta suave | `#5a6673` | `#5f636c` | `#a6a9b1` |
-| Tinta tenue | `#8b959f` | `#6a6d75` | `#8d9098` |
-| Acción primaria | azul `#0b5cad` | **tinta** `#17191c`, texto blanco | `#ececed`, texto tinta |
-| Información e interpretación | azul claro con borde | Mist con tinta, sin borde | Mist oscuro |
-| Acento de marca | — | `#fbe1d1` / `#5d2a1a` | `#3a2419` / `#f3c9b1` |
-| Semáforo `--sem-*` | `#2e9e63` `#e0a63a` `#d1453b` | **sin cambio** | **sin cambio** |
+| Lienzo | `#f6f7f9` / `#161c24` | `#fafaf9` | `#0a0a0a` |
+| Banda de resultados | `#f0f2f5` / `#1a212b` | `#f5f5f4` | `#0f0f0f` + rejilla de 48 px |
+| Tarjeta | blanca + borde | `#ffffff` + `#e8e6e5` | `#1e1e1e` + `#313131` |
+| Borde de campo | `#b9c0c9` | `#d6d3d1` | `#454545` |
+| Tinta / suave / tenue | `#1c2430` / `#5a6673` / `#8b959f` | `#0c0a09` / `#57534e` / `#6f6964` | `#ffffff` / `#a7a7a7` / `#8a8a8a` |
+| Acción primaria | azul `#0b5cad`, texto blanco | **cian `#3ba6f1`, texto tinta** | **blanco, texto `#0a0a0a`** |
+| Enlaces, pestaña activa, foco | azul | `#1f6fae` | `#6798ff` |
+| Información e interpretación | azul claro | `#f5f5f4` con borde fino | `#141414` con borde fino |
+| Avisos ámbar y rojo | — | sin cambio | sin cambio |
 
-Contraste medido (WCAG, texto normal):
+Contraste medido (WCAG, texto normal): tinta 18.9:1, suave 7.0:1 y tenue
+5.0:1 sobre la banda clara; en oscuro 16.7, 6.9 y 4.8:1 sobre tarjeta; enlace
+claro 5.3:1; azul de Dovetail 6.0:1 sobre tarjeta; resaltado del titular
+5.1:1.
 
-| Par | Claro | Oscuro |
-|---|---|---|
-| Tinta sobre papel | 17.6 | 14.6 |
-| Tinta suave sobre papel / Mist | 6.0 / 5.4 | 7.3 / 6.7 |
-| Tinta tenue sobre papel / Mist | 5.2 / 4.6 | 5.4 / 4.9 |
-| Siena sobre durazno | 9.3 | 9.5 |
-| Ámbar sobre su fondo | 4.6 | 6.7 |
+**Una desviación de Seline:** su botón cian lleva texto blanco, que da 2.6:1.
+Aquí lleva tinta (7.4:1). Y, como pide Seline, el cian aparece una vez por
+vista: «Regenerar tabla», que vive junto a Calcular, va en tinta.
 
-El *Slate* de Steep (`#777b86`) da 4.3:1 sobre blanco: se oscureció hasta
-pasar 4.5:1 también sobre Mist, que es donde viven los rótulos de la captura.
-
-**El durazno no se acerca al semáforo.** `#fbe1d1` y el fondo ámbar de los
-avisos (`--warn-soft`) son vecinos en el círculo cromático; juntos, el
-acento de marca se leería como una advertencia. Por eso el durazno vive en un
-solo sitio —el estado vacío de resultados— y desaparece en cuanto hay un
-dictamen en pantalla.
-
-### 3.2 Tipografía
-
-| Familia | Sustituye a | Dónde | Por qué |
-|---|---|---|---|
-| **Source Serif 4** (variable, OFL) | Signifier | Marca, títulos de paso y de tarjeta, la cifra que decide, títulos de gráfica, portada impresa | Serif de texto con números de caja alta tabulares; peso **400 siempre**, como pide Steep |
-| **Inter** (variable, OFL) | Söhne | Todo lo demás: UI, cuerpo, tablas, celdas | Admite los medios pesos de Söhne (430, 480, 520, 560) y cifras tabulares, así que las tablas dejan la monoespaciada sin perder alineación |
+### Tipografía
 
 | Elemento | Hoy | Propuesta |
 |---|---|---|
-| Marca | 16 px / 700 sans | 22 px serif, «MSA *Toolkit*» |
-| Título de paso | 13.5 px / 600 | 21 px serif, numeral en cursiva tenue |
-| «Resultados en vivo» | 13.5 px / 600 | 26 px serif |
-| Título de tarjeta | 13.5 px / 600 | 22 px serif |
-| Cifra que decide (`.lead-v`) | 30 px / 600 sans | **50 px serif 400**, tracking −0.025em |
-| Cifras de apoyo | 17–21 px / 600 | 23–27 px serif 400 |
-| Cuerpo | 15 px | 14.5 px / 430 |
-| Celdas numéricas | monoespaciada 12 px | Inter 13 px `tabular-nums` |
+| Marca | 16 px / 700 | Inter 15 px / 600 + el triángulo del favicon |
+| Títulos de paso y de tarjeta | 13.5 px / 600 | Inter 15–16 px / 600, tracking −0.02em |
+| Rótulos de sección (`% STUDY VARIATION`, `EVALUACION GLOBAL`, encabezados de tabla, «Variables») | sans 11 px mayúsculas | **JetBrains Mono** 10–11 px mayúsculas, +0.07em |
+| Cifra que decide | 30 px / 600 | Inter 40 px / 500 tabular, tracking −0.035em |
+| Cifras de tablas, celdas de captura, intervalos | monoespaciada de sistema | JetBrains Mono |
+| Cuerpo | 15 px | Inter 14 px |
 
-Las fuentes van **autoalojadas** en `assets/fonts/` (subconjunto latino,
-≈150 kB en total, licencia en `assets/fonts/OFL.txt`): la app funciona sin
-conexión y eso no se negocia. Si no cargan, el respaldo es `ui-serif, Georgia`
-y el stack de sistema de hoy.
+Las dos fuentes van **autoalojadas** en `assets/fonts/` (≈ 90 kB, licencia
+OFL en `assets/fonts/OFL.txt`): la app funciona sin conexión.
 
-### 3.3 Forma y elevación
+### Forma y elevación
 
-| | Hoy | Propuesta |
+| | Claro | Oscuro |
 |---|---|---|
-| Botones | radio 6 | píldora (999 px) |
-| Tarjeta de captura | radio 10, borde | radio 20, sin borde ni sombra |
-| Tarjeta de resultado | radio 10, borde | radio 24, hairline |
-| Campos | radio 6 | radio 10 |
-| Celdas de la rejilla de captura | radio 6 | radio 8 |
-| Mensajes | radio 8 | radio 14 |
-| Sombra | ninguna | **solo el dictamen** («Evaluación del sistema de medición / de clasificación») |
+| Tarjetas | radio 10 px, borde fino | radio 8 px, borde `#313131` |
+| Dictamen y estado vacío | radio 16 px, sombra `0 4px 16px rgba(0,0,0,.05)` | radio 8 px, sin sombra |
+| Botones y selectores | píldora | radio 8 px |
+| Campos | radio 6 px | radio 8 px |
 
-Steep pide radios de 16 px o más en todo; en una rejilla de 90 celdas de 30 px
-de alto eso las vuelve píldoras y se pierde la lectura de tabla. Es la
-desviación consciente más visible respecto a la referencia.
+### Componentes
 
-### 3.4 Componentes
+- **Barra superior.** Marca con el triángulo del favicon y, debajo, el estudio
+  citado y su tamaño. El selector de método al centro. Ejemplo AIAG, Importar
+  y Exportar como botones de texto; el tema como iconos SVG de sol y luna; al
+  final Recalcular (contorno) e Imprimir / PDF (primaria). **Un renglón desde
+  1200 px**: lo que cede es la línea del estudio, con puntos suspensivos. Hoy
+  se parte en dos incluso a 1440 px.
+- **Pasos.** La insignia azul se sustituye por una casilla neutra con el
+  número en mono.
+- **Estado vacío.** Hoy es una línea gris. En la propuesta es una tarjeta con
+  rótulo mono, un titular con **un** resaltado al estilo Seline («mide *al que
+  mide*») y Cargar ejemplo AIAG + Importar CSV.
+- **Tablas.** Filas separadas por borde fino, encabezados en mono y cifras en
+  mono tabular.
+- **Gráficas (salvo Componentes).** Series en cian, tinta y piedra en claro;
+  azul de Dovetail, blanco y gris en oscuro, con el violeta y la menta de
+  Basedash como cuarta y quinta serie.
+- **Teléfono.** Por debajo de 760 px la barra se desplaza con la página (hoy
+  fija, ocupa 238 de 844 px) y el selector de método va al final.
+- **Reporte impreso.** Papel blanco, sin bandas ni rejilla; títulos en Inter,
+  metadatos en mono. Las reglas del §7 del estándar no cambian.
 
-- **Barra superior → cabecera de publicación.** A la izquierda la marca y,
-  debajo, una línea de fecha con el estudio citado y su tamaño
-  («Gage R&R · Crossed ANOVA · 3 operadores x 10 piezas…»). Al centro el
-  selector de método en un riel píldora. A la derecha: Ejemplo AIAG, Importar
-  y Exportar como **botones de texto**; el tema como dos iconos SVG (sol y
-  luna) con nombre accesible; y al final **el par de Steep**, Recalcular
-  (fantasma) + Imprimir / PDF (relleno). Cabe en **un renglón desde 1200 px**:
-  lo que cede es la línea del estudio, con puntos suspensivos.
-- **Pasos.** La insignia azul monoespaciada se sustituye por el numeral en
-  cursiva serif tenue junto al título serif. Sigue alineada al centro (§1 del
-  estándar) y la flecha de plegar pasa a un chevron dibujado con CSS.
-- **El dictamen flota.** Es la única tarjeta con sombra —el «artefacto
-  flotante» de Steep— sobre la banda Fog. La cifra que decide sube a 50 px
-  serif; la escala, los umbrales, el carril del intervalo y sus medidas
-  enteras **no cambian**.
-- **Tablas como libro.** Se conservan las reglas superior e inferior en tinta
-  (estilo *booktabs*), los encabezados pasan a versalitas espaciadas y las
-  cifras a Inter tabular.
-- **Información en tinta.** `.msg.info`, `.interp` y `.note` pasan de azul a
-  Mist con tinta. Ámbar y rojo siguen siendo los únicos mensajes con color, y
-  por eso se leen.
-- **Estado vacío editorial.** Antes de calcular, el panel de resultados
-  muestra el único durazno de la pantalla: «Antes de confiar en una medición,
-  mide *al que mide*», con Cargar ejemplo AIAG (relleno siena) e Importar CSV
-  (fantasma). Hoy ese hueco es una línea de texto gris.
-- **Gráficas.** La paleta de series pasa de siete colores saturados a tinta,
-  terracota, acero, ocre, ciruela, verde agua y gris (variante clara para el
-  tema oscuro). Los umbrales siguen siendo los del semáforo. Títulos de
-  gráfica en serif.
-- **Foco y movimiento.** Foco visible de 2 px en tinta con anillo suave en
-  los campos; transiciones de 160 ms en botones y pestañas, desactivadas con
-  `prefers-reduced-motion`.
+### Defectos de producción que la propuesta corrige
 
-### 3.5 Teléfono
+Aparecieron al revisar recortes (§2 del estándar: ningún texto de `<select>`
+cortado), y existen hoy:
 
-La barra fija se comía dos tercios de la pantalla (238 px de 844). En la
-propuesta, por debajo de 760 px la barra **se desplaza con la página**, la
-marca ocupa su propio renglón y el selector de método va al final, a todo el
-ancho. Sigue siendo alta; el paso siguiente (fase 2) es agrupar Ejemplo,
-Importar y Exportar en un menú «Archivo».
+- A 1280 px las celdas de atributos muestran «No p…». La celda pide 86 px y
+  la tabla se desplaza dentro de su `.table-scroll`.
+- La opción «CM repetibilidad (ejemplo AIAG p.127)» del denominador de F no
+  cabe a ningún ancho. El campo, solo en su fila, la ocupa entera.
 
-### 3.6 Reporte impreso
+Conviene llevarlos a `style.css` aunque el rediseño no se adopte.
 
-Es donde el estilo rinde más: la portada con título serif de 26 pt, metadatos
-en Inter, las secciones con título serif y regla en tinta, y las gráficas en
-la paleta nueva. Se mantienen `print-color-adjust: exact` para el semáforo y
-todas las reglas del §7 del estándar; la hoja nueva devuelve a papel blanco
-las bandas y bordes que la pantalla añade.
+## Lo que no cambia
 
-## 4. Lo que NO cambia
-
-La propuesta es una capa de presentación. Por diseño no toca:
-
-- **Ningún número.** El motor, los datasets y las 230 pruebas son los mismos;
-  la maqueta corre los mismos archivos de `assets/js/`.
-- **El semáforo** (`--sem-*`), sus umbrales y su independencia del tema.
-- **El carril del intervalo** y todas sus medidas enteras y pares.
-- **La estructura**: banco de dos columnas 40/60, pasos numerados, tarjetas
-  plegables, pestañas con Gráficas primero, `data-methods`, rejillas
-  `auto-fill`.
-- **La redacción** de la interfaz, salvo el estado vacío y la línea del estudio.
+- **Ningún número**: el motor, los datasets y las 230 pruebas son los mismos.
+- **Los colores de la sección anterior.**
+- **El carril del intervalo** y sus medidas enteras.
+- **La estructura**: banco 40/60, pasos, tarjetas plegables, pestañas con
+  Gráficas primero, `data-methods`, rejillas `auto-fill`.
+- **La redacción**, salvo el estado vacío.
 - **El orden y las reglas del reporte impreso.**
 
-## 5. Desviaciones conscientes de Steep
-
-| Steep dice | Aquí | Por qué |
-|---|---|---|
-| 97 % acromático, ningún color fuera del par durazno/siena | Semáforo, ámbar y rojo se quedan | Codifican información (§3 del estándar). Es la excepción más importante |
-| Radio ≥ 16 px en todo | 8 px en celdas de captura, 10 px en campos | Densidad: 90+ celdas |
-| Display de 64–90 px | Máximo 50 px (la cifra que decide) | Es una herramienta, no una portada; 90 px no caben en el 60 % de la pantalla |
-| Solo tema claro | Tema oscuro «papel de noche» | El estándar exige dos temas |
-| Cada botón relleno con su fantasma al lado | Solo en la barra y en el estado vacío | En la captura los botones ya van en pareja por consecuencia (Regenerar / Reiniciar) |
-| Botón destructivo no existe | Rojo sólido, ahora píldora | §3 del estándar: un botón pesa lo que pesa su consecuencia |
-
-## 6. Qué cambiaría en el estándar de diseño
-
-Si se adopta, [`estandar-de-diseno.md`](estandar-de-diseno.md) cambia en:
+## Qué cambiaría en el estándar de diseño
 
 | Sección | Cambio |
 |---|---|
-| §1 Pasos numerados | La insignia `.step` deja de ser un cuadro de color: numeral serif en cursiva, `--ink-faint`, del tamaño del título |
-| §1 Espaciado | Radios 20 / 24 / 10 / 8 y relleno de tarjeta 20–28 px (tabla de §3.3) |
-| §1 Selector de método | Riel píldora; la regla de familias y rótulos no cambia |
-| §2 El bloque de resultado | Cifra que decide en serif 50 px / 400; las de apoyo en serif 23–27 px |
-| §3 Color | Acción primaria en tinta; información en Mist; nuevo token de marca con la regla «una vez por pantalla y nunca junto al semáforo» |
-| §3 nuevo | Tipografía: dos familias autoalojadas, serif solo a 400 |
-| §4 Gráficas | Paleta de series nueva vía `--chart-series` |
-| §5 Redacción | Sin cambios |
+| §1 Pasos numerados | `.step` neutro con número en mono, sin relleno de color |
+| §1 Espaciado | Radios por tema (tabla de forma) |
+| §2 Bloque de resultado | Cifra que decide en Inter 40 px / 500; rótulos en mono |
+| §3 Color | Tokens por tema; primaria cian / blanca; la gráfica de Componentes y el semáforo **fijos** en `charts.js` y `--sem-*` |
+| §3 nuevo | Tipografía: Inter + JetBrains Mono autoalojadas |
+| §4 Gráficas | Paleta de series vía `--chart-series`, salvo Componentes |
 
-Las secciones 6 a 10 no cambian.
-
-## 7. Cómo está hecha la maqueta
+## Cómo está hecha la maqueta
 
 | Archivo | Qué |
 |---|---|
-| [`assets/css/propuesta.css`](../assets/css/propuesta.css) | La propuesta entera: tokens claro/oscuro y componentes. Se carga **después** de `style.css` y solo en la maqueta |
-| [`propuesta/index.html`](../propuesta/index.html) | **Generado**, no copiado: `node tools/build-propuesta.js` lo arma desde `index.html`, cambia las rutas, añade la hoja y reescribe la barra y el estado vacío. Si `index.html` cambia y una sustitución deja de encontrar su texto, el script falla y dice cuál. `--check` dice si está al día |
-| `assets/fonts/` | Inter y Source Serif 4, woff2 latino, con su licencia OFL |
-| [`assets/js/charts.js`](../assets/js/charts.js) | Único cambio en código de producción: lee la paleta de `--chart-series` si la hoja la define. Sin el token queda la paleta de siempre, y `tests/regresion-visual.js` confirma que cruzado y anidado se ven **idénticos** a la revisión anterior, gráficas y reporte impreso incluidos |
+| [`assets/css/propuesta.css`](../assets/css/propuesta.css) | La propuesta entera: tokens de los dos temas y componentes. Solo la carga la maqueta |
+| [`propuesta/index.html`](../propuesta/index.html) | **Generado** por `node tools/build-propuesta.js` desde `index.html`. Si `index.html` cambia y una sustitución deja de encontrar su texto, el script falla y dice cuál; CI corre `--check` |
+| `assets/fonts/` | Inter y JetBrains Mono, woff2 latino |
+| [`assets/js/charts.js`](../assets/js/charts.js) | Lee la paleta de `--chart-series` si la hoja la define, y fija `COMPONENT_COLORS`. En producción el dibujo es idéntico: `tests/regresion-visual.js` no encuentra diferencias en cruzado ni en anidado |
 
-Limitación conocida: abierta con doble clic (`file://`), Firefox no carga
-fuentes de una carpeta superior y la maqueta cae a las fuentes de sistema.
-Servida por GitHub Pages o por cualquier servidor local se ve completa.
+Abierta con doble clic (`file://`), Firefox no carga fuentes de una carpeta
+superior y la maqueta usa las de sistema. Servida por GitHub Pages o un
+servidor local se ve completa.
 
-## 8. Adopción por fases
+## Adopción por fases
 
-1. **Fase 1 — tokens y tipografía.** Pasar a `style.css` los tokens, las dos
-   familias y la serif en títulos y cifras. Es el 80 % del cambio visible y no
-   toca HTML. Correr `tests/regresion-visual.js` en los tres métodos: el
-   cambio de pantalla y de reporte impreso es esperado; el de los valores, no.
-2. **Fase 2 — barra y estado vacío.** Mover a `index.html` la cabecera de
-   publicación, los botones de texto, los iconos de tema y el estado vacío.
-   Agrupar Ejemplo / Importar / Exportar en un menú «Archivo» en teléfono.
-3. **Fase 3 — estándar.** Reescribir las secciones de la tabla del §6 de este
-   documento en `estandar-de-diseno.md`, regenerar `docs/portada.png` y
-   retirar la maqueta (`propuesta/`, `propuesta.css` y el generador).
+1. **Tokens y tipografía** a `style.css`. Es el 80 % del cambio visible y no
+   toca HTML.
+2. **Barra y estado vacío** a `index.html`; menú «Archivo» en teléfono.
+3. **Estándar**: reescribir las secciones de la tabla anterior, regenerar
+   `docs/portada.png` y retirar la maqueta.
 
-## 9. Verificación hecha
+## Verificación hecha
 
 - `node tests/run-node.js`: 230/230.
 - `node tests/regresion-visual.js HEAD cruzado` y `… anidado`: sin
-  diferencias en producción tras el gancho de `charts.js` (atributos no se
-  puede recorrer con esa herramienta: su guion llena campos de variables).
-- Capturas con Playwright de producción y maqueta en los tres métodos, claro
-  y oscuro, a 1440, 1280 y 390 px, y el reporte a PDF: sin desplazamiento
-  horizontal, barra en un renglón a 1280 y 1440 px, sin errores de consola,
-  ningún rótulo ni opción de `<select>` recortado.
-- Contraste de todos los pares de tokens de texto ≥ 4.5:1 (tabla de §3.1).
-- De paso aparecieron dos recortes **que ya tiene producción** (§2 del
-  estándar: ningún texto de `<select>` cortado): a 1280 px las celdas de
-  atributos muestran «No p…», y la opción «CM repetibilidad (ejemplo AIAG
-  p.127)» del denominador de F no cabe a ningún ancho. La propuesta los
-  corrige —la celda pide 86 px y la tabla se desplaza en su `.table-scroll`;
-  el denominador, solo en su fila, la ocupa entera— y conviene llevar esa
-  corrección a `style.css` aunque el rediseño no se adopte.
+  diferencias en producción (atributos no se puede recorrer con esa
+  herramienta: su guion llena campos de variables).
+- Colores fijos leídos del lienzo de Chart.js y del CSS calculado, en
+  producción y maqueta, claro y oscuro.
+- Capturas de los tres métodos a 1440, 1280 y 390 px y reporte a PDF: sin
+  desplazamiento horizontal, barra en un renglón (1280 y 1440 px) y sin
+  errores de consola; ninguna opción de `<select>` ni rótulo recortado a 1280
+  y 1440 px.

@@ -6,8 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="../assets/css/style.css?v=20261003a">
-<link rel="stylesheet" href="../assets/css/propuesta.css?v=20261003a">
+<link rel="stylesheet" href="../assets/css/style.css?v=20261003b">
+<link rel="stylesheet" href="../assets/css/propuesta.css?v=20261003b">
 <meta name="robots" content="noindex">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M14 86 H86 L14 14 Z' fill='none' stroke='%232f7fc4' stroke-width='12' stroke-linejoin='round'/></svg>">
 <script>
@@ -28,8 +28,11 @@
   <div class="preview-note">Vista previa de la propuesta de rediseno <a href="../">Ver version actual</a> <a href="https://github.com/dflores296/msa-toolkit/blob/main/docs/propuesta-rediseno.md">Leer la propuesta</a></div>
   <div class="toolbar-inner">
     <div class="masthead">
-      <div class="brand">MSA <em>Toolkit</em></div>
+      <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16L4 4z"/></svg>
+      <div class="masthead-text">
+      <div class="brand">MSA Toolkit</div>
       <div class="dateline"><div class="badge" id="methodBadge">Gage R&amp;R &middot; ANOVA cruzado</div><span class="sep" aria-hidden="true">&middot;</span><div class="study-summary"><strong id="studyLabel"></strong><span id="captureCount"></span></div></div>
+      </div>
     </div>
     <div class="vsep"></div>
     <!-- Selector de metodo. Mismo patron que el interruptor de tema, no un menu
@@ -436,7 +439,7 @@
 
       <div class="results-placeholder empty-state" id="resultsPlaceholder">
         <p class="empty-k">Analisis de sistemas de medicion</p>
-        <h2 class="empty-h">Antes de confiar en una medicion, mide <em>al que mide</em>.</h2>
+        <h2 class="empty-h">Antes de confiar en una medicion, mide <mark>al que mide</mark>.</h2>
         <p class="empty-p">Completa la captura y presiona <strong>Calcular</strong> para ver aqui el dictamen, las tablas y las graficas. O empieza con el estudio publicado del manual AIAG.</p>
         <div class="empty-actions">
           <button type="button" class="primary" data-proxy="demoBtn">Cargar ejemplo AIAG</button>
@@ -454,17 +457,17 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="../assets/vendor/chart.umd.js?v=20261003a"></script>
-<script src="../assets/js/design.js?v=20261003a"></script>
-<script src="../assets/js/stats.js?v=20261003a"></script>
-<script src="../assets/js/anova.js?v=20261003a"></script>
-<script src="../assets/js/anova-nested.js?v=20261003a"></script>
-<script src="../assets/js/attribute.js?v=20261003a"></script>
-<script src="../assets/js/report.js?v=20261003a"></script>
-<script src="../assets/js/mls.js?v=20261003a"></script>
-<script src="../assets/js/interval.js?v=20261003a"></script>
-<script src="../assets/js/charts.js?v=20261003a"></script>
-<script src="../assets/js/app.js?v=20261003a"></script>
+<script src="../assets/vendor/chart.umd.js?v=20261003b"></script>
+<script src="../assets/js/design.js?v=20261003b"></script>
+<script src="../assets/js/stats.js?v=20261003b"></script>
+<script src="../assets/js/anova.js?v=20261003b"></script>
+<script src="../assets/js/anova-nested.js?v=20261003b"></script>
+<script src="../assets/js/attribute.js?v=20261003b"></script>
+<script src="../assets/js/report.js?v=20261003b"></script>
+<script src="../assets/js/mls.js?v=20261003b"></script>
+<script src="../assets/js/interval.js?v=20261003b"></script>
+<script src="../assets/js/charts.js?v=20261003b"></script>
+<script src="../assets/js/app.js?v=20261003b"></script>
 <script>
 /* Vista previa: los botones del estado vacio delegan en los de la barra. */
 [].slice.call(document.querySelectorAll("[data-proxy]")).forEach(function (b) {

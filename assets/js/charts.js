@@ -8,6 +8,11 @@
 
   var DEFAULT_PALETTE = ['#0b5cad', '#b3261e', '#1c7a4a', '#9a6206', '#6b3fa0', '#0f7c8a', '#a34a7f'];
   var PALETTE = DEFAULT_PALETTE.slice();
+  /* La grafica de Componentes de variacion NO sigue a la paleta del tema: sus
+     barras son siempre azul (% Contribucion) y rojo (% Study Variation), con el
+     ambar del semaforo para % Tolerance. Es un requisito tecnico, no estetico:
+     esos colores se cotejan contra reportes anteriores y contra Minitab. */
+  var COMPONENT_COLORS = ['#0b5cad', '#b3261e'];
   var registry = {};
 
   /* La hoja de estilo puede sustituir la paleta con --chart-series: una lista
@@ -414,9 +419,9 @@
     var labels1 = order.map(function (k) { return names[k]; });
     var ds1 = [
       { label: '% Contribucion', data: order.map(function (k) { return 100 * comps[k].pctContribution; }),
-        backgroundColor: PALETTE[0] },
+        backgroundColor: COMPONENT_COLORS[0] },
       { label: '% Study Variation', data: order.map(function (k) { return 100 * comps[k].pctStudyVar; }),
-        backgroundColor: PALETTE[1] }
+        backgroundColor: COMPONENT_COLORS[1] }
     ];
     if (result.tolerance) {
       // Ambar del semaforo, no el cafe de la paleta general: el color de esta
@@ -711,7 +716,7 @@
       type: 'scatter',
       data: {
         datasets: [
-          { label: 'Rango', data: points, backgroundColor: 'rgba(11,92,173,.45)', pointRadius: 3 },
+          { label: 'Rango', data: points, backgroundColor: rgba(PALETTE[0], '.45'), pointRadius: 3 },
           { label: 'Rango promedio', type: 'line',
             data: groups.map(function (g, i) { return { x: i, y: g.mean }; }),
             borderColor: PALETTE[1], backgroundColor: PALETTE[1], borderWidth: 1.6,

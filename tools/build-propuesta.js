@@ -29,6 +29,9 @@ function replaceOnce(html, from, to, label) {
   return html.slice(0, i) + to + html.slice(i + from.length);
 }
 
+// El mismo triangulo del favicon, en linea y con currentColor.
+var MARK = '      <svg class="brand-mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" ' +
+  'stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16L4 4z"/></svg>\n';
 var SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">' +
   '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
 var MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
@@ -59,11 +62,13 @@ function build() {
     ' <a href="../">Ver version actual</a>' +
     ' <a href="https://github.com/dflores296/msa-toolkit/blob/main/docs/propuesta-rediseno.md">Leer la propuesta</a></div>\n' +
     '  <div class="toolbar-inner">\n' +
-    '    <div class="masthead">\n' +
-    '      <div class="brand">MSA <em>Toolkit</em></div>\n' +
+    '    <div class="masthead">\n' + MARK +
+    '      <div class="masthead-text">\n' +
+    '      <div class="brand">MSA Toolkit</div>\n' +
     '      <div class="dateline"><div class="badge" id="methodBadge">Gage R&amp;R &middot; ANOVA cruzado</div>' +
     '<span class="sep" aria-hidden="true">&middot;</span>' +
     '<div class="study-summary"><strong id="studyLabel"></strong><span id="captureCount"></span></div></div>\n' +
+    '      </div>\n' +
     '    </div>\n' +
     '    <div class="vsep"></div>',
     'marca de la barra');
@@ -93,13 +98,13 @@ function build() {
   html = replaceOnce(html, '    <button id="recalcBtn" class="ghost">',
     '    <div class="vsep"></div>\n' + theme[0] + '    <button id="recalcBtn" class="ghost">', 'boton Recalcular');
 
-  // Estado vacio: el unico durazno de la pantalla. Conserva id y clase, que
+  // Estado vacio con un solo resaltado en el titular. Conserva id y clase, que
   // son las que usa la hoja para ocultarlo cuando hay resultados.
   html = html.replace(
     /<p class="hint results-placeholder" id="resultsPlaceholder">[\s\S]*?<\/p>/,
     '<div class="results-placeholder empty-state" id="resultsPlaceholder">\n' +
     '        <p class="empty-k">Analisis de sistemas de medicion</p>\n' +
-    '        <h2 class="empty-h">Antes de confiar en una medicion, mide <em>al que mide</em>.</h2>\n' +
+    '        <h2 class="empty-h">Antes de confiar en una medicion, mide <mark>al que mide</mark>.</h2>\n' +
     '        <p class="empty-p">Completa la captura y presiona <strong>Calcular</strong> para ver aqui el dictamen, ' +
     'las tablas y las graficas. O empieza con el estudio publicado del manual AIAG.</p>\n' +
     '        <div class="empty-actions">\n' +

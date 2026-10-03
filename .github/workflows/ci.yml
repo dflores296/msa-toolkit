@@ -21,3 +21,8 @@ jobs:
       # publicados de Minitab. Regenerarlas es parte del cambio, no del deploy.
       - name: Verificar las cifras de la documentacion
         run: node tools/build-cifras.js --check
+
+      # La maqueta del rediseno (propuesta/) se genera desde index.html: si
+      # index.html cambio y nadie la regenero, se dice aqui y no en produccion.
+      - name: Verificar la maqueta de la propuesta de rediseno
+        run: node tools/build-propuesta.js --check

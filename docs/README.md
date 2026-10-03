@@ -23,6 +23,7 @@ es un defecto de este documento.
 | [`pruebas.md`](pruebas.md) | Qué cubre cada suite, las tres herramientas de navegador que no corren en CI, y **qué sigue sin cubrirse**. |
 | [`despliegue.md`](despliegue.md) | Publicar en GitHub Pages, el versionado de los assets y el uso sin servidor. |
 | [`estandar-de-diseno.md`](estandar-de-diseno.md) | El estándar de interfaz y de redacción que sigue la aplicación. Se aplica a cualquier cambio de pantalla. |
+| [`propuesta-rediseno.md`](propuesta-rediseno.md) | **Propuesta, no estado actual**: rediseño visual «reporte de laboratorio sobre papel» (serif editorial, un acento de marca, semáforo intacto), con capturas antes/después y la maqueta navegable en [`../propuesta/`](../propuesta/), que genera `tools/build-propuesta.js`. |
 | [`mls-transcripcion.md`](mls-transcripcion.md) | **De dónde salió cada fórmula de `assets/js/mls.js`**: qué se leyó verbatim, las diez erratas de la fuente, y los puntos donde la implementación se aparta de lo impreso con el álgebra que lo justifica. Es el respaldo del intervalo de confianza. |
 | [`mls-fuente-minitab.md`](mls-fuente-minitab.md) | El documento técnico de referencia sobre el método MLS del que se trabajó. Material de origen, no escrito por este proyecto. |
 | [`f07-cabos-sueltos.md`](f07-cabos-sueltos.md) | Lo que a F-07 le queda por rematar, con el cotejo contra Minitab a la cabeza. **Es la lista de trabajo pendiente del intervalo.** |

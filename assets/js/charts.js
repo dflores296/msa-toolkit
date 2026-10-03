@@ -6,8 +6,29 @@
 (function (global) {
   'use strict';
 
-  var PALETTE = ['#0b5cad', '#b3261e', '#1c7a4a', '#9a6206', '#6b3fa0', '#0f7c8a', '#a34a7f'];
+  var DEFAULT_PALETTE = ['#0b5cad', '#b3261e', '#1c7a4a', '#9a6206', '#6b3fa0', '#0f7c8a', '#a34a7f'];
+  var PALETTE = DEFAULT_PALETTE.slice();
   var registry = {};
+
+  /* La hoja de estilo puede sustituir la paleta con --chart-series: una lista
+     de colores #rrggbb separada por comas (las series anaden alfa pegando dos
+     digitos al final, asi que no se aceptan otros formatos). Sin el token, o
+     con un valor que no cumple, queda la paleta de siempre. Se rellena el MISMO
+     arreglo para que MSACharts.PALETTE siga apuntando a lo que se dibuja. */
+  function syncPalette() {
+    var raw = themeVar('--chart-series', '');
+    var list = raw ? raw.split(',').map(function (c) { return c.trim(); }) : [];
+    var ok = list.length >= 4 && list.every(function (c) { return /^#[0-9a-fA-F]{6}$/.test(c); });
+    var src = ok ? list : DEFAULT_PALETTE;
+    PALETTE.length = 0;
+    Array.prototype.push.apply(PALETTE, src);
+  }
+  /* '#0b5cad', 0.3 -> 'rgba(11,92,173,.30)': el relleno translucido de las
+     cajas, que antes llevaba el azul escrito a mano y no seguia a la paleta. */
+  function rgba(hex, a) {
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
 
   /* Lee los tokens de color del tema activo (claro/oscuro), para que las
      graficas de Chart.js (que no entienden variables CSS) sigan legibles
@@ -377,6 +398,7 @@
    * ---------------------------------------------------------------------- */
   function render(result) {
     var ch = result.charts;
+    syncPalette();
     // Las graficas que este metodo no dibuja no pueden quedarse en pantalla
     // con los datos del metodo anterior.
     destroyAll();
@@ -510,7 +532,7 @@
         datasets: [{
           label: 'Mediciones', boxes: boxes,
           data: boxes.map(function (b) { return b ? [b.q1, b.q3] : [0, 0]; }),
-          backgroundColor: 'rgba(11,92,173,.30)', borderColor: PALETTE[0], borderWidth: 1.2,
+          backgroundColor: rgba(PALETTE[0], '.30'), borderColor: PALETTE[0], borderWidth: 1.2,
           whiskerColor: PALETTE[0], barPercentage: 0.5, categoryPercentage: 0.7
         }]
       },

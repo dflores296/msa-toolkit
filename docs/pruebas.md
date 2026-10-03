@@ -87,14 +87,16 @@ reordenar las filas del archivo, y las reglas de nombres repetidos en los dos
 métodos. Es el trozo que solo existe en la pantalla: un `route()` impecable no
 sirve de nada si `app.js` no lo llama.
 
-**Guía paso a paso.** `node tests/prueba-guia.js` recorre la guía
-(`assets/js/guide.js`) como una persona: empieza encendida en la primera visita
-y en el paso 1 con los pasos de cada método; generar la tabla, cargar el ejemplo
-y calcular la llevan al paso que sigue y resaltan su destino; *Atrás* no rebota
-hacia adelante por un hito ya cumplido; cerrarla la apaga y se recuerda al
-recargar; y cambiar de método la reinicia y devuelve al inicio el scroll de la
-captura y de los resultados. `regresion-visual.js` recorre con la guía apagada:
-compara lo que el estudio publica, no la guía.
+**Asistente paso a paso.** `node tests/prueba-guia.js` recorre el asistente
+(`assets/js/guide.js`) como una persona: empieza encendido en cada carga, en el
+paso 1 y con los pasos de cada método; un campo se señala con el anillo y una
+sección con el fondo tenue; generar la tabla, cargar el ejemplo y calcular lo
+llevan al paso que sigue; *Atrás* no rebota hacia adelante por un hito ya
+cumplido; la ✕ y el botón *Asistente* lo apagan y lo encienden sin guardar nada;
+la tarjeta va centrada al pie; y cambiar de método lo reinicia y devuelve al
+inicio el scroll de la captura y de los resultados. `regresion-visual.js`
+recorre con el asistente apagado: compara lo que el estudio publica, no el
+asistente.
 
 **Lo que esto todavía no cubre.** `regresion-visual.js` compara *dos revisiones
 del repo*, así que sirve para no mover lo que ya estaba bien, no para encontrar

@@ -82,13 +82,14 @@ async function capture(browser, port, tag, outDir) {
   var errors = [];
   page.on('pageerror', function (e) { errors.push(String(e.message)); });
   page.on('console', function (m) { if (m.type() === 'error') errors.push(m.text()); });
-  /* La guia paso a paso (guide.js) lleva la vista al paso que toca, y un
-     desplazamiento suave deja las graficas en posiciones fraccionarias que
-     cambian la ultima fila de pixeles de la captura. Aqui se compara lo que
-     el estudio publica, no la guia: se recorre con ella apagada. */
-  await page.addInitScript(function () { try { localStorage.setItem('msa-guide', 'off'); } catch (e) {} });
 
   await page.goto('http://127.0.0.1:' + port + '/#' + METHOD, { waitUntil: 'networkidle' });
+  /* El asistente (guide.js) lleva la vista al paso que toca, y un
+     desplazamiento suave deja las graficas en posiciones fraccionarias que
+     cambian la ultima fila de pixeles de la captura. Aqui se compara lo que
+     el estudio publica, no el asistente: se recorre con el apagado. Las
+     revisiones anteriores a el no lo tienen, de ahi la comprobacion. */
+  await page.evaluate(function () { if (window.MSAGuide) window.MSAGuide.disable(); });
   await page.click('#demoBtn');
   await page.waitForTimeout(400);
   await page.fill('#studyName', 'Regresion ' + METHOD);

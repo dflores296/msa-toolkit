@@ -81,35 +81,44 @@ tambien que el producto tiene mas de un metodo.
   hacer, y las mismas dos salidas que la barra (ejemplo AIAG e importar). Un
   solo resaltado en el titular.
 
-### Guia paso a paso
+### Asistente paso a paso
 
-`assets/js/guide.js`. Una tarjeta pegada abajo de la columna de captura (fija al
-pie de la ventana con las columnas apiladas) dice el paso actual -«Guia ·
-Cruzado · paso 3 de 10»-, que hacer y por que, con Atras / Siguiente. El campo o
-boton del paso lleva el mismo anillo que el resalte de Calcular
-(`--attention-ring`): tres pulsos al entrar y despues fijo.
+`assets/js/guide.js`. Una tarjeta centrada al pie de la pagina dice el paso
+actual -«Asistente · Cruzado · paso 3 de 10»-, que hacer y por que, con Atras /
+Siguiente. Lo que el paso senala se marca segun su tamano:
 
-- **No oscurece ni bloquea.** Acompana mientras se trabaja; todo sigue
-  funcionando con la guia encendida.
-- **Avanza sola con los hitos** -tabla generada, captura completa, resultado
+| Que senala | Como | Por que |
+|---|---|---|
+| Un campo o un boton (`target`) | El anillo del resalte de Calcular (`--attention-ring`), tres pulsos al entrar y despues fijo | Es la marca de «aqui» que el usuario ya conoce |
+| Una seccion entera (`area`): la rejilla de captura, la lista de nombres, el estandar | Fondo tenue (`--guide-wash`) que se extiende 10 px sin mover nada | Un anillo alrededor de un bloque grande se ve como un error de dibujo |
+| Algo que ya destaca solo (`view`): el dictamen | Solo se lleva a la vista | Ya es la tarjeta que flota |
+
+Un paso que senala varios campos (el tamano: operadores, piezas, replicas)
+pone el anillo a cada uno, no a la fila que los contiene.
+
+- **No oscurece ni bloquea.** Acompana mientras se trabaja. Las dos columnas
+  reservan 200 px al final para que lo ultimo se pueda subir por encima de
+  la tarjeta.
+- **Avanza solo con los hitos** -tabla generada, captura completa, resultado
   calculado- y con Siguiente en los pasos opcionales o de lectura. Solo
-  cuentan los CAMBIOS de un hito: si el usuario vuelve atras a releer, la guia
-  no lo empuja otra vez hacia adelante. Si un hito deja de cumplirse (se
-  reinicio el estudio), regresa a el.
+  cuentan los CAMBIOS de un hito: si el usuario vuelve atras a releer, el
+  asistente no lo empuja otra vez hacia adelante. Si un hito deja de
+  cumplirse (se reinicio el estudio), regresa a el.
 - **Solo lleva a la vista lo que no esta a la vista.** Mover la columna
   mientras alguien escribe en otra celda desorienta.
-- **Encendida en la primera visita**; la X o el boton «Guia» de la barra la
-  apagan, y se recuerda en `localStorage` (`msa-guide`).
-- Cambiar de metodo la reinicia en el paso 1, y la vista vuelve al principio
+- **Encendido en cada carga de la pagina.** La X o el boton «Asistente» de la
+  barra lo apagan para esa visita; no se guarda nada en el navegador.
+- Cambiar de metodo lo reinicia en el paso 1, y la vista vuelve al principio
   de la captura y de los resultados.
-- Cargar el ejemplo lleva al paso de Calcular. Con la guia apagada, el ejemplo
-  igual lleva la columna hasta Calcular y lo resalta (`guideToCalculate`).
+- Cargar el ejemplo lleva al paso de Calcular. Con el asistente apagado, el
+  ejemplo igual lleva la columna hasta Calcular y lo resalta
+  (`guideToCalculate`).
 - No se imprime.
-- **Los pasos son datos** (`STEPS`): a que metodos aplican, que resaltan, que
+- **Los pasos son datos** (`STEPS`): a que metodos aplican, que senalan, que
   dicen y que hito los cumple. Un paso o un metodo nuevo se agrega ahi, no con
-  un `if (metodo === ...)` en la tarjeta. La guia no lee el estado interno de
-  `app.js`: mira la pagina, y `app.js` solo le avisa cuando mirar con el evento
-  `msa:state`.
+  un `if (metodo === ...)` en la tarjeta. El asistente no lee el estado interno
+  de `app.js`: mira la pagina, y `app.js` solo le avisa cuando mirar con el
+  evento `msa:state`.
 
 ### Un metodo no se lleva su propia pantalla
 
@@ -752,7 +761,7 @@ Reglas que no se negocian:
 - [ ] Entradas invalidas: rojo, motivo y accion bloqueada.
 - [ ] Mensajes con hallazgo y accion, sin relleno.
 - [ ] Aparece en el reporte impreso, en el orden establecido.
-- [ ] Tiene sus pasos en la guia (`STEPS` de `guide.js`), con el texto propio
+- [ ] Tiene sus pasos en el asistente (`STEPS` de `guide.js`), con el texto propio
       donde el metodo pide otra cosa.
 - [ ] Exporta e importa con el formato unico, y se prueba el viaje completo con
       **nombres propios**, no con los que pone el programa.

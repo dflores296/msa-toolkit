@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20261003e">
+<link rel="stylesheet" href="assets/css/style.css?v=20261003f">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M14 86 H86 L14 14 Z' fill='none' stroke='%233ba6f1' stroke-width='12' stroke-linejoin='round'/></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -51,7 +51,7 @@
     <span class="spacer"></span>
     <!-- Acciones de archivo: botones de texto. Las que deciden (Recalcular e
          Imprimir) van al final, juntas. -->
-    <button id="guideBtn" class="quiet guide-toggle" aria-pressed="false" title="Guia paso a paso: activar o desactivar">Guia</button>
+    <button id="guideBtn" class="quiet guide-toggle" aria-pressed="false" title="Asistente paso a paso: activar o desactivar">Asistente</button>
     <button id="demoBtn" class="quiet">Ejemplo AIAG</button>
     <button id="importBtn" class="quiet">Importar</button>
     <input type="file" id="importFile" accept=".csv,.json,.txt" hidden>
@@ -222,10 +222,6 @@
          exactamente la pantalla y cada columna se desplaza sola, asi que fuera
          de aqui quedaria en una pagina que ya no se desplaza. Al final de esta
          columna se sigue alcanzando bajando, que es lo que se hacia antes. -->
-    <!-- Guia paso a paso (guide.js). Va al final de la columna y se queda
-         pegada abajo mientras la columna se desplaza. -->
-    <div id="guideCard" class="guide-card" hidden role="status" aria-live="polite"></div>
-
     <footer class="site">
       <p>MSA Toolkit &middot; motor validado contra el dataset del apendice del manual AIAG MSA 4a ed.
         &middot; <a href="tests/">ver pruebas</a></p>
@@ -456,23 +452,26 @@
 
 </div>
 
+<!-- Asistente paso a paso (guide.js): tarjeta centrada al pie de la pagina. -->
+<div id="guideCard" class="guide-card" hidden role="status" aria-live="polite"></div>
+
 <!-- Anexo de datos del reporte impreso: la tabla de mediciones ya capturada,
      como texto y no como campos de formulario. -->
 <div id="printAnnex" class="print-only"></div>
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20261003e"></script>
-<script src="assets/js/design.js?v=20261003e"></script>
-<script src="assets/js/stats.js?v=20261003e"></script>
-<script src="assets/js/anova.js?v=20261003e"></script>
-<script src="assets/js/anova-nested.js?v=20261003e"></script>
-<script src="assets/js/attribute.js?v=20261003e"></script>
-<script src="assets/js/report.js?v=20261003e"></script>
-<script src="assets/js/mls.js?v=20261003e"></script>
-<script src="assets/js/interval.js?v=20261003e"></script>
-<script src="assets/js/charts.js?v=20261003e"></script>
-<script src="assets/js/guide.js?v=20261003e"></script>
-<script src="assets/js/app.js?v=20261003e"></script>
+<script src="assets/vendor/chart.umd.js?v=20261003f"></script>
+<script src="assets/js/design.js?v=20261003f"></script>
+<script src="assets/js/stats.js?v=20261003f"></script>
+<script src="assets/js/anova.js?v=20261003f"></script>
+<script src="assets/js/anova-nested.js?v=20261003f"></script>
+<script src="assets/js/attribute.js?v=20261003f"></script>
+<script src="assets/js/report.js?v=20261003f"></script>
+<script src="assets/js/mls.js?v=20261003f"></script>
+<script src="assets/js/interval.js?v=20261003f"></script>
+<script src="assets/js/charts.js?v=20261003f"></script>
+<script src="assets/js/guide.js?v=20261003f"></script>
+<script src="assets/js/app.js?v=20261003f"></script>
 </body>
 </html>

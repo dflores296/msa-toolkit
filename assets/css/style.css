@@ -80,6 +80,7 @@
   --shadow-chip: 0 1px 2px rgba(0, 0, 0, .05);
   --ring: 0 0 0 2px rgba(59, 166, 241, .45);
   --attention-ring: rgba(59, 166, 241, .55);
+  --guide-wash: rgba(59, 166, 241, .08);
   --grid-motif: none;
 }
 
@@ -134,6 +135,7 @@
   --shadow-chip: none;
   --ring: 0 0 0 2px rgba(103, 152, 255, .5);
   --attention-ring: rgba(255, 255, 255, .6);
+  --guide-wash: rgba(103, 152, 255, .09);
   /* El motivo de rejilla de Dovetail, solo detras de los resultados. */
   --grid-motif: linear-gradient(#1b1b1b 1px, transparent 1px), linear-gradient(90deg, #1b1b1b 1px, transparent 1px);
 }
@@ -473,19 +475,24 @@ button.attention { box-shadow: 0 0 0 3px var(--attention-ring); animation: atten
   button.attention { animation: none !important; box-shadow: 0 0 0 3px var(--attention-ring); }
 }
 
-/* --- Guia paso a paso (guide.js) ------------------------------------------
-   Una tarjeta pegada abajo de la columna de captura, sin velo sobre la
-   pantalla: acompana mientras se trabaja, no bloquea. El destino del paso
-   lleva el mismo anillo que el resalte de Calcular. */
+/* --- Asistente paso a paso (guide.js) --------------------------------------
+   Una tarjeta centrada al pie de la pagina, sin velo sobre la pantalla:
+   acompana mientras se trabaja, no bloquea. Lo que el paso senala se marca de
+   dos maneras, segun su tamano: un campo o un boton lleva el anillo del
+   resalte de Calcular; una seccion entera, un fondo tenue -un anillo
+   alrededor de un bloque grande se ve como un error de dibujo-. */
 .guide-toggle.on { color: var(--ink); font-weight: 600; }
 .guide-card {
-  position: sticky; bottom: 12px; z-index: 5; flex: none;
+  position: fixed; left: 50%; bottom: 16px; z-index: 40; transform: translateX(-50%);
+  width: min(560px, calc(100vw - 24px));
   padding: 12px 14px 12px; border-radius: var(--r-feature);
   background: var(--surface); border: 1px solid var(--border-strong); box-shadow: 0 8px 28px rgba(0, 0, 0, .12);
 }
 :root[data-theme="dark"] .guide-card { box-shadow: 0 8px 28px rgba(0, 0, 0, .55); }
-/* Lo que la guia lleva a la vista no queda escondido detras de la tarjeta. */
-html[data-guide="on"] .col-capture { scroll-padding-bottom: 190px; }
+/* Lo que el asistente lleva a la vista no queda escondido detras de la
+   tarjeta, y el final de cada columna se puede subir por encima de ella. */
+html[data-guide="on"] .col-capture, html[data-guide="on"] .results-panel { padding-bottom: 200px; scroll-padding-bottom: 200px; }
+html[data-guide="on"] { scroll-padding-bottom: 200px; }
 .guide-head { display: flex; align-items: center; gap: 8px; }
 .guide-k { font: 500 10.5px var(--mono); text-transform: uppercase; letter-spacing: .07em; color: var(--ink-faint); }
 .guide-close {
@@ -500,17 +507,19 @@ html[data-guide="on"] .col-capture { scroll-padding-bottom: 190px; }
 .guide-text { margin: 3px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-soft); }
 .guide-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
 .guide-actions button { padding: 5px 14px; font-size: 13px; }
-.guide-target { box-shadow: 0 0 0 3px var(--attention-ring) !important; border-radius: var(--r-field); }
-button.guide-target, .config-row.guide-target, .namelist-cols.guide-target { border-radius: var(--r-ctl); }
-.config-row.guide-target, .namelist-cols.guide-target, table.guide-target, #msaSummary.guide-target { border-radius: 8px; }
+/* Controles: el anillo, con un pulso al entrar al paso. */
+.guide-target { box-shadow: 0 0 0 3px var(--attention-ring) !important; }
 .guide-target.guide-pulse { animation: attention-pulse .8s ease-out 3; }
 @media (prefers-reduced-motion: reduce) { .guide-target.guide-pulse { animation: none !important; } }
-/* Apiladas las columnas, la pagina entera se desplaza: la tarjeta va fija al
-   pie de la ventana para seguir a la vista hasta el dictamen. */
+/* Secciones: un fondo tenue que se extiende 10 px sin mover nada (la sombra
+   de expansion pinta el margen con el mismo color). */
+.guide-area {
+  background-color: var(--guide-wash); box-shadow: 0 0 0 10px var(--guide-wash);
+  border-radius: 2px; transition: background-color .3s ease, box-shadow .3s ease;
+}
 @media (max-width: 1100px) {
-  .guide-card { position: fixed; left: 12px; right: 12px; bottom: 12px; max-width: 520px; margin: 0 auto; z-index: 40; }
-  html[data-guide="on"] body { padding-bottom: 200px; }
-  html[data-guide="on"] { scroll-padding-bottom: 200px; }
+  html[data-guide="on"] .col-capture, html[data-guide="on"] .results-panel { padding-bottom: 0; }
+  html[data-guide="on"] body { padding-bottom: 210px; }
 }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; align-items: center; }
 .actions .spacer { flex: 1 1 auto; }
@@ -1048,7 +1057,8 @@ footer.site .legal { font-size: 11.5px; color: var(--ink-faint); max-width: 760p
   .col-results { position: static; }
   .results-panel { max-height: none; min-height: 0; overflow: visible; background: #fff; background-image: none; padding: 0; gap: 14px; }
   .empty-state, .guide-card { display: none !important; }
-  .guide-target { box-shadow: none !important; }
+  .guide-target, .guide-area { box-shadow: none !important; background-color: transparent !important; }
+  html[data-guide="on"] .results-panel { padding-bottom: 0; }
   html[data-guide="on"] body { padding-bottom: 0; }
   #resultBody { gap: 14px; }
 

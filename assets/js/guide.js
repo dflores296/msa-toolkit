@@ -1,9 +1,11 @@
 /* ============================================================================
- * guide.js - Guia paso a paso, una por metodo.
+ * guide.js - Asistente paso a paso, uno por metodo.
  *
- * Una tarjeta abajo de la columna de captura dice el paso actual y resalta el
- * campo o boton que le toca, con el mismo anillo que el boton Calcular. No
- * oscurece la pantalla ni bloquea nada: acompana mientras se trabaja.
+ * Una tarjeta centrada al pie de la pagina dice el paso actual y senala lo que
+ * le toca. Un campo o un boton lleva el mismo anillo que el boton Calcular;
+ * una seccion entera (la rejilla de captura, la lista de nombres) se marca
+ * con un fondo tenue, porque un anillo alrededor de un bloque grande se ve
+ * como un error de dibujo. No oscurece la pantalla ni bloquea nada.
  *
  * Los pasos son DATOS (STEPS): a que metodos aplican, que resaltan, que dicen
  * y cuando se dan por cumplidos. Un paso nuevo o un metodo nuevo se agregan
@@ -13,13 +15,12 @@
  * pagina (si la tabla existe, si Calcular esta habilitado, si hay resultado).
  * app.js solo le avisa cuando mirar, con el evento `msa:state`.
  *
- * Encendida o apagada se recuerda en localStorage (msa-guide). Sin valor
- * guardado -primera visita- empieza encendida.
+ * Empieza encendido en cada carga de la pagina. La X o el boton Asistente de
+ * la barra lo apagan para esa visita; no se recuerda.
  * ==========================================================================*/
 (function (global) {
   'use strict';
 
-  var KEY = 'msa-guide';
   function $(id) { return document.getElementById(id); }
   function method() { return document.documentElement.getAttribute('data-method') || 'cruzado'; }
   function visible(el) { return !!el && !el.closest('[hidden]') && el.getClientRects().length > 0; }
@@ -35,7 +36,7 @@
       title: 'Nombre del estudio',
       text: 'Opcional. Da nombre al archivo exportado y encabeza el reporte impreso.' },
 
-    { id: 'tamano', target: '.config-row',
+    { id: 'tamano', target: '#numOperators, #numParts, #numReplicates',
       title: 'Tamano del estudio',
       text: {
         cruzado: 'Operadores, piezas y replicas. AIAG sugiere 3 operadores, 10 piezas y 3 replicas; ' +
@@ -51,7 +52,7 @@
       text: 'Las clasificaciones posibles, separadas por coma. Con dos, elige cual es la de rechazo: ' +
         'sin ella no se calculan efectividad, fuga ni falsa alarma.' },
 
-    { id: 'nombres', target: '.namelist-cols',
+    { id: 'nombres', area: '.namelist-cols',
       title: 'Nombres',
       text: {
         cruzado: 'Opcional. Escribe los nombres reales de operadores y piezas; salen en las graficas ' +
@@ -66,12 +67,12 @@
       title: 'Generar la tabla',
       text: 'Pulsa Regenerar tabla para armar la rejilla de captura con este tamano y estos nombres.' },
 
-    { id: 'estandar', methods: ['atributos'], target: '#standardTable',
+    { id: 'estandar', methods: ['atributos'], area: '#standardTable',
       title: 'Estandar de cada pieza',
       text: 'Opcional. La clasificacion correcta de cada pieza. Sin estandar solo se sabe si los ' +
         'evaluadores coinciden, no si aciertan.' },
 
-    { id: 'captura', target: '#captureSection .capture-scroll', milestone: captureDone,
+    { id: 'captura', area: '#captureSection .capture-scroll', milestone: captureDone,
       title: 'Capturar',
       text: {
         cruzado: 'Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: ' +
@@ -101,7 +102,8 @@
       text: 'Con la captura completa, pulsa Calcular. Si despues cambias un dato, el resultado se ' +
         'marca como desactualizado hasta recalcular.' },
 
-    { id: 'dictamen', target: { cruzado: '#msaSummary', anidado: '#msaSummary', atributos: '#verdicts' },
+    /* El dictamen ya es la tarjeta que flota: se lleva a la vista y nada mas. */
+    { id: 'dictamen', view: { cruzado: '#msaSummary', anidado: '#msaSummary', atributos: '#verdicts' },
       title: 'Leer el dictamen',
       text: {
         cruzado: 'Deciden el % Study Variation y, si diste especificacion, el % Tolerance: menos de ' +
@@ -118,23 +120,25 @@
         'con los datos-, no una captura de pantalla.' }
   ];
 
-  var on = false, index = 0, marks = {}, lastTarget = null, card = null, seenMethod = null;
+  var on = false, index = 0, marks = {}, marked = [], markedStep = null, card = null, seenMethod = null;
 
   function steps() {
     var m = method();
     return STEPS.filter(function (s) { return !s.methods || s.methods.indexOf(m) >= 0; });
   }
   function pick(v) { return (v && typeof v === 'object') ? v[method()] : v; }
-  function targetOf(step) {
-    var sel = pick(step.target);
-    return sel ? document.querySelector(sel) : null;
-  }
-
-  function stored() {
-    try { return localStorage.getItem(KEY); } catch (e) { return null; }
-  }
-  function store(v) {
-    try { localStorage.setItem(KEY, v); } catch (e) {}
+  /* Lo que el paso senala: controles (anillo) o una seccion (fondo tenue).
+     Lo primero visible de la lista es lo que se lleva a la vista. */
+  function marksOf(step) {
+    var out = [];
+    [['target', 'guide-target'], ['area', 'guide-area'], ['view', null]].forEach(function (k) {
+      var sel = pick(step[k[0]]);
+      if (!sel) return;
+      [].slice.call(document.querySelectorAll(sel)).forEach(function (el) {
+        if (visible(el)) out.push({ el: el, cls: k[1] });
+      });
+    });
+    return out;
   }
 
   /* El destino solo se lleva a la vista si no lo esta: mover la columna
@@ -151,8 +155,8 @@
   }
 
   function clearTarget() {
-    if (lastTarget) lastTarget.classList.remove('guide-target', 'guide-pulse');
-    lastTarget = null;
+    marked.forEach(function (m) { m.el.classList.remove('guide-target', 'guide-area', 'guide-pulse'); });
+    marked = []; markedStep = null;
   }
 
   function render(scroll) {
@@ -167,9 +171,9 @@
     var label = { cruzado: 'Cruzado', anidado: 'Anidado', atributos: 'Atributos' }[method()] || method();
     var last = index === list.length - 1;
     card.innerHTML =
-      '<div class="guide-head"><span class="guide-k">Guia &middot; ' + label + ' &middot; paso ' +
+      '<div class="guide-head"><span class="guide-k">Asistente &middot; ' + label + ' &middot; paso ' +
         (index + 1) + ' de ' + list.length + '</span>' +
-        '<button type="button" class="guide-close" data-guide="close" aria-label="Cerrar la guia" title="Cerrar la guia">' +
+        '<button type="button" class="guide-close" data-guide="close" aria-label="Cerrar el asistente" title="Cerrar el asistente">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
         '<path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
       '<div class="guide-bar"><span style="width:' + Math.round(100 * (index + 1) / list.length) + '%"></span></div>' +
@@ -183,18 +187,24 @@
       '</div>';
     card.hidden = false;
 
-    var t = targetOf(step);
-    if (t !== lastTarget) {
+    var key = method() + ':' + step.id;
+    var found = marksOf(step);
+    if (key !== markedStep || found.length !== marked.length) {
       clearTarget();
-      if (t && visible(t)) {
-        t.classList.add('guide-target', 'guide-pulse');
-        lastTarget = t;
-        setTimeout(function () { if (lastTarget === t) t.classList.remove('guide-pulse'); }, 2600);
-      }
+      found.forEach(function (m) {
+        if (m.cls) m.el.classList.add(m.cls);
+        if (m.cls === 'guide-target') m.el.classList.add('guide-pulse');
+      });
+      marked = found; markedStep = key;
+      var now = found.slice();
+      setTimeout(function () {
+        if (markedStep === key) now.forEach(function (m) { m.el.classList.remove('guide-pulse'); });
+      }, 2600);
     }
-    if (scroll && t && visible(t) && !inView(t)) {
+    var first = found.length ? found[0].el : null;
+    if (scroll && first && !inView(first)) {
       var reduce = global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+      first.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
     }
   }
 
@@ -238,8 +248,8 @@
     render(moved);
   }
 
-  function enable() { on = true; store('on'); snapshot(); syncButton(); render(true); }
-  function disable() { on = false; store('off'); syncButton(); render(false); }
+  function enable() { on = true; snapshot(); syncButton(); render(true); }
+  function disable() { on = false; syncButton(); render(false); }
   function toggle() { if (on) disable(); else enable(); }
   function restart() { index = 0; enable(); }
 
@@ -260,7 +270,7 @@
       else if (what === 'prev') { index--; render(true); }
     });
     document.addEventListener('msa:state', onState);
-    on = stored() !== 'off';
+    on = true;                      // en cada carga, sin recordar si se apago
     seenMethod = method();
     index = 0;
     snapshot();

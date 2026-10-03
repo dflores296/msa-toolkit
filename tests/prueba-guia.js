@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* ============================================================================
- * prueba-guia.js - La guia paso a paso y el reinicio del scroll, en un
+ * prueba-guia.js - El asistente paso a paso y el reinicio del scroll, en un
  * navegador de verdad.
  *
  * POR QUE EXISTE
@@ -11,14 +11,15 @@
  *
  * QUE COMPRUEBA
  *
- *   1. Primera visita: la guia empieza encendida, en el paso 1, con el numero
- *      de pasos de cada metodo.
+ *   1. La guia empieza encendida, en el paso 1, con el numero de pasos de
+ *      cada metodo.
  *   2. Generar la tabla lleva al paso de captura; cargar el ejemplo, al de
- *      Calcular; calcular, al dictamen. El destino de cada paso queda
- *      resaltado.
+ *      Calcular; calcular, al dictamen. Un control se senala con el anillo
+ *      (.guide-target); una seccion, con el fondo tenue (.guide-area).
  *   3. Atras no rebota: volver a un paso cuyo hito ya se cumplio no empuja la
  *      guia otra vez hacia adelante.
- *   4. Cerrarla la apaga y se recuerda al recargar; el boton Guia la enciende.
+ *   4. Cerrarla la apaga; al recargar vuelve a encenderse (no se recuerda);
+ *      el boton Asistente la enciende y la apaga.
  *   5. Cambiar de metodo reinicia la guia y devuelve al inicio el scroll de la
  *      captura y de los resultados.
  *   6. Ningun error de pagina.
@@ -74,12 +75,14 @@ function check(name, cond, detail) {
 function guia(page) {
   return page.evaluate(function () {
     var c = document.getElementById('guideCard');
-    var t = document.querySelector('.guide-target');
+    var anillos = [].slice.call(document.querySelectorAll('.guide-target'));
+    var areas = [].slice.call(document.querySelectorAll('.guide-area'));
     return {
       visible: !!c && !c.hidden,
       rotulo: c && !c.hidden ? c.querySelector('.guide-k').textContent : '',
       titulo: c && !c.hidden ? c.querySelector('.guide-title').textContent : '',
-      destino: t ? (t.id || t.className) : '',
+      destino: anillos.map(function (t) { return t.id; }).join(','),
+      area: areas.map(function (t) { return t.className; }).join(','),
       boton: document.getElementById('guideBtn').getAttribute('aria-pressed')
     };
   });
@@ -98,9 +101,18 @@ function guia(page) {
   console.log('\n===== PRIMERA VISITA =====\n');
   await page.goto(base + '#cruzado', { waitUntil: 'networkidle' });
   var g = await guia(page);
-  check('la guia empieza encendida', g.visible && g.boton === 'true', JSON.stringify(g));
-  check('en el paso 1 de 10 del cruzado', /paso 1 de 10/i.test(g.rotulo) && /cruzado/i.test(g.rotulo), g.rotulo);
-  check('resalta el nombre del estudio', g.destino === 'studyName', g.destino);
+  check('el asistente empieza encendido', g.visible && g.boton === 'true', JSON.stringify(g));
+  check('en el paso 1 de 10 del cruzado', /asistente/i.test(g.rotulo) && /paso 1 de 10/i.test(g.rotulo) &&
+    /cruzado/i.test(g.rotulo), g.rotulo);
+  check('resalta el nombre del estudio con el anillo', g.destino === 'studyName', g.destino);
+  await page.click('[data-guide="next"]');
+  g = await guia(page);
+  check('el tamano senala los tres campos, no la fila entera',
+    g.destino === 'numOperators,numParts,numReplicates' && !g.area, JSON.stringify(g));
+  await page.click('[data-guide="next"]');
+  g = await guia(page);
+  check('los nombres, una seccion, van con fondo tenue y sin anillo',
+    /namelist-cols/.test(g.area) && !g.destino, JSON.stringify(g));
   var cuenta = await page.evaluate(function () {
     var html = document.documentElement, antes = html.getAttribute('data-method'), out = {};
     ['cruzado', 'anidado', 'atributos'].forEach(function (m) {
@@ -120,7 +132,8 @@ function guia(page) {
   await page.waitForTimeout(300);
   g = await guia(page);
   check('generar la tabla lleva al paso de captura', g.titulo === 'Capturar', g.titulo);
-  check('y resalta la rejilla de captura', /capture-scroll/.test(g.destino), g.destino);
+  check('y marca la rejilla de captura con fondo tenue', /capture-scroll/.test(g.area) && !g.destino,
+    JSON.stringify(g));
 
   await page.click('[data-guide="prev"]');
   await page.fill('#studyName', 'Prueba de la guia');
@@ -137,8 +150,12 @@ function guia(page) {
   await page.click('#calcBtn');
   await page.waitForTimeout(800);
   g = await guia(page);
-  check('calcular lleva al dictamen', g.titulo === 'Leer el dictamen' && g.destino === 'msaSummary',
-    JSON.stringify(g));
+  var dictamen = await page.evaluate(function () {
+    var r = document.getElementById('msaSummary').getBoundingClientRect();
+    return r.top < innerHeight && r.bottom > 0;
+  });
+  check('calcular lleva al dictamen, a la vista y sin marca encima',
+    g.titulo === 'Leer el dictamen' && dictamen && !g.destino && !g.area, JSON.stringify(g));
 
   console.log('\n===== CAMBIO DE METODO =====\n');
   await page.evaluate(function () {
@@ -160,14 +177,26 @@ function guia(page) {
   await page.click('.guide-close');
   g = await guia(page);
   var guardado = await page.evaluate(function () { return localStorage.getItem('msa-guide'); });
-  check('la X apaga la guia y quita el resalte', !g.visible && !g.destino && g.boton === 'false', JSON.stringify(g));
-  check('y lo recuerda', guardado === 'off', guardado);
-  await page.reload({ waitUntil: 'networkidle' });
-  g = await guia(page);
-  check('al recargar sigue apagada', !g.visible, JSON.stringify(g));
+  check('la X apaga el asistente y quita las marcas', !g.visible && !g.destino && !g.area && g.boton === 'false',
+    JSON.stringify(g));
+  check('sin guardar nada en el navegador', guardado === null, guardado);
   await page.click('#guideBtn');
   g = await guia(page);
-  check('el boton Guia la vuelve a encender', g.visible && g.boton === 'true', JSON.stringify(g));
+  check('el boton Asistente lo vuelve a encender', g.visible && g.boton === 'true', JSON.stringify(g));
+  await page.click('#guideBtn');
+  g = await guia(page);
+  check('y lo apaga', !g.visible && g.boton === 'false', JSON.stringify(g));
+  await page.reload({ waitUntil: 'networkidle' });
+  g = await guia(page);
+  check('al recargar vuelve a encenderse', g.visible && g.boton === 'true', JSON.stringify(g));
+
+  console.log('\n===== TARJETA CENTRADA =====\n');
+  var pos = await page.evaluate(function () {
+    var r = document.getElementById('guideCard').getBoundingClientRect();
+    return { centro: Math.round(r.left + r.width / 2), mitad: Math.round(innerWidth / 2), pie: Math.round(innerHeight - r.bottom) };
+  });
+  check('la tarjeta va centrada en la pagina, al pie', Math.abs(pos.centro - pos.mitad) <= 1 && pos.pie >= 8 && pos.pie <= 24,
+    JSON.stringify(pos));
 
   console.log('\n===== ERRORES =====\n');
   check('ningun error de pagina en todo el recorrido', errores.length === 0, errores.join(' | '));

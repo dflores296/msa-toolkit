@@ -505,8 +505,21 @@ html[data-guide="on"] { scroll-padding-bottom: 200px; }
 .guide-bar span { display: block; height: 100%; background: var(--accent-ink); border-radius: 3px; transition: width .2s ease; }
 .guide-title { margin: 0; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
 .guide-text { margin: 3px 0 0; font-size: 12.5px; line-height: 1.55; color: var(--ink-soft); }
-.guide-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+.guide-actions { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-top: 10px; }
 .guide-actions button { padding: 5px 14px; font-size: 13px; }
+/* Pie de la tarjeta: si Enter ya avanza, o que le falta al paso. */
+.guide-hint { margin-right: auto; font-size: 12px; color: var(--ink-faint); }
+.guide-hint.need { color: var(--warn); }
+.guide-hint kbd {
+  font: 500 10.5px var(--mono); padding: 1px 6px; margin-right: 4px; border-radius: 4px;
+  border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--ink-soft);
+}
+.guide-hint.shake { animation: guide-shake .35s ease-in-out; }
+@keyframes guide-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
 /* Controles: el anillo, con un pulso al entrar al paso. */
 .guide-target { box-shadow: 0 0 0 3px var(--attention-ring) !important; }
 .guide-target.guide-pulse { animation: attention-pulse .8s ease-out 3; }

@@ -104,6 +104,18 @@ pone el anillo a cada uno, no a la fila que los contiene.
   cuentan los CAMBIOS de un hito: si el usuario vuelve atras a releer, el
   asistente no lo empuja otra vez hacia adelante. Si un hito deja de
   cumplirse (se reinicio el estudio), regresa a el.
+- **Enter avanza solo con el paso completo.** Cada paso que exige algo define
+  `need()`: devuelve lo que le falta en una frase, o '' si esta completo (el
+  tamano dentro de rango, al menos dos categorias y la de rechazo, nombres sin
+  repetir, especificaciones numericas con USL > LSL, la tabla generada, la
+  captura llena, el resultado calculado). Los opcionales y de lectura no lo
+  definen: Enter siempre avanza. El pie de la tarjeta dice «Enter para seguir»
+  o «Para seguir: ...», y si Enter no puede avanzar la frase se sacude. Enter
+  en un boton, un enlace o un texto largo hace lo suyo, no avanza. Siguiente,
+  con el raton, sigue permitiendo saltar un paso.
+- **Al avanzar con el teclado, el foco va a lo que pide el paso nuevo**: el
+  primer campo, el boton (otro Enter lo pulsa) o la primera celda vacia. El
+  estudio se puede llevar entero sin raton.
 - **Solo lleva a la vista lo que no esta a la vista.** Mover la columna
   mientras alguien escribe en otra celda desorienta.
 - **Encendido en cada carga de la pagina.** La X o el boton «Asistente» de la

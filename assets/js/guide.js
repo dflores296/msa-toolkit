@@ -31,12 +31,62 @@
   function captureDone() { return tableReady() && !$('calcBtn').disabled; }
   function resultReady() { return visible($('resultsSection')) && !$('resultsSection').hidden; }
 
+  /* Lo que le falta a un paso para darse por completo, en una frase; '' si
+     ya lo esta. Enter solo avanza con el paso completo, y la frase es lo que
+     la tarjeta dice cuando no. Los pasos opcionales o de lectura no definen
+     `need`: estan completos siempre. */
+  function num(id) {
+    var el = $(id), v = el ? el.value.trim().replace(',', '.') : '';
+    return v === '' ? null : (isFinite(Number(v)) ? Number(v) : NaN);
+  }
+  function needSize() {
+    var bad = ['numOperators', 'numParts', 'numReplicates'].some(function (id) {
+      var el = $(id); return !el || el.value.trim() === '' || !el.checkValidity() || el.classList.contains('invalid');
+    });
+    return bad || $('generateBtn').disabled ? 'corrige el tamano: cada campo, un entero dentro de su rango' : '';
+  }
+  function needCategories() {
+    var cats = (($('categories') || {}).value || '').split(',')
+      .map(function (c) { return c.trim(); }).filter(function (c, i, a) { return c && a.indexOf(c) === i; });
+    if (cats.length < 2) return 'escribe al menos dos categorias, separadas por coma';
+    if (cats.length === 2 && !$('rejectCategory').value) return 'elige la categoria de rechazo';
+    return '';
+  }
+  /* Un nombre vacio no falta: el programa pone uno. Lo que impide seguir es
+     repetirlo, porque dos operadores (o dos piezas, salvo en el anidado,
+     donde la pieza es el par operador + pieza) se volverian uno. */
+  function repeated(sel) {
+    var seen = {}, dup = false;
+    [].slice.call(document.querySelectorAll(sel)).forEach(function (i) {
+      var v = i.value.trim().toLowerCase();
+      if (!v) return;
+      if (seen[v]) dup = true;
+      seen[v] = true;
+    });
+    return dup;
+  }
+  function needNames() {
+    if (document.querySelectorAll('.namelist-cols input.invalid').length) return 'corrige los nombres marcados en rojo';
+    if (repeated('#operatorNames input')) return 'hay nombres de operador repetidos';
+    if (method() !== 'anidado' && repeated('#partNames input')) return 'hay nombres de pieza repetidos';
+    return '';
+  }
+  function needSpecs() {
+    var ids = ['lsl', 'usl', 'tolerance', 'historicalSigma', 'processMean'];
+    if (ids.some(function (id) { return isNaN(num(id)) && num(id) !== null; })) {
+      return 'las especificaciones deben ser numeros (punto o coma decimal)';
+    }
+    var lsl = num('lsl'), usl = num('usl');
+    if (lsl !== null && usl !== null && usl <= lsl) return 'USL tiene que ser mayor que LSL';
+    return '';
+  }
+
   var STEPS = [
     { id: 'nombre', target: '#studyName',
       title: 'Nombre del estudio',
       text: 'Opcional. Da nombre al archivo exportado y encabeza el reporte impreso.' },
 
-    { id: 'tamano', target: '#numOperators, #numParts, #numReplicates',
+    { id: 'tamano', target: '#numOperators, #numParts, #numReplicates', need: needSize,
       title: 'Tamano del estudio',
       text: {
         cruzado: 'Operadores, piezas y replicas. AIAG sugiere 3 operadores, 10 piezas y 3 replicas; ' +
@@ -47,12 +97,12 @@
           '3 replicas, con mitad buenas y mitad malas: un lote desbalanceado infla la concordancia.'
       } },
 
-    { id: 'categorias', methods: ['atributos'], target: '#categories',
+    { id: 'categorias', methods: ['atributos'], target: '#categories', need: needCategories,
       title: 'Categorias y categoria de rechazo',
       text: 'Las clasificaciones posibles, separadas por coma. Con dos, elige cual es la de rechazo: ' +
         'sin ella no se calculan efectividad, fuga ni falsa alarma.' },
 
-    { id: 'nombres', area: '.namelist-cols',
+    { id: 'nombres', area: '.namelist-cols', need: needNames,
       title: 'Nombres',
       text: {
         cruzado: 'Opcional. Escribe los nombres reales de operadores y piezas; salen en las graficas ' +
@@ -64,6 +114,7 @@
       } },
 
     { id: 'tabla', target: '#generateBtn', milestone: tableReady,
+      need: function () { return tableReady() ? '' : 'pulsa Regenerar tabla'; },
       title: 'Generar la tabla',
       text: 'Pulsa Regenerar tabla para armar la rejilla de captura con este tamano y estos nombres.' },
 
@@ -73,6 +124,9 @@
         'evaluadores coinciden, no si aciertan.' },
 
     { id: 'captura', area: '#captureSection .capture-scroll', milestone: captureDone,
+      need: function () {
+        return captureDone() ? '' : 'faltan celdas por capturar (' + (($('captureStatus') || {}).textContent || '') + ')';
+      },
       title: 'Capturar',
       text: {
         cruzado: 'Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: ' +
@@ -83,7 +137,7 @@
           'cada replica.'
       } },
 
-    { id: 'especificacion', methods: ['cruzado', 'anidado'], target: '#lsl',
+    { id: 'especificacion', methods: ['cruzado', 'anidado'], target: '#lsl', need: needSpecs,
       title: 'Especificacion',
       text: 'Opcional. Con LSL y USL, o con la tolerancia directa, aparece el % Tolerance. Sin ellos ' +
         'solo se juzga contra la variacion del estudio.' },
@@ -98,6 +152,7 @@
       } },
 
     { id: 'calcular', target: '#calcBtn', milestone: resultReady,
+      need: function () { return resultReady() ? '' : 'pulsa Calcular'; },
       title: 'Calcular',
       text: 'Con la captura completa, pulsa Calcular. Si despues cambias un dato, el resultado se ' +
         'marca como desactualizado hasta recalcular.' },
@@ -179,13 +234,14 @@
       '<div class="guide-bar"><span style="width:' + Math.round(100 * (index + 1) / list.length) + '%"></span></div>' +
       '<p class="guide-title">' + step.title + '</p>' +
       '<p class="guide-text">' + pick(step.text) + '</p>' +
-      '<div class="guide-actions">' +
+      '<div class="guide-actions"><span class="guide-hint" id="guideHint"></span>' +
         '<button type="button" data-guide="prev"' + (index === 0 ? ' disabled' : '') + '>Atras</button>' +
         (last
           ? '<button type="button" class="primary" data-guide="close">Terminar</button>'
           : '<button type="button" class="primary" data-guide="next">Siguiente</button>') +
       '</div>';
     card.hidden = false;
+    updateHint();
 
     var key = method() + ':' + step.id;
     var found = marksOf(step);
@@ -218,6 +274,55 @@
      cumplirse (se reinicio el estudio, se vacio la tabla) regresa a el. Solo
      cuentan los CAMBIOS: si alguien vuelve atras a releer un paso, la guia no
      lo empuja de nuevo hacia adelante por un hito que ya estaba cumplido. */
+  function current() { var list = steps(); return list[Math.max(0, Math.min(index, list.length - 1))]; }
+  function needOf(step) { return step && step.need ? step.need() : ''; }
+
+  /* El pie de la tarjeta dice si Enter ya puede avanzar o que falta. */
+  function updateHint(warn) {
+    var h = $('guideHint');
+    if (!h || !on) return;
+    var step = current(), last = index >= steps().length - 1, need = needOf(step);
+    h.classList.toggle('need', !!need);
+    h.classList.toggle('shake', !!(need && warn));
+    if (last) h.innerHTML = '';
+    else if (need) h.textContent = 'Para seguir: ' + need + '.';
+    else h.innerHTML = '<kbd>Enter</kbd> para seguir';
+    if (warn) setTimeout(function () { h.classList.remove('shake'); }, 400);
+  }
+
+  /* Al avanzar con el teclado, el foco va a lo que pide el paso nuevo: el
+     primer campo, el boton (y otro Enter lo pulsa), o la primera celda vacia
+     de la rejilla. Asi el estudio se puede llevar entero sin raton. */
+  function focusStep(step) {
+    var sel = pick(step.target), el = null;
+    if (sel) el = document.querySelector(sel);
+    else if (step.area) {
+      var box = document.querySelector(pick(step.area));
+      if (box) {
+        var fields = [].slice.call(box.querySelectorAll('input, select'));
+        el = fields.filter(function (f) { return f.value.trim() === ''; })[0] || fields[0] || null;
+      }
+    }
+    if (el && visible(el) && !el.disabled) el.focus({ preventScroll: true });
+  }
+
+  function onKey(e) {
+    if (!on || e.key !== 'Enter' || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (e.defaultPrevented) return;
+    var t = e.target;
+    /* Enter en un boton, un enlace o un texto largo hace lo suyo: pulsar,
+       seguir, saltar de linea. Solo se toma en campos de una linea y fuera de
+       ellos. */
+    if (t && t.closest && (t.closest('button, a, textarea, [contenteditable], .guide-card'))) return;
+    var list = steps();
+    if (index >= list.length - 1) return;
+    e.preventDefault();
+    if (needOf(list[index])) { updateHint(true); return; }
+    index++;
+    render(true);
+    focusStep(list[index]);
+  }
+
   function evaluate() {
     var list = steps(), moved = false;
     for (var i = 0; i < list.length; i++) {
@@ -270,6 +375,11 @@
       else if (what === 'prev') { index--; render(true); }
     });
     document.addEventListener('msa:state', onState);
+    document.addEventListener('keydown', onKey);
+    // Escribir puede completar un paso que no emite msa:state (nombres,
+    // especificacion, categorias): el pie de la tarjeta se actualiza solo.
+    document.addEventListener('input', function () { updateHint(false); });
+    document.addEventListener('change', function () { updateHint(false); });
     on = true;                      // en cada carga, sin recordar si se apago
     seenMethod = method();
     index = 0;

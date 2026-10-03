@@ -20,9 +20,13 @@
  *      guia otra vez hacia adelante.
  *   4. Cerrarla la apaga; al recargar vuelve a encenderse (no se recuerda);
  *      el boton Asistente la enciende y la apaga.
- *   5. Cambiar de metodo reinicia la guia y devuelve al inicio el scroll de la
+ *   5. Enter avanza solo con el paso completo: un tamano invalido o nombres
+ *      repetidos lo detienen y la tarjeta dice que falta; al avanzar, el foco
+ *      va al campo o boton del paso nuevo, asi que el estudio se lleva entero
+ *      con el teclado.
+ *   6. Cambiar de metodo reinicia la guia y devuelve al inicio el scroll de la
  *      captura y de los resultados.
- *   6. Ningun error de pagina.
+ *   7. Ningun error de pagina.
  *
  * USO
  *   node tests/prueba-guia.js
@@ -197,6 +201,55 @@ function guia(page) {
   });
   check('la tarjeta va centrada en la pagina, al pie', Math.abs(pos.centro - pos.mitad) <= 1 && pos.pie >= 8 && pos.pie <= 24,
     JSON.stringify(pos));
+
+  console.log('\n===== ENTER =====\n');
+  await page.goto('about:blank');
+  await page.goto(base + '#cruzado', { waitUntil: 'networkidle' });
+  var foco = function () {
+    return page.evaluate(function () { var a = document.activeElement; return a ? (a.id || a.tagName) : ''; });
+  };
+  var pie = function () {
+    return page.evaluate(function () { return (document.getElementById('guideHint') || {}).textContent || ''; });
+  };
+  check('el pie avisa que Enter sigue', /Enter para seguir/.test(await pie()), await pie());
+  await page.focus('#studyName');
+  await page.keyboard.press('Enter');
+  g = await guia(page);
+  check('Enter en el nombre avanza al tamano', g.titulo === 'Tamano del estudio', g.titulo);
+  check('y el foco pasa al primer campo del tamano', (await foco()) === 'numOperators', await foco());
+
+  await page.fill('#numParts', '1');
+  await page.focus('#numParts');
+  await page.keyboard.press('Enter');
+  g = await guia(page);
+  check('con un tamano invalido Enter no avanza', g.titulo === 'Tamano del estudio', g.titulo);
+  check('y la tarjeta dice que falta', /Para seguir/.test(await pie()), await pie());
+  await page.fill('#numParts', '10');
+  await page.waitForTimeout(100);
+  await page.keyboard.press('Enter');
+  g = await guia(page);
+  check('corregido, Enter avanza a los nombres', g.titulo === 'Nombres', g.titulo);
+
+  var op2 = '#operatorNames input >> nth=1';
+  var original = await page.inputValue(op2);
+  await page.fill(op2, await page.inputValue('#operatorNames input >> nth=0'));
+  await page.keyboard.press('Enter');
+  g = await guia(page);
+  check('con nombres de operador repetidos Enter no avanza', g.titulo === 'Nombres' && /repetidos/.test(await pie()),
+    g.titulo + ' / ' + await pie());
+  await page.fill(op2, original);
+  await page.keyboard.press('Enter');
+  g = await guia(page);
+  check('sin repetidos, Enter avanza a generar la tabla', g.titulo === 'Generar la tabla', g.titulo);
+  check('con el foco en el boton', (await foco()) === 'generateBtn', await foco());
+  await page.keyboard.press('Enter');          // el Enter del boton: lo pulsa
+  await page.waitForTimeout(300);
+  g = await guia(page);
+  check('otro Enter genera la tabla y el asistente pasa a capturar', g.titulo === 'Capturar', g.titulo);
+  await page.keyboard.press('Enter');
+  g = await guia(page);
+  check('con la captura vacia Enter no avanza', g.titulo === 'Capturar' && /faltan celdas/.test(await pie()),
+    g.titulo + ' / ' + await pie());
 
   console.log('\n===== ERRORES =====\n');
   check('ningun error de pagina en todo el recorrido', errores.length === 0, errores.join(' | '));

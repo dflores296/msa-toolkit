@@ -209,6 +209,7 @@
     selectFirstVisibleTab();
 
     if (changed && isUserAction) {
+      resetScroll();
       /* Antes, al pasar al anidado se tiraban los nombres de pieza si alguno
          se repetia entre operadores. Ya no hace falta (F-02): en el anidado
          la identidad es el par operador|pieza, asi que repetir "1" es legal.
@@ -227,6 +228,7 @@
         refreshStale();
       }
     }
+    if (changed) notifyState('method');
     return m.id;
   }
 
@@ -614,6 +616,7 @@
       activeMethod().countLabel + ' x ' + state.replicates + ' replicas = ' +
       (ops.length * partsPerOperator() * state.replicates) + ' mediciones';
     wirePaste();
+    notifyState('table');
     return true;
   }
 
@@ -798,6 +801,7 @@
     refreshStale();                 // F-05: el resultado publicado puede haber caducado
     $('captureStatus').textContent = msg;
     $('captureStatus').style.color = (bad || empty) ? 'var(--warn)' : 'var(--ok)';
+    notifyState('capture');
   }
 
   /* ------------------------------------------------------------------ *
@@ -952,6 +956,7 @@
     }
     MSACharts.render(result);
     refreshStale();                 // deja el panel y el boton de imprimir en su sitio
+    notifyState('result');
   }
 
   /* Que significa cada tarjeta. Se muestra al pasar el cursor: el numero solo
@@ -2244,9 +2249,30 @@
      vista arriba de la tabla de captura y el boton quedaba fuera de pantalla,
      sin pista de que hacer. El resalte se quita solo, o al pulsar. */
   var attentionTimer = null;
+
+  /* Avisa a la guia paso a paso (guide.js) de que algo cambio: metodo, tabla,
+     captura, resultado, ejemplo. La guia lee el estado de la pagina; esto solo
+     le dice cuando mirar. */
+  function notifyState(reason) {
+    document.dispatchEvent(new CustomEvent('msa:state', { detail: { reason: reason } }));
+  }
+
+  /* Cambiar de metodo empieza otro estudio: la vista vuelve al principio de
+     la captura y de los resultados, no se queda a media tabla anterior. */
+  function resetScroll() {
+    clearTimeout(attentionTimer);
+    var calc = $('calcBtn');
+    if (calc) calc.classList.remove('attention');
+    [].slice.call(document.querySelectorAll('.col-capture, .results-panel')).forEach(function (el) {
+      el.scrollTop = 0;
+    });
+    window.scrollTo(0, 0);
+  }
+
   function guideToCalculate() {
     var btn = $('calcBtn');
     if (!btn || btn.disabled) return;
+    notifyState('demo');
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     btn.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
     btn.classList.remove('attention');
@@ -2528,6 +2554,10 @@
     trackHeaderHeight();
     initMethods();
     initTabs();
+    if (window.MSAGuide) {
+      MSAGuide.init();
+      $('guideBtn').addEventListener('click', MSAGuide.toggle);
+    }
     renderNameInputs();
     renderStudyName();
     $('studyName').addEventListener('input', renderStudyName);

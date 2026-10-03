@@ -82,6 +82,11 @@ async function capture(browser, port, tag, outDir) {
   var errors = [];
   page.on('pageerror', function (e) { errors.push(String(e.message)); });
   page.on('console', function (m) { if (m.type() === 'error') errors.push(m.text()); });
+  /* La guia paso a paso (guide.js) lleva la vista al paso que toca, y un
+     desplazamiento suave deja las graficas en posiciones fraccionarias que
+     cambian la ultima fila de pixeles de la captura. Aqui se compara lo que
+     el estudio publica, no la guia: se recorre con ella apagada. */
+  await page.addInitScript(function () { try { localStorage.setItem('msa-guide', 'off'); } catch (e) {} });
 
   await page.goto('http://127.0.0.1:' + port + '/#' + METHOD, { waitUntil: 'networkidle' });
   await page.click('#demoBtn');

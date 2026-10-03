@@ -1,0 +1,276 @@
+/* ============================================================================
+ * guide.js - Guia paso a paso, una por metodo.
+ *
+ * Una tarjeta abajo de la columna de captura dice el paso actual y resalta el
+ * campo o boton que le toca, con el mismo anillo que el boton Calcular. No
+ * oscurece la pantalla ni bloquea nada: acompana mientras se trabaja.
+ *
+ * Los pasos son DATOS (STEPS): a que metodos aplican, que resaltan, que dicen
+ * y cuando se dan por cumplidos. Un paso nuevo o un metodo nuevo se agregan
+ * aqui, no con un `if (metodo === ...)` en el codigo de la tarjeta.
+ *
+ * La guia no sabe calcular ni lee el estado interno de app.js: mira la
+ * pagina (si la tabla existe, si Calcular esta habilitado, si hay resultado).
+ * app.js solo le avisa cuando mirar, con el evento `msa:state`.
+ *
+ * Encendida o apagada se recuerda en localStorage (msa-guide). Sin valor
+ * guardado -primera visita- empieza encendida.
+ * ==========================================================================*/
+(function (global) {
+  'use strict';
+
+  var KEY = 'msa-guide';
+  function $(id) { return document.getElementById(id); }
+  function method() { return document.documentElement.getAttribute('data-method') || 'cruzado'; }
+  function visible(el) { return !!el && !el.closest('[hidden]') && el.getClientRects().length > 0; }
+
+  /* Hitos: pasos que se cumplen solos al hacer algo en la pagina. Los demas
+     son opcionales o de lectura y avanzan con Siguiente. */
+  function tableReady() { return visible($('captureSection')); }
+  function captureDone() { return tableReady() && !$('calcBtn').disabled; }
+  function resultReady() { return visible($('resultsSection')) && !$('resultsSection').hidden; }
+
+  var STEPS = [
+    { id: 'nombre', target: '#studyName',
+      title: 'Nombre del estudio',
+      text: 'Opcional. Da nombre al archivo exportado y encabeza el reporte impreso.' },
+
+    { id: 'tamano', target: '.config-row',
+      title: 'Tamano del estudio',
+      text: {
+        cruzado: 'Operadores, piezas y replicas. AIAG sugiere 3 operadores, 10 piezas y 3 replicas; ' +
+          'todos miden LAS MISMAS piezas, y las piezas deben cubrir el rango del proceso.',
+        anidado: 'Operadores, piezas POR OPERADOR y replicas. Cada operador mide sus propias piezas, ' +
+          'tomadas del mismo lote: el estudio supone que el lote es homogeneo.',
+        atributos: 'Evaluadores, piezas y replicas. AIAG sugiere unas 50 piezas, 3 evaluadores y ' +
+          '3 replicas, con mitad buenas y mitad malas: un lote desbalanceado infla la concordancia.'
+      } },
+
+    { id: 'categorias', methods: ['atributos'], target: '#categories',
+      title: 'Categorias y categoria de rechazo',
+      text: 'Las clasificaciones posibles, separadas por coma. Con dos, elige cual es la de rechazo: ' +
+        'sin ella no se calculan efectividad, fuga ni falsa alarma.' },
+
+    { id: 'nombres', target: '.namelist-cols',
+      title: 'Nombres',
+      text: {
+        cruzado: 'Opcional. Escribe los nombres reales de operadores y piezas; salen en las graficas ' +
+          'y en el reporte.',
+        anidado: 'Opcional. Las piezas se listan bajo el operador que las midio, y puedes numerarlas ' +
+          '1..n en cada uno: la "1" de uno y la "1" de otro son piezas distintas.',
+        atributos: 'Opcional. Escribe los nombres reales de evaluadores y piezas; salen en las tablas ' +
+          'y en el reporte.'
+      } },
+
+    { id: 'tabla', target: '#generateBtn', milestone: tableReady,
+      title: 'Generar la tabla',
+      text: 'Pulsa Regenerar tabla para armar la rejilla de captura con este tamano y estos nombres.' },
+
+    { id: 'estandar', methods: ['atributos'], target: '#standardTable',
+      title: 'Estandar de cada pieza',
+      text: 'Opcional. La clasificacion correcta de cada pieza. Sin estandar solo se sabe si los ' +
+        'evaluadores coinciden, no si aciertan.' },
+
+    { id: 'captura', target: '#captureSection .capture-scroll', milestone: captureDone,
+      title: 'Capturar',
+      text: {
+        cruzado: 'Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: ' +
+          'se reparte solo. Se acepta punto o coma decimal.',
+        anidado: 'Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: ' +
+          'se reparte solo. Se acepta punto o coma decimal.',
+        atributos: 'Elige la categoria de cada celda: lo que cada evaluador dijo de cada pieza en ' +
+          'cada replica.'
+      } },
+
+    { id: 'especificacion', methods: ['cruzado', 'anidado'], target: '#lsl',
+      title: 'Especificacion',
+      text: 'Opcional. Con LSL y USL, o con la tolerancia directa, aparece el % Tolerance. Sin ellos ' +
+        'solo se juzga contra la variacion del estudio.' },
+
+    { id: 'opciones', methods: ['cruzado', 'anidado'], target: '#svMultiplier',
+      title: 'Opciones de calculo',
+      text: {
+        cruzado: 'Multiplicador, interaccion, alfa y denominador de F. Si no tienes una razon para ' +
+          'cambiarlos, los valores por defecto son los de AIAG y Minitab.',
+        anidado: 'Multiplicador y confianza del intervalo. El anidado no tiene interaccion que ' +
+          'probar, por eso no hay alfa ni denominador.'
+      } },
+
+    { id: 'calcular', target: '#calcBtn', milestone: resultReady,
+      title: 'Calcular',
+      text: 'Con la captura completa, pulsa Calcular. Si despues cambias un dato, el resultado se ' +
+        'marca como desactualizado hasta recalcular.' },
+
+    { id: 'dictamen', target: { cruzado: '#msaSummary', anidado: '#msaSummary', atributos: '#verdicts' },
+      title: 'Leer el dictamen',
+      text: {
+        cruzado: 'Deciden el % Study Variation y, si diste especificacion, el % Tolerance: menos de ' +
+          '10 % aceptable, mas de 30 % no aceptable. El intervalo matiza, no dictamina.',
+        anidado: 'Deciden el % Study Variation y, si diste especificacion, el % Tolerance: menos de ' +
+          '10 % aceptable, mas de 30 % no aceptable. El intervalo matiza, no dictamina.',
+        atributos: 'Primero, si el sistema acierta contra el estandar; luego, si los evaluadores ' +
+          'coinciden; despues fuga y falsa alarma, que se juzgan contra 2 % y 5 %.'
+      } },
+
+    { id: 'imprimir', target: '#printBtn',
+      title: 'Imprimir el reporte',
+      text: 'Imprimir / PDF arma un reporte completo -portada, dictamen, tablas, graficas y anexo ' +
+        'con los datos-, no una captura de pantalla.' }
+  ];
+
+  var on = false, index = 0, marks = {}, lastTarget = null, card = null, seenMethod = null;
+
+  function steps() {
+    var m = method();
+    return STEPS.filter(function (s) { return !s.methods || s.methods.indexOf(m) >= 0; });
+  }
+  function pick(v) { return (v && typeof v === 'object') ? v[method()] : v; }
+  function targetOf(step) {
+    var sel = pick(step.target);
+    return sel ? document.querySelector(sel) : null;
+  }
+
+  function stored() {
+    try { return localStorage.getItem(KEY); } catch (e) { return null; }
+  }
+  function store(v) {
+    try { localStorage.setItem(KEY, v); } catch (e) {}
+  }
+
+  /* El destino solo se lleva a la vista si no lo esta: mover la columna
+     mientras alguien escribe en otra celda desorienta. */
+  function inView(el) {
+    var r = el.getBoundingClientRect();
+    var box = el.closest('.col-capture, .results-panel');
+    var top = 0, bottom = window.innerHeight;
+    if (box && box.scrollHeight > box.clientHeight) {
+      var b = box.getBoundingClientRect(); top = Math.max(top, b.top); bottom = Math.min(bottom, b.bottom);
+    }
+    var cardH = card && !card.hidden ? card.getBoundingClientRect().height + 16 : 0;
+    return r.top >= top && r.bottom <= bottom - cardH;
+  }
+
+  function clearTarget() {
+    if (lastTarget) lastTarget.classList.remove('guide-target', 'guide-pulse');
+    lastTarget = null;
+  }
+
+  function render(scroll) {
+    if (!card) return;
+    if (!on) { card.hidden = true; clearTarget(); document.documentElement.removeAttribute('data-guide'); return; }
+    var list = steps();
+    if (index >= list.length) index = list.length - 1;
+    if (index < 0) index = 0;
+    var step = list[index];
+    document.documentElement.setAttribute('data-guide', 'on');
+
+    var label = { cruzado: 'Cruzado', anidado: 'Anidado', atributos: 'Atributos' }[method()] || method();
+    var last = index === list.length - 1;
+    card.innerHTML =
+      '<div class="guide-head"><span class="guide-k">Guia &middot; ' + label + ' &middot; paso ' +
+        (index + 1) + ' de ' + list.length + '</span>' +
+        '<button type="button" class="guide-close" data-guide="close" aria-label="Cerrar la guia" title="Cerrar la guia">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">' +
+        '<path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+      '<div class="guide-bar"><span style="width:' + Math.round(100 * (index + 1) / list.length) + '%"></span></div>' +
+      '<p class="guide-title">' + step.title + '</p>' +
+      '<p class="guide-text">' + pick(step.text) + '</p>' +
+      '<div class="guide-actions">' +
+        '<button type="button" data-guide="prev"' + (index === 0 ? ' disabled' : '') + '>Atras</button>' +
+        (last
+          ? '<button type="button" class="primary" data-guide="close">Terminar</button>'
+          : '<button type="button" class="primary" data-guide="next">Siguiente</button>') +
+      '</div>';
+    card.hidden = false;
+
+    var t = targetOf(step);
+    if (t !== lastTarget) {
+      clearTarget();
+      if (t && visible(t)) {
+        t.classList.add('guide-target', 'guide-pulse');
+        lastTarget = t;
+        setTimeout(function () { if (lastTarget === t) t.classList.remove('guide-pulse'); }, 2600);
+      }
+    }
+    if (scroll && t && visible(t) && !inView(t)) {
+      var reduce = global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+    }
+  }
+
+  function goTo(id) {
+    var list = steps();
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) { index = i; break; }
+    render(true);
+  }
+
+  /* Un hito que se cumple lleva al paso que le sigue; uno que deja de
+     cumplirse (se reinicio el estudio, se vacio la tabla) regresa a el. Solo
+     cuentan los CAMBIOS: si alguien vuelve atras a releer un paso, la guia no
+     lo empuja de nuevo hacia adelante por un hito que ya estaba cumplido. */
+  function evaluate() {
+    var list = steps(), moved = false;
+    for (var i = 0; i < list.length; i++) {
+      var s = list[i];
+      if (!s.milestone) continue;
+      var now = !!s.milestone(), before = !!marks[s.id];
+      marks[s.id] = now;
+      if (now && !before && index <= i) { index = Math.min(i + 1, list.length - 1); moved = true; }
+      if (!now && before && index > i) { index = i; moved = true; }
+    }
+    return moved;
+  }
+  function snapshot() {
+    marks = {};
+    steps().forEach(function (s) { if (s.milestone) marks[s.id] = !!s.milestone(); });
+  }
+
+  function onState(e) {
+    var reason = e && e.detail && e.detail.reason;
+    /* Cambiar de metodo vacia la tabla y dispara avisos intermedios antes del
+       de 'method'. Se ignoran: la guia empieza de cero con el metodo nuevo, y
+       sin desplazar nada, porque app.js ya devolvio la vista al inicio. */
+    if (reason === 'method') { seenMethod = method(); index = 0; snapshot(); render(false); return; }
+    if (method() !== seenMethod) return;
+    if (!on) { snapshot(); return; }
+    if (reason === 'demo') { snapshot(); goTo('calcular'); return; }
+    var moved = evaluate();
+    render(moved);
+  }
+
+  function enable() { on = true; store('on'); snapshot(); syncButton(); render(true); }
+  function disable() { on = false; store('off'); syncButton(); render(false); }
+  function toggle() { if (on) disable(); else enable(); }
+  function restart() { index = 0; enable(); }
+
+  function syncButton() {
+    var b = $('guideBtn');
+    if (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.classList.toggle('on', on); }
+  }
+
+  function init() {
+    card = $('guideCard');
+    if (!card) return;
+    card.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-guide]');
+      if (!b) return;
+      var what = b.getAttribute('data-guide');
+      if (what === 'close') disable();
+      else if (what === 'next') { index++; render(true); }
+      else if (what === 'prev') { index--; render(true); }
+    });
+    document.addEventListener('msa:state', onState);
+    on = stored() !== 'off';
+    seenMethod = method();
+    index = 0;
+    snapshot();
+    // Si el estudio ya avanzo antes de que la guia mirara, empieza donde va.
+    var list = steps();
+    for (var i = 0; i < list.length; i++) if (list[i].milestone && marks[list[i].id]) index = Math.min(i + 1, list.length - 1);
+    syncButton();
+    render(false);
+  }
+
+  global.MSAGuide = { init: init, enable: enable, disable: disable, toggle: toggle, restart: restart,
+                      goTo: goTo, steps: function () { return steps().map(function (s) { return s.id; }); } };
+})(typeof window !== 'undefined' ? window : this);

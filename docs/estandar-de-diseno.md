@@ -81,6 +81,36 @@ tambien que el producto tiene mas de un metodo.
   hacer, y las mismas dos salidas que la barra (ejemplo AIAG e importar). Un
   solo resaltado en el titular.
 
+### Guia paso a paso
+
+`assets/js/guide.js`. Una tarjeta pegada abajo de la columna de captura (fija al
+pie de la ventana con las columnas apiladas) dice el paso actual -«Guia ·
+Cruzado · paso 3 de 10»-, que hacer y por que, con Atras / Siguiente. El campo o
+boton del paso lleva el mismo anillo que el resalte de Calcular
+(`--attention-ring`): tres pulsos al entrar y despues fijo.
+
+- **No oscurece ni bloquea.** Acompana mientras se trabaja; todo sigue
+  funcionando con la guia encendida.
+- **Avanza sola con los hitos** -tabla generada, captura completa, resultado
+  calculado- y con Siguiente en los pasos opcionales o de lectura. Solo
+  cuentan los CAMBIOS de un hito: si el usuario vuelve atras a releer, la guia
+  no lo empuja otra vez hacia adelante. Si un hito deja de cumplirse (se
+  reinicio el estudio), regresa a el.
+- **Solo lleva a la vista lo que no esta a la vista.** Mover la columna
+  mientras alguien escribe en otra celda desorienta.
+- **Encendida en la primera visita**; la X o el boton «Guia» de la barra la
+  apagan, y se recuerda en `localStorage` (`msa-guide`).
+- Cambiar de metodo la reinicia en el paso 1, y la vista vuelve al principio
+  de la captura y de los resultados.
+- Cargar el ejemplo lleva al paso de Calcular. Con la guia apagada, el ejemplo
+  igual lleva la columna hasta Calcular y lo resalta (`guideToCalculate`).
+- No se imprime.
+- **Los pasos son datos** (`STEPS`): a que metodos aplican, que resaltan, que
+  dicen y que hito los cumple. Un paso o un metodo nuevo se agrega ahi, no con
+  un `if (metodo === ...)` en la tarjeta. La guia no lee el estado interno de
+  `app.js`: mira la pagina, y `app.js` solo le avisa cuando mirar con el evento
+  `msa:state`.
+
 ### Un metodo no se lleva su propia pantalla
 
 Cruzado y anidado comparten el HTML entero: los mismos pasos, las mismas
@@ -722,6 +752,8 @@ Reglas que no se negocian:
 - [ ] Entradas invalidas: rojo, motivo y accion bloqueada.
 - [ ] Mensajes con hallazgo y accion, sin relleno.
 - [ ] Aparece en el reporte impreso, en el orden establecido.
+- [ ] Tiene sus pasos en la guia (`STEPS` de `guide.js`), con el texto propio
+      donde el metodo pide otra cosa.
 - [ ] Exporta e importa con el formato unico, y se prueba el viaje completo con
       **nombres propios**, no con los que pone el programa.
 - [ ] Ninguna medicion se pierde callada: lo que no encuentra su lugar se avisa.

@@ -557,9 +557,12 @@
         },
         // La barra solo abarca Q1-Q3, asi que el eje debe estirarse a mano hasta
         // los bigotes y los atipicos; si no, se salen del area de trazado.
+        // beginAtZero: false porque en un 'bar' Chart.js ancla el eje en 0 por
+        // defecto: con mediciones de ~746 la caja quedaba aplastada en una raya.
         scales: {
           x: { title: axisTitle('Operador') },
           y: {
+          beginAtZero: false,
           suggestedMin: Math.min.apply(null, allByOp),
           suggestedMax: Math.max.apply(null, allByOp),
           ticks: { callback: tickFormatter(allByOp) }

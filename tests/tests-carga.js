@@ -66,7 +66,8 @@
        apanarselas sin el: sin mls.js cargado, el cruzado cae al GPQ en vez de
        reventar. Va en `needs` -y por tanto obliga a que mls.js se pida antes-
        pero no en `atLoad`, que es justo la distincion que este contrato hace. */
-    { file: 'interval.js',    provides: 'MSAInterval',  needs: ['MSAMls'],                  atLoad: [] }
+    { file: 'interval.js',    provides: 'MSAInterval',  needs: ['MSAMls'],                  atLoad: [] },
+    { file: 'paste.js',       provides: 'MSAPaste',     needs: [],                          atLoad: [] }
   ];
   var PROVIDER = {};
   MODULES.forEach(function (m) { PROVIDER[m.provides] = m.file; });

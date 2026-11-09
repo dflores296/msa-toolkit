@@ -375,6 +375,75 @@
     return inp;
   }
 
+  /* Pegar una columna de nombres copiada de Excel. Antes caian todos en la
+     casilla donde se pegaba, en una sola linea; ahora se reparten hacia abajo
+     desde ahi, igual que las mediciones en la tabla de captura. Si traen mas
+     nombres de los que caben, la lista crece (hasta el maximo del campo de
+     tamano): pegar 14 piezas en un estudio de 10 deja un estudio de 14.
+
+     La lectura del texto es de paste.js; aqui solo se aplica. Se escribe en
+     `state` y se vuelven a pintar las casillas con renderNameInputs, que es
+     el unico que sabe armarlas (agrupadas por operador en el anidado). */
+  function wireNamePaste(host, kind) {
+    host.addEventListener('paste', function (ev) {
+      var target = ev.target;
+      if (!target || target.tagName !== 'INPUT') return;
+      var text = (ev.clipboardData || window.clipboardData).getData('text');
+      if (!text || !MSAPaste.isBlock(text)) return;    // un nombre suelto: lo normal
+      var nested = kind === 'parts' && isNested();
+      // Operadores y piezas del cruzado no admiten repetidos; las del anidado si.
+      var got = MSAPaste.names(text, { unique: !nested });
+      if (!got.names.length) return;
+      ev.preventDefault();
+
+      var boxes = [].slice.call(host.querySelectorAll('input'));
+      var start = Math.max(0, boxes.indexOf(target));
+      var sizeField = kind === 'operators' ? $('numOperators') : $('numParts');
+      var max = parseInt(sizeField.max, 10);
+      var room = boxes.length - start;
+      // Crecer la lista solo donde es una lista plana. En el anidado las piezas
+      // van en grupos por operador, y no hay una manera unica de repartir las
+      // que sobran entre mas piezas por operador o mas operadores.
+      if (!nested && got.names.length > room) {
+        var size = Math.min(max, start + got.names.length);
+        sizeField.value = size;
+        room = size - start;
+      }
+      var placed = got.names.slice(0, room), extra = got.names.length - placed.length;
+
+      placed.forEach(function (name, i) {
+        var at = start + i;
+        if (kind === 'operators') state.operators[at] = name;
+        else if (nested) {
+          var per = partsPerOperator();
+          state.partsByOperator[Math.floor(at / per)][at % per] = name;
+        } else state.parts[at] = name;
+      });
+      validateConfig();
+      renderNameInputs();
+
+      var notes = [], what = kind === 'operators' ? 'operador' : 'pieza';
+      if (got.header) notes.push('Se descarto "' + got.header + '": es el titulo de la columna, no un nombre.');
+      if (got.repeated) {
+        notes.push('Venian ' + got.repeated + ' nombre(s) de ' + what + ' repetidos (la columna de una ' +
+          'tabla con un renglon por medicion): se tomo cada uno una sola vez.');
+      }
+      if (extra > 0) {
+        notes.push('Se pegaron ' + got.names.length + ' nombres de ' + what + ' y caben ' + placed.length +
+          (nested ? ' desde esa casilla. En el anidado la lista no crece sola: ajusta antes el numero de ' +
+                    'piezas por operador.'
+                  : ' (el maximo es ' + max + ').') +
+          ' Quedaron fuera: ' + got.names.slice(placed.length).join(', ') + '.');
+      }
+      if (notes.length) showMessages($('configMsg'), [], notes);
+
+      var after = [].slice.call(host.querySelectorAll('input'));
+      var last = after[start + placed.length - 1];
+      if (last) last.focus();
+      notifyState('names');
+    });
+  }
+
   function fill(host, arr, onChange) {
     host.innerHTML = '';
     arr.forEach(function (name, i) {
@@ -676,15 +745,37 @@
       if (inp.tagName !== 'INPUT') return;
       inp.addEventListener('paste', function (ev) {
         var text = (ev.clipboardData || window.clipboardData).getData('text');
-        if (!text || !/[\t\n\r]/.test(text)) return;   // valor simple: comportamiento normal
+        if (!text || !MSAPaste.isBlock(text)) return;   // valor simple: comportamiento normal
         ev.preventDefault();
+
+        /* El bloque trae los nombres de operador y pieza y es un estudio
+           completo: se arma la tabla con ELLOS (nombres, tamano y mediciones),
+           por el mismo camino que importar un archivo. Da igual en que celda
+           se pegue, porque el bloque dice donde va cada medicion. */
+        var named = MSAPaste.table(text);
+        if (named) {
+          try {
+            loadPayload({ data: named.rows }, ['Se armo la tabla con los nombres del bloque pegado: ' +
+              named.operators + ' operadores, ' + named.parts + ' piezas y ' + named.replicates +
+              ' replicas.']);
+          } catch (e) {
+            showMessages($('configMsg'), ['No se pudo leer el bloque pegado: ' + e.message], []);
+          }
+          return;
+        }
+
+        /* Por posicion, como siempre. Si el bloque trae columnas de nombres a
+           la izquierda pero no es un estudio completo (las piezas de un solo
+           operador, por ejemplo), esas columnas se saltan: antes el texto
+           "Pieza 1" acababa en una celda de medicion. */
+        var block = MSAPaste.values(text).cells;
         var all = inputs(), start = all.indexOf(inp);
         var cols = state.replicates;
         var startRow = Math.floor(start / cols), startCol = start % cols;
-        text.replace(/\r\n?/g, '\n').replace(/\n$/, '').split('\n').forEach(function (line, r) {
-          line.split('\t').forEach(function (cellValue, c) {
+        block.forEach(function (line, r) {
+          line.forEach(function (cellValue, c) {
             var idx = (startRow + r) * cols + (startCol + c);
-            if (startCol + c < cols && all[idx]) all[idx].value = cellValue.trim();
+            if (startCol + c < cols && all[idx]) all[idx].value = cellValue;
           });
         });
         validateLive();
@@ -2016,7 +2107,9 @@
     // pero varias herramientas las usan como encabezado de comentario.
     var lines = all.filter(function (l) { return l.charAt(0) !== '#'; });
     if (!lines.length) throw new Error('el archivo no tiene filas de datos');
-    var sep = (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : ',';
+    // Tabulador: un .txt guardado desde Excel como "texto delimitado".
+    var sep = /\t/.test(lines[0]) ? '\t'
+      : (lines[0].match(/;/g) || []).length > (lines[0].match(/,/g) || []).length ? ';' : ',';
     var head = splitCSV(lines[0], sep).map(function (s) { return s.trim().toLowerCase(); });
     var iOp = idxOf(head, ['operador', 'operator']);
     var iPt = idxOf(head, ['pieza', 'parte', 'part']);
@@ -2082,7 +2175,9 @@
     return n > 0 && text / n > 0.8;
   }
 
-  function loadPayload(p) {
+  /* extraNotes: avisos de quien llama, que salen antes que los del archivo
+     (pegar un bloque dice de donde salio la tabla). */
+  function loadPayload(p, extraNotes) {
     var rows = p.data || [];
     if (!rows.length) throw new Error('no hay filas de datos');
     var ops = [], parts = [], counts = {}, partsByOp = [], seenPart = [];
@@ -2118,7 +2213,7 @@
       coded: categorical ? null : MSADesign.looksCoded(rows),
       isAvailable: function (id) { return methodById(id).available; }
     });
-    var notes = routed.notes.slice();
+    var notes = (extraNotes || []).concat(routed.notes);
     if (routed.changed) applyMethod(routed.method, false);
     if (routed.question && confirm(routed.question)) {
       applyMethod(routed.proposal, false);
@@ -2590,6 +2685,9 @@
         if (validateConfig()) renderNameInputs();
       });
     });
+    // Las casillas se rehacen al cambiar el tamano; el contenedor no.
+    wireNamePaste($('operatorNames'), 'operators');
+    wireNamePaste($('partNames'), 'parts');
     $('generateBtn').addEventListener('click', function () { buildDataTable(true); });
     $('calcBtn').addEventListener('click', function () {
       clearTimeout(attentionTimer); $('calcBtn').classList.remove('attention'); calculate();

@@ -8,10 +8,10 @@ Qué cubre cada suite, qué **no** cubre, y qué hace falta para correrla.
 <!-- Generado por tools/build-cifras.js desde datasets/ y tests/.
      No editar a mano: se regenera, y el CI lo verifica con --check. -->
 
-230 pruebas de regresión entre los modelos puros —todas sobre el cálculo:
+249 pruebas de regresión entre los modelos puros —todas sobre el cálculo:
 corren en Node, sin navegador, y no tocan la pantalla.
 
-`tests/index.html` corre 224 de ellas: no carga `tests-carga.js`.
+`tests/index.html` corre 243 de ellas: no carga `tests-carga.js`.
 <!-- CIFRAS:FIN pruebas -->
 
 Para correrlas:
@@ -101,6 +101,18 @@ inicio el scroll de la captura y de los resultados. `regresion-visual.js`
 recorre con el asistente apagado: compara lo que el estudio publica, no el
 asistente.
 
+**Pegar desde Excel.** `tests/tests-paste.js` corre dentro de la suite y prueba
+la lectura del texto pegado (`assets/js/paste.js`): columnas y filas de nombres,
+el encabezado que se descarta, los repetidos de una tabla larga, y los bloques
+de la tabla de captura con sus columnas de operador y pieza —en formato ancho o
+largo, con o sin encabezado, con celdas combinadas— y lo que **no** debe rehacer
+la tabla (un pedazo de un solo operador, una sola columna de nombres). Además,
+`node tests/prueba-pegar.js` pega en un navegador de verdad como lo deja Excel:
+los nombres se reparten casilla por casilla y la lista crece si no caben; en el
+anidado se reparten por los grupos de cada operador; el bloque completo con
+nombres arma el estudio y calcula lo mismo que importar el archivo; y un pedazo
+con nombres se pega por posición sin meter texto en las celdas de medición.
+
 **Lo que esto todavía no cubre.** `regresion-visual.js` compara *dos revisiones
 del repo*, así que sirve para no mover lo que ya estaba bien, no para encontrar
 lo que nunca estuvo bien: un defecto presente en las dos coincide y pasa por
@@ -114,5 +126,5 @@ navegador. Está anotado como deuda en
 [`plan-siguientes-metodos.md`](plan-siguientes-metodos.md).
 
 Las herramientas de navegador (`regresion-visual.js`, `prueba-impresion.js`,
-`prueba-frescura.js`, `prueba-diseno.js` y `prueba-guia.js`) **no corren en CI**: necesitan Playwright, que no es
+`prueba-frescura.js`, `prueba-diseno.js`, `prueba-guia.js` y `prueba-pegar.js`) **no corren en CI**: necesitan Playwright, que no es
 dependencia del proyecto. CI corre `node tests/run-node.js`.

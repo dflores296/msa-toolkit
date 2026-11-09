@@ -41,9 +41,13 @@ estudio que parece válido y no lo es. Se pregunta antes, y cancelar no toca nad
 ## Cómo se usa
 
 1. **Configuración** — número de operadores, piezas y réplicas, con nombres
-   editables.
+   editables. Una columna de nombres copiada de una hoja de cálculo se pega en
+   la primera casilla y se reparte sola; si trae más nombres de los que hay,
+   la lista crece.
 2. **Captura** — se genera la tabla; escribes las mediciones o pegas un bloque
-   copiado de una hoja de cálculo directamente en la primera celda.
+   copiado de una hoja de cálculo directamente en la primera celda. Si el
+   bloque trae a la izquierda las columnas de operador y pieza, la tabla se
+   arma con esos nombres.
 3. **Resultados** — tabla ANOVA, componentes de varianza, evaluación del sistema
    de medición y las gráficas. Los límites de especificación son opcionales.
 

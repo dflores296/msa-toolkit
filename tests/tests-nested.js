@@ -313,14 +313,14 @@
 
   test('validacion anidada: rechaza distinto numero de piezas por operador', function () {
     var rows = nestedRows().filter(function (r) { return r.part !== 'Pieza 30'; });
-    expectError(rows, 'piezas por operador varia', 'piezas desbalanceadas');
+    expectError(rows, 'lotes por operador varia', 'lotes desbalanceados');
   });
 
   test('validacion anidada: rechaza distinto numero de replicas', function () {
     var rows = nestedRows();
     rows.splice(rows.map(function (r, i) { return r.part === 'Pieza 5' ? i : -1; })
       .filter(function (i) { return i >= 0; })[0], 1);
-    expectError(rows, 'replicas varia', 'replicas desbalanceadas');
+    expectError(rows, 'muestras por lote) varia', 'replicas desbalanceadas');
   });
 
   test('validacion anidada: rechaza una sola replica por pieza', function () {
@@ -329,6 +329,11 @@
       for (var i = 0; i < 3; i++) rows.push({ operator: op, part: 'P' + (oi * 3 + i), value: i + oi });
     });
     expectError(rows, 'al menos 2 replicas', 'una replica');
+    /* El minimo de 2 no pide lo imposible: en una destructiva la replica es
+       OTRA pieza del mismo lote, no la misma medida dos veces. El mensaje lo
+       tiene que decir, o el usuario lee "replica" y concluye que el metodo
+       le pide volver a medir lo que ya rompio. */
+    expectError(rows, 'otra pieza del mismo lote', 'la replica es otra pieza');
   });
 
   test('validacion anidada: rechaza un solo operador y menos de 2 piezas por operador', function () {
@@ -344,7 +349,7 @@
       thin.push({ operator: op, part: op + '1', value: 1 });
       thin.push({ operator: op, part: op + '1', value: 1.2 });
     });
-    expectError(thin, 'al menos 2 piezas por operador', 'una pieza por operador');
+    expectError(thin, 'al menos 2 lotes por operador', 'un lote por operador');
   });
 
   test('validacion anidada: rechaza mediciones no numericas y celdas vacias', function () {

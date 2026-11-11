@@ -1,10 +1,20 @@
 /* ============================================================================
  * anova-nested.js - Motor de calculo Gage R&R, metodo ANOVA anidado (nested).
  *
- * Para pruebas destructivas: medir la pieza la destruye, asi que ningun
- * operador puede repetir la misma pieza. Cada operador recibe SUS piezas de un
- * lote que se supone homogeneo, y las replicas son varias mediciones de esa
- * pieza (o de pedazos de ella) tomadas por el mismo operador.
+ * Para pruebas destructivas: medir la pieza la destruye, asi que NADIE mide
+ * dos veces la misma pieza, ni el mismo operador ni otro. Lo que en el motor
+ * se llama "pieza" es un LOTE: un grupo de piezas que se suponen identicas
+ * (de la misma corrida, o pedazos de una misma muestra). Lo que se llama
+ * "replica" es una MUESTRA: otra pieza fisica de ese lote, medida por el
+ * mismo operador. Es el "part or batch" de Minitab y los "split specimens"
+ * de AIAG MSA 4a ed., cap. IV.
+ *
+ * Por eso las replicas siguen haciendo falta, minimo 2: son la unica fuente
+ * de la repetibilidad. Con una muestra por lote, gl_Repetibilidad = 0 y la
+ * repetibilidad queda confundida con la diferencia entre lotes. El precio de
+ * que las replicas sean piezas distintas: la repetibilidad lleva dentro
+ * cualquier diferencia real entre las muestras de un lote. Si el lote no es
+ * homogeneo, el sistema de medicion carga con la culpa.
  *
  * Consecuencia del diseno, no del programa: piezas anidadas dentro de operador
  * NO permiten estimar la interaccion operador x pieza. La reproducibilidad
@@ -15,7 +25,7 @@
  *   gl_Operador        = o - 1
  *   gl_Pieza(Operador) = o (n - 1)
  *   gl_Repetibilidad   = o n (r - 1)
- * con o operadores, n piezas por operador y r replicas por pieza.
+ * con o operadores, n lotes por operador y r muestras (replicas) por lote.
  *
  * Componentes (cuadrados medios esperados del modelo de efectos aleatorios):
  *   Var_Repetibilidad     = CM_Rep
@@ -136,11 +146,11 @@
     var perOp = operators.map(function (op) { return partsOf[op].length; });
     var n = perOp[0];
     if (n < 2) {
-      errors.push('Se requieren al menos 2 piezas por operador (hay ' + n + ' en ' + operators[0] + ').');
+      errors.push('Se requieren al menos 2 lotes por operador (hay ' + n + ' en ' + operators[0] + ').');
     }
     var unevenOp = perOp.some(function (c) { return c !== n; });
     if (unevenOp) {
-      errors.push('Diseno desbalanceado: el numero de piezas por operador varia entre ' +
+      errors.push('Diseno desbalanceado: el numero de lotes por operador varia entre ' +
         Math.min.apply(null, perOp) + ' y ' + Math.max.apply(null, perOp) +
         '. Este motor implementa ANOVA anidado balanceado; corrige los datos o usa un metodo REML.');
     }
@@ -151,30 +161,31 @@
     });
     var uniq = counts.filter(function (x, k, s) { return s.indexOf(x) === k; });
     if (!unevenOp && uniq.length > 1) {
-      errors.push('Diseno desbalanceado: el numero de replicas varia entre ' +
+      errors.push('Diseno desbalanceado: el numero de replicas (muestras por lote) varia entre ' +
         Math.min.apply(null, counts) + ' y ' + Math.max.apply(null, counts) +
         '. Este motor implementa ANOVA anidado balanceado; corrige los datos o usa un metodo REML.');
     }
     var rep = counts[0] || 0;
     if (!unevenOp && uniq.length === 1 && rep < 2) {
-      errors.push('Se requieren al menos 2 replicas por pieza para estimar repetibilidad. ' +
-        'Si cada pieza solo admite una medicion, el estudio no puede separar repetibilidad ' +
-        'de variacion entre piezas.');
+      errors.push('Se requieren al menos 2 replicas (muestras) por lote para estimar repetibilidad. ' +
+        'En una prueba destructiva la replica no es volver a medir la misma pieza, sino medir ' +
+        'otra pieza del mismo lote: con una sola por lote, el estudio no puede separar la ' +
+        'repetibilidad de la diferencia entre lotes.');
     }
     if (errors.length) return { ok: false, errors: errors, warnings: warnings, meta: null };
 
     if (!global.MSAAnova.CONTROL_CONSTANTS[rep]) {
       warnings.push('Sin constantes tabuladas para ' + rep +
-        ' replicas (la tabla cubre 2 a 25): se omiten las cartas R y X-barra.');
+        ' muestras por lote (la tabla cubre 2 a 25): se omiten las cartas R y X-barra.');
     }
     var N = o * n * rep;
     if (N < 40) {
       warnings.push('Solo ' + N + ' mediciones: por debajo de 40 el %GRR es muy impreciso. ' +
-        'En destructivas AIAG sugiere al menos 3 operadores y 10 piezas por operador.');
+        'Para destructivas conviene al menos 3 operadores y 10 lotes por operador.');
     }
     if (n < 10) {
-      warnings.push('Con ' + n + ' piezas por operador el intervalo de confianza del componente ' +
-        'pieza a pieza es amplio; AIAG sugiere 10.');
+      warnings.push('Con ' + n + ' lotes por operador el intervalo de confianza del componente ' +
+        'pieza a pieza (entre lotes) es amplio; conviene 10.');
     }
     if (o < 3) {
       warnings.push('Con ' + o + ' operadores la reproducibilidad se estima con poca precision; ' +
@@ -184,12 +195,13 @@
        el cruzado, por replicas y por representatividad del rango de piezas.
        F-07 retiro el piso de 60 mediciones que si bloqueaba el veredicto. */
     if (rep < 3) {
-      warnings.push('Con ' + rep + ' replicas la repetibilidad se estima con pocos grados de ' +
-        'libertad; AIAG sugiere 3.');
+      warnings.push('Con ' + rep + ' muestras por lote la repetibilidad se estima con pocos grados de ' +
+        'libertad; conviene 3.');
     }
-    warnings.push('Las piezas del estudio deben cubrir el rango de variacion esperado del proceso. ' +
-      'Si no lo cubren, el % Study Variation sale optimista y ningun calculo de esta pagina puede ' +
-      'detectarlo: es un juicio sobre como se eligieron las piezas, no sobre los datos.');
+    warnings.push('Los lotes del estudio deben cubrir el rango de variacion esperado del proceso: ' +
+      'distintos entre si, y cada uno homogeneo por dentro. Si no lo cubren, el % Study Variation ' +
+      'sale optimista y ningun calculo de esta pagina puede detectarlo: es un juicio sobre como se ' +
+      'eligieron los lotes, no sobre los datos.');
 
     /* Dos listas planas, y la distincion importa (punto 2 de F-02):
        `parts`   son los nombres TAL CUAL se capturaron. Es lo que se muestra
@@ -378,10 +390,10 @@
         partsPerOperator: n, replicates: r, n: N, grandMean: grand
       },
       model: 'nested',
-      modelReason: 'Diseno anidado: las piezas pertenecen a un solo operador, asi que la ' +
+      modelReason: 'Diseno anidado: cada lote pertenece a un solo operador, asi que la ' +
         'interaccion operador x pieza no es estimable y la reproducibilidad es el efecto de ' +
-        'operador. La F del operador usa CM Pieza(Operador) como denominador; la de ' +
-        'Pieza(Operador) usa CM Repetibilidad.',
+        'operador. Pieza(Operador) es el lote dentro del operador. La F del operador usa ' +
+        'CM Pieza(Operador) como denominador; la de Pieza(Operador) usa CM Repetibilidad.',
       anova: table,
       anovaFull: {
         rows: [
@@ -413,17 +425,23 @@
       negativeComponents: negatives
     };
 
-    /* Aviso fijo, no resultado: la homogeneidad del lote es el supuesto que
-       sostiene todo el metodo y este estudio no la puede comprobar. Si las
-       piezas de un operador vienen de otro lote, su diferencia se cuenta como
-       reproducibilidad y el sistema de medicion carga con la culpa. */
-    result.warnings.push('El anidado supone que las piezas de todos los operadores salen de un lote ' +
-      'homogeneo, y este estudio no lo puede comprobar: cualquier diferencia real entre los lotes de ' +
-      'cada operador se contabiliza como reproducibilidad. Reparte las piezas al azar sobre un mismo ' +
-      'lote y en el mismo orden de produccion.');
-    result.warnings.push('El diseno anidado no separa la interaccion operador x pieza: ninguna pieza ' +
-      'la miden dos operadores. La reproducibilidad que se reporta es el efecto de operador. Es una ' +
-      'limitacion del diseno, no del calculo.');
+    /* Avisos fijos, no resultados: los dos supuestos que sostienen el metodo
+       y que este estudio no puede comprobar. Uno es la homogeneidad DENTRO del
+       lote: las muestras son piezas distintas, y lo que difieran de verdad se
+       cuenta como repetibilidad. El otro es el reparto ENTRE operadores: si a
+       uno le tocaron los lotes altos, eso se cuenta como reproducibilidad. En
+       los dos casos el sistema de medicion carga con la culpa. */
+    result.warnings.push('El anidado supone que cada lote es homogeneo (sus muestras son identicas), y ' +
+      'este estudio no lo puede comprobar: son piezas distintas, y cualquier diferencia real entre ellas ' +
+      'se contabiliza como repetibilidad. Toma las muestras de cada lote lo mas juntas posible (misma ' +
+      'corrida, misma cavidad, mismo material).');
+    result.warnings.push('El anidado tambien supone que los lotes se repartieron al azar entre ' +
+      'operadores: cualquier diferencia real entre los lotes de cada operador se contabiliza como ' +
+      'reproducibilidad.');
+    result.warnings.push('El diseno anidado no separa la interaccion operador x pieza: ningun lote ' +
+      'lo miden dos operadores. La reproducibilidad que se reporta es el efecto de operador. Es una ' +
+      'limitacion del diseno, no del calculo. Si cada lote alcanza para que todos los operadores ' +
+      'midan sus muestras, usa el cruzado con el lote como pieza: ese si separa la interaccion.');
 
     global.MSAAnova.discriminationWarnings(disc).forEach(function (w) { result.warnings.push(w); });
 
@@ -437,7 +455,7 @@
     }
     if (ndc !== null && ndc < 5) {
       result.warnings.push('NDC = ' + ndc + ' (menor que 5): el sistema no separa las piezas. ' +
-        'Revisa la resolucion del instrumento y las piezas elegidas.');
+        'Revisa la resolucion del instrumento y los lotes elegidos.');
     }
     if (tol === null) {
       result.warnings.push('Sin LSL/USL ni tolerancia directa: no se calcula %Tolerance (P/T).');

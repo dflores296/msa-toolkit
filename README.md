@@ -29,7 +29,7 @@ Esta herramienta hace los tres estudios que cubren la mayoría de los casos:
 | Método | Cuándo se usa | Qué devuelve |
 |---|---|---|
 | **Gage R&R cruzado** (*crossed*) | Medición normal: cada operador mide **las mismas** piezas | Tabla ANOVA, componentes de varianza, %GRR, NDC y ocho gráficas |
-| **Gage R&R anidado** (*nested*) | **Pruebas destructivas**: medir la pieza la destruye, así que cada operador mide las suyas | Lo mismo, con cinco gráficas. Avisa en pantalla de que el diseño no puede separar la interacción operador × pieza |
+| **Gage R&R anidado** (*nested*) | **Pruebas destructivas**: medir la pieza la destruye, así que nadie la mide dos veces. Cada operador recibe sus propios **lotes**, y cada **muestra** (la réplica) es otra pieza del mismo lote, que se supone idéntica | Lo mismo, con cinco gráficas. Avisa en pantalla de que el diseño no puede separar la interacción operador × pieza |
 | **Attribute Agreement** | Inspección **pasa / no pasa**: la medición es una categoría, no un número | Acuerdo, kappa, efectividad, error de fuga y falsa alarma. Aquí no hay varianza que descomponer, así que no salen %GRR ni NDC |
 
 Se cambia de método desde el selector de la barra, y cada uno tiene su dirección

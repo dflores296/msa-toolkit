@@ -63,7 +63,8 @@
                       replicates: 3, countLabel: 'piezas', spec: 'LSL = -5 , USL = 5',
                       multiplier: '6', alpha: '0.25' };
   var CTX_ANIDADO = { date: '31 de agosto de 2026', method: 'anidado', operators: 3, parts: 10,
-                      replicates: 3, countLabel: 'piezas por operador',
+                      replicates: 3, countLabel: 'lotes por operador',
+                      repCountLabel: 'muestras por lote',
                       spec: 'LSL = -5 , USL = 5', multiplier: '6', alpha: '0.25' };
   /* En atributos la caja de especificaciones no se usa, pero app.js la lee
      igual y la pasa: el modelo tiene que ignorarla, no arrastrarla. */
@@ -151,6 +152,12 @@
     assert(cruz.indexOf('operadores') >= 0 && cruz.indexOf('mediciones') >= 0,
            'variables habla de operadores y mediciones: ' + cruz);
     assert(attr.indexOf('3 evaluadores x 6 piezas x 2 replicas = 36') === 0, attr);
+    /* En el anidado la replica es otra pieza del mismo lote, y el reporte lo
+       dice con sus palabras: "replicas" haria creer que se midio dos veces
+       una pieza que la prueba destruye. */
+    var ani = valueOf(R.headerRows(nestedResult(), CTX_ANIDADO), 'Estudio');
+    assert(ani.indexOf('3 operadores x 10 lotes por operador x 3 muestras por lote = 90 mediciones') === 0,
+           'anidado habla de lotes y muestras: ' + ani);
   });
 
   /* ======================================================================== *

@@ -105,20 +105,33 @@
     { id: 'cruzado', badge: 'Gage R&R \u00b7 Crossed ANOVA', available: true,
       engine: function () { return MSAAnova; },
       partsLabel: 'Piezas', partNamesLabel: 'Nombres de las piezas',
-      countLabel: 'piezas',
+      countLabel: 'piezas', partWord: 'Pieza',
+      repsLabel: 'Replicas', repWord: 'Replica', repCountLabel: 'replicas',
       help: 'Gage R&R por ANOVA cruzado: cada operador mide las mismas piezas varias veces.' },
     { id: 'anidado', badge: 'Gage R&R \u00b7 Nested ANOVA', available: true,
       engine: function () { return MSANested; },
-      partsLabel: 'Piezas por operador', partNamesLabel: 'Nombres de las piezas, por operador',
-      countLabel: 'piezas por operador',
-      help: 'Gage R&R anidado, para pruebas destructivas: cada operador mide sus propias piezas, ' +
-            'tomadas de un lote homogeneo. La pieza se identifica por el par operador + pieza, asi ' +
-            'que los numeros se pueden repetir entre operadores. El diseno no separa la interaccion ' +
-            'operador x pieza.' },
+      /* Las palabras del anidado son otras porque las cosas son otras. En una
+         prueba destructiva nadie mide dos veces la misma pieza: el renglon es
+         un LOTE (piezas que se suponen identicas) y cada columna es una
+         MUESTRA, otra pieza fisica de ese lote. Es lo que Minitab llama
+         "part or batch" y AIAG "split specimens". Decir "Pieza" y "Replica"
+         aqui invitaba a lo imposible: volver a medir lo que ya se rompio.
+         Por dentro el motor sigue llamandolos part / replicate (el ANOVA
+         publica "Pieza (Operador)", como el "Part (Operator)" de Minitab),
+         y el CSV conserva sus columnas para que lo exportado se reimporte. */
+      partsLabel: 'Lotes por operador', partNamesLabel: 'Nombres de los lotes, por operador',
+      countLabel: 'lotes por operador', partWord: 'Lote',
+      repsLabel: 'Muestras por lote', repWord: 'Muestra', repCountLabel: 'muestras por lote',
+      help: 'Gage R&R anidado, para pruebas destructivas: nadie mide dos veces la misma pieza. ' +
+            'Cada operador recibe sus propios lotes, y cada muestra es otra pieza del mismo lote, ' +
+            'que se supone identica a las demas. El lote se identifica por el par operador + lote, ' +
+            'asi que los numeros se pueden repetir entre operadores. El diseno no separa la ' +
+            'interaccion operador x pieza.' },
     { id: 'atributos', badge: 'Attribute Agreement Analysis', available: true,
       engine: function () { return MSAAttribute; },
       partsLabel: 'Piezas', partNamesLabel: 'Nombres de las piezas',
-      countLabel: 'piezas',
+      countLabel: 'piezas', partWord: 'Pieza',
+      repsLabel: 'Replicas', repWord: 'Replica', repCountLabel: 'replicas',
       help: 'Acuerdo entre evaluadores para datos de pasa / no pasa. Aqui no hay varianza que ' +
             'descomponer: se mide concordancia (porcentajes y kappa), no dispersion.' }
   ];
@@ -195,6 +208,7 @@
     $('methodBadge').textContent = m.badge;
     applyMethodVisibility(m.id);
     $('numPartsLabel').textContent = m.partsLabel;
+    $('numReplicatesLabel').textContent = m.repsLabel;
     $('partNamesLabel').textContent = m.partNamesLabel;
     [].slice.call(document.querySelectorAll('.method-opt')).forEach(function (btn) {
       var mm = methodById(btn.dataset.method);
@@ -255,9 +269,10 @@
   function methodSwitchNote(m) {
     if (m.id === 'anidado') {
       return 'Metodo cambiado a anidado y tabla vaciada. El anidado supone que cada operador midio ' +
-        'SUS PROPIAS piezas, tomadas de un lote homogeneo, porque medirlas las destruye. La pieza se ' +
-        'identifica por el par operador + pieza, asi que puedes numerar las de cada operador 1..n: ' +
-        'la "1" de uno y la "1" de otro se analizan como piezas distintas.';
+        'SUS PROPIOS lotes, porque medir una pieza la destruye. Cada muestra es otra pieza del ' +
+        'mismo lote, no la misma pieza medida otra vez. El lote se identifica por el par ' +
+        'operador + lote, asi que puedes numerar los de cada operador 1..n: el "1" de uno y el ' +
+        '"1" de otro se analizan como lotes distintos.';
     }
     if (m.id === 'atributos') {
       return 'Metodo cambiado a atributos y tabla vaciada. Aqui la celda no es un numero sino una ' +
@@ -354,7 +369,7 @@
     for (var o = 0; o < nOp; o++) {
       var prev = prevByOperator[o] || [];
       var group = [];
-      for (var p = 0; p < nPart; p++) group.push(prev[p] || ('Pieza ' + (o * nPart + p + 1)));
+      for (var p = 0; p < nPart; p++) group.push(prev[p] || ('Lote ' + (o * nPart + p + 1)));
       state.partsByOperator.push(group);
     }
 
@@ -422,7 +437,7 @@
       validateConfig();
       renderNameInputs();
 
-      var notes = [], what = kind === 'operators' ? 'operador' : 'pieza';
+      var notes = [], what = kind === 'operators' ? 'operador' : activeMethod().partWord.toLowerCase();
       if (got.header) notes.push('Se descarto "' + got.header + '": es el titulo de la columna, no un nombre.');
       if (got.repeated) {
         notes.push('Venian ' + got.repeated + ' nombre(s) de ' + what + ' repetidos (la columna de una ' +
@@ -431,7 +446,7 @@
       if (extra > 0) {
         notes.push('Se pegaron ' + got.names.length + ' nombres de ' + what + ' y caben ' + placed.length +
           (nested ? ' desde esa casilla. En el anidado la lista no crece sola: ajusta antes el numero de ' +
-                    'piezas por operador.'
+                    'lotes por operador.'
                   : ' (el maximo es ' + max + ').') +
           ' Quedaron fuera: ' + got.names.slice(placed.length).join(', ') + '.');
       }
@@ -461,7 +476,7 @@
       head.textContent = opNames[o] || ('Operador ' + (o + 1));
       host.appendChild(head);
       group.forEach(function (name, i) {
-        host.appendChild(nameInput(name, (opNames[o] || '') + ', pieza ' + (i + 1),
+        host.appendChild(nameInput(name, (opNames[o] || '') + ', lote ' + (i + 1),
           function (v) { onChange(o, i, v); }));
       });
     });
@@ -479,9 +494,9 @@
      hasta corregirlo. Los limites salen de los atributos min/max del propio
      input, para no repetirlos aqui. */
   var CONFIG_FIELDS = [
-    { id: 'numOperators', label: 'Operadores' },
-    { id: 'numParts', label: 'Piezas' },
-    { id: 'numReplicates', label: 'Replicas' }
+    { id: 'numOperators', label: function () { return 'Operadores'; } },
+    { id: 'numParts', label: function () { return activeMethod().partsLabel; } },
+    { id: 'numReplicates', label: function () { return activeMethod().repsLabel; } }
   ];
 
   function configErrors() {
@@ -493,7 +508,7 @@
       var bad = !isFinite(v) || String(el.value).trim() === '' || v < lo || v > hi;
       el.classList.toggle('invalid', bad);
       el.setAttribute('aria-invalid', bad ? 'true' : 'false');
-      if (bad) errs.push(f.label + ': un numero entero entre ' + lo + ' y ' + hi + '.');
+      if (bad) errs.push(f.label() + ': un numero entero entre ' + lo + ' y ' + hi + '.');
     });
     return errs;
   }
@@ -607,7 +622,7 @@
       state.partsByOperator = state.partsByOperator.map(function (g, o) {
         return g.map(function (v, i) {
           var t = String(v || '').trim();
-          return t || ('Pieza ' + (o * g.length + i + 1));
+          return t || ('Lote ' + (o * g.length + i + 1));
         });
       });
     } else {
@@ -626,7 +641,7 @@
     if (dup) {
       showMessages($('configMsg'), [isNested()
         ? 'Hay nombres repetidos ("' + dup + '") dentro de un mismo operador. Cada operador tiene ' +
-          'que poder distinguir sus propias piezas; entre operadores si se pueden repetir.'
+          'que poder distinguir sus propios lotes; entre operadores si se pueden repetir.'
         : 'Hay nombres repetidos ("' + dup + '"). Cada operador y cada pieza debe tener un nombre unico.'], []);
       return false;
     }
@@ -641,9 +656,11 @@
     // Clases explicitas por columna. No dependemos de :first-child, que alineaba
     // distinto la primera fila de cada operador: ahi la celda de pieza es el
     // segundo hijo, porque el th del operador ocupa el primero.
-    var thead = '<thead><tr><th class="col-op">Operador</th><th class="col-part">Pieza</th>';
+    var words = activeMethod();
+    var thead = '<thead><tr><th class="col-op">Operador</th><th class="col-part">' +
+                words.partWord + '</th>';
     for (var k = 1; k <= state.replicates; k++) {
-      thead += '<th class="col-meas">Replica ' + k + '</th>';
+      thead += '<th class="col-meas">' + words.repWord + ' ' + k + '</th>';
     }
     thead += '</tr></thead>';
 
@@ -663,7 +680,7 @@
           var v = previous[key] === undefined ? '' : previous[key];
           var attrs = ' data-op="' + esc(op) + '" data-part="' + esc(pt) + '" data-rep="' + k +
                       '" data-oi="' + oi + '" data-pi="' + pi + '" aria-label="' +
-                      esc(op + ', ' + pt + ', replica ' + (k + 1)) + '"';
+                      esc(op + ', ' + pt + ', ' + words.repWord.toLowerCase() + ' ' + (k + 1)) + '"';
           body += '<td class="col-meas">' + (isAttribute()
             ? '<select' + attrs + '><option value=""></option>' +
               cats.map(function (c) {
@@ -683,7 +700,7 @@
     $('captureSection').hidden = false;
     syncGenerateLabel();
     $('captureCount').textContent = ops.length + ' operadores x ' + partsPerOperator() + ' ' +
-      activeMethod().countLabel + ' x ' + state.replicates + ' replicas = ' +
+      words.countLabel + ' x ' + state.replicates + ' ' + words.repCountLabel + ' = ' +
       (ops.length * partsPerOperator() * state.replicates) + ' mediciones';
     wirePaste();
     notifyState('table');
@@ -755,9 +772,11 @@
         var named = MSAPaste.table(text);
         if (named) {
           try {
+            var w = activeMethod();
             loadPayload({ data: named.rows }, ['Se armo la tabla con los nombres del bloque pegado: ' +
-              named.operators + ' operadores, ' + named.parts + ' piezas y ' + named.replicates +
-              ' replicas.']);
+              named.operators + ' operadores, ' + named.parts + ' ' + w.partWord.toLowerCase() +
+              (named.parts === 1 ? '' : 's') + ' y ' + named.replicates + ' ' +
+              (isNested() ? w.repCountLabel : 'replicas') + '.']);
           } catch (e) {
             showMessages($('configMsg'), ['No se pudo leer el bloque pegado: ' + e.message], []);
           }
@@ -2297,7 +2316,7 @@
 
     var perOp = partsByOp.map(function (g) { return g.length; });
     if (isNested() && Math.min.apply(null, perOp) !== Math.max.apply(null, perOp)) {
-      notes.push('Los operadores no traen el mismo numero de piezas (entre ' +
+      notes.push('Los operadores no traen el mismo numero de lotes (entre ' +
         Math.min.apply(null, perOp) + ' y ' + Math.max.apply(null, perOp) +
         '): la tabla se arma con ' + perOp[0] + ' y las celdas que sobren quedan vacias.');
     }
@@ -2432,7 +2451,7 @@
     var rows = [], ops = ['Operador A', 'Operador B', 'Operador C'], nested = isNested();
     AIAG.forEach(function (vals, i) {
       ops.forEach(function (op, oi) {
-        var part = nested ? ('Pieza ' + (oi * 10 + i + 1)) : ('Pieza ' + (i + 1));
+        var part = nested ? ('Lote ' + (oi * 10 + i + 1)) : ('Pieza ' + (i + 1));
         for (var k = 0; k < 3; k++) rows.push({ operator: op, part: part, value: vals[oi * 3 + k] });
       });
     });
@@ -2442,8 +2461,9 @@
     guideToCalculate();
     if (nested) {
       showMessages($('configMsg'), [], ['Ejemplo cargado: son las mediciones del apendice del manual ' +
-        'AIAG MSA 4a ed. con las piezas renumeradas 1 a 30, para que ninguna la midan dos operadores. ' +
-        'Sirve para ver el metodo funcionando y para validar el motor; no es un estudio destructivo real.']);
+        'AIAG MSA 4a ed. con las piezas renumeradas como lotes 1 a 30, para que ninguno lo midan dos ' +
+        'operadores. Sirve para ver el metodo funcionando y para validar el motor; no es un estudio ' +
+        'destructivo real (ahi las tres muestras de cada lote serian tres piezas distintas).']);
     }
   }
 
@@ -2582,6 +2602,7 @@
       parts: partsPerOperator(),
       replicates: state.replicates,
       countLabel: m.countLabel,
+      repCountLabel: m.repCountLabel,
       spec: specLabel(),
       multiplier: $('svMultiplier').value,
       alpha: $('alpha').value,
@@ -2622,9 +2643,10 @@
     var withStd = Object.keys(std).length > 0;
     var h = '<h2>Anexo. ' + (attr ? 'Clasificaciones capturadas' : 'Mediciones capturadas') +
       '</h2><table><thead><tr>' +
-      '<th class="txt">' + (attr ? 'Evaluador' : 'Operador') + '</th><th class="txt">Pieza</th>' +
+      '<th class="txt">' + (attr ? 'Evaluador' : 'Operador') + '</th><th class="txt">' +
+      activeMethod().partWord + '</th>' +
       (withStd ? '<th class="txt">Estandar</th>' : '');
-    for (var i = 1; i <= k; i++) h += '<th>Replica ' + i + '</th>';
+    for (var i = 1; i <= k; i++) h += '<th>' + activeMethod().repWord + ' ' + i + '</th>';
     h += '</tr></thead><tbody>';
     var n = 0;
     state.operators.forEach(function (op, oi) {

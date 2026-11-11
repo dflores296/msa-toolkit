@@ -56,7 +56,12 @@ Los tres metodos que se usan en planta son **cruzado** (hecho), **anidado**
 
 **Por que.** El cruzado exige que cada operador mida *la misma pieza* varias
 veces. Si la pieza se destruye al medirla, eso es imposible. En el anidado cada
-operador recibe **piezas distintas** de un lote que se supone homogeneo.
+operador recibe **sus propios lotes**, y cada replica es **otra pieza** del
+mismo lote, que se supone homogeneo: nadie vuelve a medir lo que ya rompio. En
+la pantalla del anidado el renglon se llama *Lote* y la replica *Muestra*; el
+motor y el CSV conservan pieza / replica (el ANOVA publica *Pieza (Operador)*,
+como el *Part (Operator)* de Minitab). Las replicas siguen siendo minimo 2:
+son la unica fuente de la repetibilidad.
 
 **Consecuencia estadistica que hay que decir en la interfaz:** el diseno **no
 puede separar la interaccion operador x pieza**. La reproducibilidad sale como

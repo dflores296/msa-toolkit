@@ -92,8 +92,9 @@
       text: {
         cruzado: 'Operadores, piezas y replicas. AIAG sugiere 3 operadores, 10 piezas y 3 replicas; ' +
           'todos miden LAS MISMAS piezas, y las piezas deben cubrir el rango del proceso.',
-        anidado: 'Operadores, piezas POR OPERADOR y replicas. Cada operador mide sus propias piezas, ' +
-          'tomadas del mismo lote: el estudio supone que el lote es homogeneo.',
+        anidado: 'Operadores, lotes POR OPERADOR y muestras por lote. Nadie mide dos veces la misma ' +
+          'pieza: cada muestra es otra pieza del mismo lote, que se supone homogeneo. Minimo 2 ' +
+          'muestras por lote; sugerido 3 operadores, 10 lotes y 3 muestras.',
         atributos: 'Evaluadores, piezas y replicas. AIAG sugiere unas 50 piezas, 3 evaluadores y ' +
           '3 replicas, con mitad buenas y mitad malas: un lote desbalanceado infla la concordancia.'
       } },
@@ -110,8 +111,8 @@
       text: {
         cruzado: 'Opcional. Escribe los nombres reales de operadores y piezas; salen en las graficas ' +
           'y en el reporte.',
-        anidado: 'Opcional. Las piezas se listan bajo el operador que las midio, y puedes numerarlas ' +
-          '1..n en cada uno: la "1" de uno y la "1" de otro son piezas distintas.',
+        anidado: 'Opcional. Los lotes se listan bajo el operador que los midio, y puedes numerarlos ' +
+          '1..n en cada uno: el "1" de uno y el "1" de otro son lotes distintos.',
         atributos: 'Opcional. Escribe los nombres reales de evaluadores y piezas; salen en las tablas ' +
           'y en el reporte.'
       } },
@@ -139,8 +140,9 @@
       text: {
         cruzado: 'Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: ' +
           'se reparte solo. Se acepta punto o coma decimal.',
-        anidado: 'Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: ' +
-          'se reparte solo. Se acepta punto o coma decimal.',
+        anidado: 'Una medicion por muestra: cada columna es otra pieza del lote, no la misma pieza ' +
+          'medida otra vez. Puedes copiar un bloque desde Excel y pegarlo en la primera celda: se ' +
+          'reparte solo. Se acepta punto o coma decimal.',
         atributos: 'Elige la categoria de cada celda: lo que cada evaluador dijo de cada pieza en ' +
           'cada replica.'
       } },

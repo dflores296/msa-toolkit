@@ -79,7 +79,8 @@
    *             operators     numero de operadores o evaluadores capturados
    *             parts         piezas por operador (anidado) o piezas (resto)
    *             replicates    replicas por celda
-   *             countLabel    'piezas' | 'piezas por operador'
+   *             countLabel    'piezas' | 'lotes por operador'
+   *             repCountLabel 'replicas' | 'muestras por lote'
    *             spec          etiqueta de la especificacion (solo variables)
    *             multiplier    '6' | '5.15'                (solo variables)
    *             alpha         '0.25' | '0.05' | '0.10'    (solo cruzado)
@@ -109,7 +110,8 @@
     var attr = kind === 'atributos';
     return ['Estudio',
       nOp + (attr ? ' evaluadores x ' : ' operadores x ') + nPt + ' ' +
-      (c.countLabel || 'piezas') + ' x ' + nRep + ' replicas = ' + total + ' ' +
+      (c.countLabel || 'piezas') + ' x ' + nRep + ' ' + (c.repCountLabel || 'replicas') + ' = ' +
+      total + ' ' +
       (attr ? 'clasificaciones' : 'mediciones')];
   }
 

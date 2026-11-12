@@ -268,11 +268,8 @@
      cabeza al recapturar. */
   function methodSwitchNote(m) {
     if (m.id === 'anidado') {
-      return 'Metodo cambiado a anidado y tabla vaciada. El anidado supone que cada operador midio ' +
-        'SUS PROPIOS lotes, porque medir una pieza la destruye. Cada muestra es otra pieza del ' +
-        'mismo lote, no la misma pieza medida otra vez. El lote se identifica por el par ' +
-        'operador + lote, asi que puedes numerar los de cada operador 1..n: el "1" de uno y el ' +
-        '"1" de otro se analizan como lotes distintos.';
+      return 'Metodo cambiado a anidado y tabla vaciada. Cada renglon es un lote y cada muestra es ' +
+        'otra pieza de ese lote.';
     }
     if (m.id === 'atributos') {
       return 'Metodo cambiado a atributos y tabla vaciada. Aqui la celda no es un numero sino una ' +
@@ -1061,6 +1058,17 @@
        "R&R total", junto al numero al que se refiere. Repetirla arriba la
        convertiria en un segundo dictamen, que es justo lo que F-07 retira. */
     showMessages($('resultMsg'), [], result.warnings.slice());
+    /* Los supuestos del metodo van DEBAJO de los avisos y plegados: no
+       cambian de un estudio a otro, asi que en amarillo solo saturaban. Hoy
+       solo el anidado los publica aparte; el resto de los motores no trae el
+       campo y aqui no se pinta nada. */
+    if (result.assumptions && result.assumptions.length) {
+      $('resultMsg').insertAdjacentHTML('beforeend',
+        '<details class="assumptions"><summary>Supuestos del metodo (' +
+        result.assumptions.length + ')</summary><ul>' +
+        result.assumptions.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') +
+        '</ul></details>');
+    }
     /* Cada familia de metodos trae su propia vista de resultados, porque no
        publican la misma forma de respuesta: variables dan componentes de
        varianza, atributos da concordancias. El resto de la pantalla -pasos,
@@ -2460,10 +2468,8 @@
     loadPayload({ data: rows });
     guideToCalculate();
     if (nested) {
-      showMessages($('configMsg'), [], ['Ejemplo cargado: son las mediciones del apendice del manual ' +
-        'AIAG MSA 4a ed. con las piezas renumeradas como lotes 1 a 30, para que ninguno lo midan dos ' +
-        'operadores. Sirve para ver el metodo funcionando y para validar el motor; no es un estudio ' +
-        'destructivo real (ahi las tres muestras de cada lote serian tres piezas distintas).']);
+      showMessages($('configMsg'), [], ['Ejemplo AIAG renumerado como 30 lotes: sirve para ver el ' +
+        'metodo, no es una prueba destructiva real.']);
     }
   }
 
@@ -2539,7 +2545,7 @@
   function preparePrint() {
     if (printRestore) return;                       // ya preparado (Ctrl+P sobre el boton)
     var theme = currentTheme();
-    var revealed = [];
+    var revealed = [], unfolded = [];
 
     /* EL RESTAURADOR SE REGISTRA ANTES DE TOCAR LA PANTALLA.
        Antes se armaba al final, asi que si la preparacion fallaba a mitad --
@@ -2551,6 +2557,7 @@
        entero: pase lo que pase despues, la pantalla vuelve a su sitio. */
     printRestore = function () {
       revealed.forEach(function (el) { el.hidden = true; });
+      unfolded.forEach(function (el) { el.open = false; });
       if (theme === 'dark') applyTheme('dark', false);
       MSACharts.resizeAll();
       printRestore = null;
@@ -2565,6 +2572,10 @@
       [].slice.call(document.querySelectorAll('.tab-panel[hidden]'))
         .filter(function (el) { return appliesToMethod(el, method); })
         .forEach(function (el) { el.hidden = false; revealed.push(el); });
+      /* Los supuestos del metodo van plegados en pantalla, pero el papel no
+         se puede desplegar: se imprimen abiertos y se vuelven a plegar. */
+      [].slice.call(document.querySelectorAll('#resultMsg details.assumptions:not([open])'))
+        .forEach(function (el) { el.open = true; unfolded.push(el); });
       // El tema oscuro se imprimiria con fondos negros; los lienzos son mapas
       // de bits, asi que no basta con CSS: hay que redibujar en claro.
       if (theme === 'dark') applyTheme('light', false);

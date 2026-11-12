@@ -361,13 +361,20 @@
     expectError(sinOp, 'falta el operador', 'operador vacio');
   });
 
-  test('avisos fijos: homogeneidad del lote y ausencia de interaccion', function () {
+  test('supuestos fijos: van aparte de los avisos, y dicen homogeneidad e interaccion', function () {
+    /* Lo que el metodo supone siempre no es un aviso sobre ESTOS datos: se
+       publica en result.assumptions, que la pantalla muestra plegado, para
+       que los avisos que si dependen del estudio no se pierdan entre ellos. */
     var res = MSANested.compute(nestedRows());
-    var all = res.warnings.join(' | ');
-    assert(all.indexOf('lote') >= 0 && all.indexOf('homogeneo') >= 0,
-      'debe avisar del supuesto de lote homogeneo: ' + all);
-    assert(all.indexOf('no separa la interaccion') >= 0,
-      'debe decir que el diseno no separa la interaccion: ' + all);
+    var sup = (res.assumptions || []).join(' | ');
+    assert(sup.indexOf('lote es homogeneo') >= 0, 'supuesto de lote homogeneo: ' + sup);
+    assert(sup.indexOf('al azar') >= 0, 'supuesto de reparto al azar: ' + sup);
+    assert(sup.indexOf('rango del proceso') >= 0, 'supuesto de representatividad: ' + sup);
+    assert(sup.indexOf('No se separa la interaccion') >= 0, 'sin interaccion estimable: ' + sup);
+    var avisos = res.warnings.join(' | ');
+    res.assumptions.forEach(function (a) {
+      assert(avisos.indexOf(a) < 0, 'un supuesto no se repite entre los avisos: ' + a);
+    });
   });
 
   test('avisos: tamano del estudio y NDC, con los mismos umbrales del cruzado', function () {

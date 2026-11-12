@@ -92,9 +92,8 @@
       text: {
         cruzado: 'Operadores, piezas y replicas. AIAG sugiere 3 operadores, 10 piezas y 3 replicas; ' +
           'todos miden LAS MISMAS piezas, y las piezas deben cubrir el rango del proceso.',
-        anidado: 'Operadores, lotes POR OPERADOR y muestras por lote. Nadie mide dos veces la misma ' +
-          'pieza: cada muestra es otra pieza del mismo lote, que se supone homogeneo. Minimo 2 ' +
-          'muestras por lote; sugerido 3 operadores, 10 lotes y 3 muestras.',
+        anidado: 'Operadores, lotes por operador y muestras por lote. Cada muestra es otra pieza del ' +
+          'lote. Sugerido: 3, 10 y 3.',
         atributos: 'Evaluadores, piezas y replicas. AIAG sugiere unas 50 piezas, 3 evaluadores y ' +
           '3 replicas, con mitad buenas y mitad malas: un lote desbalanceado infla la concordancia.'
       } },
@@ -140,9 +139,8 @@
       text: {
         cruzado: 'Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: ' +
           'se reparte solo. Se acepta punto o coma decimal.',
-        anidado: 'Una medicion por muestra: cada columna es otra pieza del lote, no la misma pieza ' +
-          'medida otra vez. Puedes copiar un bloque desde Excel y pegarlo en la primera celda: se ' +
-          'reparte solo. Se acepta punto o coma decimal.',
+        anidado: 'Una medicion por muestra. Puedes pegar un bloque desde Excel en la primera celda: ' +
+          'se reparte solo.',
         atributos: 'Elige la categoria de cada celda: lo que cada evaluador dijo de cada pieza en ' +
           'cada replica.'
       } },

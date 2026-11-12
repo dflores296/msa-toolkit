@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MSA Toolkit &middot; Gage R&amp;R (ANOVA)</title>
 <meta name="description" content="Estudio Gage R&amp;R por ANOVA, cruzado y anidado (pruebas destructivas). Corre completo en el navegador, sin instalar nada.">
-<link rel="stylesheet" href="assets/css/style.css?v=20261111a">
+<link rel="stylesheet" href="assets/css/style.css?v=20261112a">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M14 86 H86 L14 14 Z' fill='none' stroke='%233ba6f1' stroke-width='12' stroke-linejoin='round'/></svg>">
 <script>
 /* Aplicar el tema guardado antes del primer pintado, para evitar parpadeo. */
@@ -79,18 +79,20 @@
       <summary class="config-summary"><span class="step">1</span> Configuracion del estudio</summary>
       <p class="hint" data-methods="cruzado">Define el tamano del estudio y los nombres. Cada operador mide
         las mismas piezas. AIAG sugiere 10 piezas, 3 operadores y 3 replicas.</p>
-      <p class="hint" data-methods="anidado">Define el tamano del estudio y los nombres. En una prueba
-        destructiva <strong>nadie mide dos veces la misma pieza</strong>: cada renglon es un
-        <strong>lote</strong> (piezas que se suponen identicas: de la misma corrida, o pedazos de una
-        misma muestra) y cada <strong>muestra</strong> es otra pieza fisica de ese lote, medida por el
-        mismo operador. Cada operador recibe sus propios lotes, y los lotes deben cubrir el rango del
-        proceso. Hacen falta al menos 2 muestras por lote: con una sola, la repetibilidad no se separa
-        de la diferencia entre lotes. Sugerido: 3 operadores, 10 lotes por operador y 3 muestras por
-        lote.<br>
-        El lote se identifica por el par <strong>operador + lote</strong>, asi que puedes numerar 1..n
-        los de cada operador: el &laquo;1&raquo; de uno y el &laquo;1&raquo; de otro se analizan como dos
-        lotes distintos. Al importar un CSV, la columna <em>pieza</em> es el lote y <em>replica</em> la
-        muestra.</p>
+      <p class="hint" data-methods="anidado">Prueba destructiva: cada renglon es un <strong>lote</strong>
+        y cada <strong>muestra</strong> es otra pieza de ese lote. Sugerido: 3 operadores, 10 lotes y
+        3 muestras.</p>
+      <details class="hint-more" data-methods="anidado">
+        <summary>Como elegir lotes y muestras</summary>
+        <ul>
+          <li>Lotes distintos entre si, que cubran el rango del proceso.</li>
+          <li>Muestras de un mismo lote lo mas parecidas posible: misma corrida, cavidad y material.</li>
+          <li>Minimo 2 muestras por lote: con una no se puede medir la repetibilidad.</li>
+          <li>Puedes numerar los lotes 1..n en cada operador: el &laquo;1&raquo; de uno y el
+            &laquo;1&raquo; de otro son lotes distintos.</li>
+          <li>CSV: columnas operador, pieza (el lote), replica (la muestra) y medicion.</li>
+        </ul>
+      </details>
 
       <p class="hint" data-methods="atributos">Define el tamano del estudio y los nombres. Cada evaluador
         clasifica <strong>las mismas piezas</strong> varias veces. AIAG sugiere alrededor de 50 piezas,
@@ -100,7 +102,7 @@
 
       <label class="field study-name"><span>Nombre del estudio <span class="opt">(opcional)</span></span>
         <input type="text" id="studyName" maxlength="120" placeholder="Ej. Diametro exterior, pieza XYZ"></label>
-      <p class="hint" style="margin-left:0">Importar espera un CSV con las columnas
+      <p class="hint" data-methods="cruzado atributos" style="margin-left:0">Importar espera un CSV con las columnas
         <strong>operador, pieza, replica, medicion</strong>: el mismo que exporta esta pagina.</p>
 
       <div class="config-row">
@@ -139,8 +141,6 @@
       <summary class="config-summary"><span class="step">2</span> Captura
         <strong id="captureStatus" class="status-pill"></strong></summary>
       <p class="hint">Escribe cada medicion, o copia un bloque desde Excel y pegalo en la primera celda: se reparte solo.</p>
-      <p class="hint" data-methods="anidado">Una medicion por muestra: cada columna es <strong>otra pieza</strong>
-        del mismo lote, no la misma pieza medida otra vez.</p>
 
       <div data-methods="atributos" style="margin-bottom:18px">
         <h3 class="subhead" style="margin-top:0">Estandar de cada pieza <span class="opt">(opcional)</span></h3>
@@ -476,18 +476,18 @@
 
 <!-- Chart.js 4.4.1 servido desde el propio repositorio: la app funciona sin conexion
      y no depende de que un CDN siga disponible. Licencia en assets/vendor/. -->
-<script src="assets/vendor/chart.umd.js?v=20261111a"></script>
-<script src="assets/js/design.js?v=20261111a"></script>
-<script src="assets/js/stats.js?v=20261111a"></script>
-<script src="assets/js/anova.js?v=20261111a"></script>
-<script src="assets/js/anova-nested.js?v=20261111a"></script>
-<script src="assets/js/attribute.js?v=20261111a"></script>
-<script src="assets/js/report.js?v=20261111a"></script>
-<script src="assets/js/mls.js?v=20261111a"></script>
-<script src="assets/js/interval.js?v=20261111a"></script>
-<script src="assets/js/paste.js?v=20261111a"></script>
-<script src="assets/js/charts.js?v=20261111a"></script>
-<script src="assets/js/guide.js?v=20261111a"></script>
-<script src="assets/js/app.js?v=20261111a"></script>
+<script src="assets/vendor/chart.umd.js?v=20261112a"></script>
+<script src="assets/js/design.js?v=20261112a"></script>
+<script src="assets/js/stats.js?v=20261112a"></script>
+<script src="assets/js/anova.js?v=20261112a"></script>
+<script src="assets/js/anova-nested.js?v=20261112a"></script>
+<script src="assets/js/attribute.js?v=20261112a"></script>
+<script src="assets/js/report.js?v=20261112a"></script>
+<script src="assets/js/mls.js?v=20261112a"></script>
+<script src="assets/js/interval.js?v=20261112a"></script>
+<script src="assets/js/paste.js?v=20261112a"></script>
+<script src="assets/js/charts.js?v=20261112a"></script>
+<script src="assets/js/guide.js?v=20261112a"></script>
+<script src="assets/js/app.js?v=20261112a"></script>
 </body>
 </html>

@@ -174,34 +174,30 @@
     }
     if (errors.length) return { ok: false, errors: errors, warnings: warnings, meta: null };
 
+    /* Avisos de suficiencia, informativos y sin bloquear nada (F-07 retiro el
+       piso de 60 mediciones que si bloqueaba el veredicto). Un renglon cada
+       uno: dicen algo de ESTOS datos, y por eso van a la vista. Lo que el
+       metodo supone siempre, sean cuales sean los datos, va aparte en
+       ASSUMPTIONS, plegado: repetirlo en amarillo en cada estudio saturaba
+       la pantalla y escondia los avisos que si cambian. */
     if (!global.MSAAnova.CONTROL_CONSTANTS[rep]) {
-      warnings.push('Sin constantes tabuladas para ' + rep +
-        ' muestras por lote (la tabla cubre 2 a 25): se omiten las cartas R y X-barra.');
+      warnings.push('Sin constantes para ' + rep + ' muestras por lote (la tabla cubre 2 a 25): ' +
+        'no se dibujan las cartas R y X-barra.');
     }
     var N = o * n * rep;
     if (N < 40) {
-      warnings.push('Solo ' + N + ' mediciones: por debajo de 40 el %GRR es muy impreciso. ' +
-        'Para destructivas conviene al menos 3 operadores y 10 lotes por operador.');
+      warnings.push('Solo ' + N + ' mediciones: con menos de 40 el %GRR es muy impreciso.');
     }
     if (n < 10) {
-      warnings.push('Con ' + n + ' lotes por operador el intervalo de confianza del componente ' +
-        'pieza a pieza (entre lotes) es amplio; conviene 10.');
+      warnings.push('Solo ' + n + ' lotes por operador: la variacion entre lotes sale imprecisa ' +
+        '(conviene 10).');
     }
     if (o < 3) {
-      warnings.push('Con ' + o + ' operadores la reproducibilidad se estima con poca precision; ' +
-        'AIAG sugiere 3.');
+      warnings.push('Solo ' + o + ' operadores: la reproducibilidad sale imprecisa (conviene 3).');
     }
-    /* Avisos de suficiencia, informativos y sin bloquear nada: los mismos que
-       el cruzado, por replicas y por representatividad del rango de piezas.
-       F-07 retiro el piso de 60 mediciones que si bloqueaba el veredicto. */
     if (rep < 3) {
-      warnings.push('Con ' + rep + ' muestras por lote la repetibilidad se estima con pocos grados de ' +
-        'libertad; conviene 3.');
+      warnings.push('Solo ' + rep + ' muestras por lote: la repetibilidad sale imprecisa (conviene 3).');
     }
-    warnings.push('Los lotes del estudio deben cubrir el rango de variacion esperado del proceso: ' +
-      'distintos entre si, y cada uno homogeneo por dentro. Si no lo cubren, el % Study Variation ' +
-      'sale optimista y ningun calculo de esta pagina puede detectarlo: es un juicio sobre como se ' +
-      'eligieron los lotes, no sobre los datos.');
 
     /* Dos listas planas, y la distincion importa (punto 2 de F-02):
        `parts`   son los nombres TAL CUAL se capturaron. Es lo que se muestra
@@ -231,6 +227,22 @@
       }
     };
   }
+
+  /* Lo que el anidado supone SIEMPRE y ningun dato de esta pagina puede
+     comprobar. No son avisos sobre un estudio en particular: son la letra
+     chica del metodo. Se publican aparte (result.assumptions) para que la
+     pantalla los muestre plegados, debajo de los avisos que si dependen de
+     los datos. Cada uno dice que se supone y a donde va a dar el error si el
+     supuesto falla: en los cuatro casos, el sistema de medicion carga con la
+     culpa o sale mejor de lo que es. */
+  var ASSUMPTIONS = [
+    'Cada lote es homogeneo: si sus muestras no son iguales, esa diferencia cuenta como repetibilidad.',
+    'Los lotes se repartieron al azar entre operadores: si no, la diferencia entre lotes cuenta ' +
+      'como reproducibilidad.',
+    'Los lotes cubren el rango del proceso: si no, el % Study Variation sale optimista.',
+    'No se separa la interaccion operador x pieza: nadie mide el mismo lote. Si cada lote alcanza ' +
+      'para todos los operadores, usa el cruzado con el lote como pieza.'
+  ];
 
   /* ------------------------------------------------------------------------
    * compute(rows, options)
@@ -422,43 +434,25 @@
         : global.MSAAnova.assess(pctSV, pctPT, pctContrib, ndc, icc),
       charts: buildChartData(operators, partsByOp, cell, cellMean, cellRange, r),
       warnings: val.warnings.slice(),
+      assumptions: ASSUMPTIONS.slice(),
       negativeComponents: negatives
     };
-
-    /* Avisos fijos, no resultados: los dos supuestos que sostienen el metodo
-       y que este estudio no puede comprobar. Uno es la homogeneidad DENTRO del
-       lote: las muestras son piezas distintas, y lo que difieran de verdad se
-       cuenta como repetibilidad. El otro es el reparto ENTRE operadores: si a
-       uno le tocaron los lotes altos, eso se cuenta como reproducibilidad. En
-       los dos casos el sistema de medicion carga con la culpa. */
-    result.warnings.push('El anidado supone que cada lote es homogeneo (sus muestras son identicas), y ' +
-      'este estudio no lo puede comprobar: son piezas distintas, y cualquier diferencia real entre ellas ' +
-      'se contabiliza como repetibilidad. Toma las muestras de cada lote lo mas juntas posible (misma ' +
-      'corrida, misma cavidad, mismo material).');
-    result.warnings.push('El anidado tambien supone que los lotes se repartieron al azar entre ' +
-      'operadores: cualquier diferencia real entre los lotes de cada operador se contabiliza como ' +
-      'reproducibilidad.');
-    result.warnings.push('El diseno anidado no separa la interaccion operador x pieza: ningun lote ' +
-      'lo miden dos operadores. La reproducibilidad que se reporta es el efecto de operador. Es una ' +
-      'limitacion del diseno, no del calculo. Si cada lote alcanza para que todos los operadores ' +
-      'midan sus muestras, usa el cruzado con el lote como pieza: ese si separa la interaccion.');
 
     global.MSAAnova.discriminationWarnings(disc).forEach(function (w) { result.warnings.push(w); });
 
     if (negatives.length) {
-      result.warnings.push('Componente(s) de varianza negativo(s) truncado(s) a cero: ' + negatives.join(', ') +
-        '. Indica que el efecto no se distingue del ruido; considera un estimador REML si se repite.');
+      result.warnings.push(negatives.join(' y ') + ': componente de varianza negativo, se tomo como 0. ' +
+        'Ese efecto no se distingue del ruido.');
     }
     if (decompositionError > 1e-9) {
       result.warnings.push('La descomposicion de sumas de cuadrados no cierra (error relativo ' +
         decompositionError.toExponential(2) + '). Revisa los datos capturados.');
     }
     if (ndc !== null && ndc < 5) {
-      result.warnings.push('NDC = ' + ndc + ' (menor que 5): el sistema no separa las piezas. ' +
-        'Revisa la resolucion del instrumento y los lotes elegidos.');
+      result.warnings.push('NDC = ' + ndc + ' (menor que 5): el sistema no separa bien los lotes.');
     }
     if (tol === null) {
-      result.warnings.push('Sin LSL/USL ni tolerancia directa: no se calcula %Tolerance (P/T).');
+      result.warnings.push('Sin LSL/USL ni tolerancia: no se calcula el %Tolerance.');
     } else if (tol.oneSided) {
       result.warnings.push('Especificacion unilateral (' + tol.mode.replace('unilateral-', '') +
         '): el %Tolerance compara media dispersion (' + (k / 2) + ' sigma) contra ' +
@@ -517,5 +511,5 @@
     };
   }
 
-  global.MSANested = { compute: compute, validate: validate };
+  global.MSANested = { compute: compute, validate: validate, ASSUMPTIONS: ASSUMPTIONS };
 })(typeof window !== 'undefined' ? window : globalThis);
